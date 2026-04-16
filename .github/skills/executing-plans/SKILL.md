@@ -1,6 +1,6 @@
 ---
 name: executing-plans
-description: Use when you have a written implementation plan to execute in a separate session with review checkpoints
+description: Use when you have a written implementation plan to execute in a separate session
 ---
 
 # Executing Plans
@@ -11,6 +11,14 @@ Load plan, review critically, execute all tasks, report when complete.
 
 **Announce at start:** "I'm using the executing-plans skill to implement this plan."
 
+**Required skills:** Allways reference the following skills when executing plans:
+- **test-driven-development** - REQUIRED: Use for all implementation tasks that involve writing code (TDD)
+- **clean-code** - REQUIRED: Use for all implementation tasks that involve writing code
+- **vue-best-practices** - REQUIRED: Use for all Vue.js implementation tasks
+- **prime-vue** - REQUIRED: Use for any PrimeVue component in Vue.js implementation
+- **vueuse-functions** - REQUIRED: Use for any VueUse function in Vue.js implementation
+- **vue-testing-best-practices** - REQUIRED: Use for all Vue.js testing tasks
+- **vue-router-best-practices** - REQUIRED: Use for any Vue Router implementation tasks
 
 ## The Process
 
@@ -21,14 +29,6 @@ Load plan, review critically, execute all tasks, report when complete.
 4. If no concerns: Create TodoWrite and proceed
 
 ### Step 2: Execute Tasks
-You Must use skills to implement the plan:
-- clean-code
-- test-driven-development
-- vue-best-practices
-- prime-vue
-- vueuse-functions
-- vue-testing-best-practices
-- vue-router-best-practices
 
 For each task:
 1. Mark as in_progress
@@ -68,10 +68,3 @@ After all tasks complete and verified:
 - Reference skills when plan says to
 - Stop when blocked, don't guess
 - Never start implementation on main/master branch without explicit user consent
-
-## Integration
-
-**Required workflow skills:**
-- **superpowers:using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
-- **superpowers:writing-plans** - Creates the plan this skill executes
-- **superpowers:finishing-a-development-branch** - Complete development after all tasks

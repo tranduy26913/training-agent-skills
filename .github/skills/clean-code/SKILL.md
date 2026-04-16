@@ -1,288 +1,160 @@
 ---
 name: clean-code
-description: Use when you want to write code that is easy to read, maintain, and extend
+description: Use for ALL coding tasks. Follow pragmatic clean code principles to write concise, direct, and solution-focused code.
 ---
 
-## I. NAMING CONVENTIONS
+# Clean Code - Pragmatic AI Coding Standards
 
-### 1. Use Meaningful Names
-- Names must be clear and reveal intent
-- Avoid unclear abbreviations
-- Use English consistently across the project
-- Variables should be nouns: `userName`, `isActive`
-- Functions should be verbs: `getUserList()`, `calculateTotal()`, `isValidEmail()`
-
-### 2. Type-Based Naming
-**Boolean:** `isActive`, `isLoading`, `hasPermission`, `canDelete`, `shouldUpdate`
-**Array/Collection:** `users`, `userList`, `userItems`
-**Number/Count:** `count`, `total`, `index`, `score`, `timeout`
-
-### 3. Extract Magic Numbers & Strings
-Use named constants instead of hardcoded values:
-```
-const MAX_USERS = 100;
-const ADMIN_ROLE = 'admin';
-const SESSION_TIMEOUT_MS = 30000;
-```
+> **CRITICAL SKILL** - Be **concise, direct, and solution-focused**.
 
 ---
 
-## II. FUNCTIONS & METHODS
+## Core Principles
 
-### 1. Single Responsibility Principle (SRP)
-A function should do one thing and do it well. A function doing multiple things should be broken down.
-
-### 2. Function Length
-- Keep functions small (ideally under 20-30 lines)
-- Maximum 1-3 levels of indentation
-- If longer, extract into smaller functions
-
-### 3. Function Parameters
-- Limit to 3-4 parameters maximum
-- If more needed, use object/DTO:
-  ```
-  function createUser(userDto: CreateUserDTO)
-  ```
-- Place default parameters at the end
-
-### 4. Function Names
-Be descriptive about what the function does:
-- `getUserById(userId)` ✅
-- `calculateDiscountPrice(originalPrice, discountPercent)` ✅
-- `handle(input)` ❌
-- `process(data)` ❌
-
-### 5. Avoid Unintended Side Effects
-Functions should be pure when possible - not modify external state:
-```
-// ❌ BAD - modifies global state
-let cache = [];
-function addUser(user) {
-  cache.push(user);
-  return cache;
-}
-
-// ✅ GOOD - pure function
-function addUser(users: User[], newUser: User): User[] {
-  return [...users, newUser];
-}
-```
+| Principle | Rule |
+|-----------|------|
+| **SRP** | Single Responsibility - each function/class does ONE thing |
+| **DRY** | Don't Repeat Yourself - extract duplicates, reuse |
+| **KISS** | Keep It Simple - simplest solution that works |
+| **YAGNI** | You Aren't Gonna Need It - don't build unused features |
+| **Boy Scout** | Leave code cleaner than you found it |
 
 ---
 
-## III. VARIABLES & SCOPE
+## Commenting Guidelines
+**IMPORTANT** comment with English and Japanese.
+### 1. Use both English and Japanese comments
+Comments should be written in both English and Japanese to ensure clarity for all team members. Use concise language.
 
-### 1. Narrow Scope
-- Use `const` by default, `let` when reassignment is needed, never `var`
-- Declare variables close to where they're used
-- Avoid global variables
+### 2. Comment in all functions, classes, and complex logic
+- Every function and class should have a comment explaining its purpose, parameters, and return value.
+- Complex logic should be explained with comments to clarify intent and reasoning.
 
-### 2. Minimize Reassignments
-- Avoid reassigning variables multiple times
-- Chain operations: `const result = data.filter(...).map(...)`
-
-### 3. Limit Object Mutation
-Prefer creating new objects over mutating existing ones:
-```
-// ❌ BAD
-function updateUser(user) {
-  user.name = 'Name';
-  return user;
-}
-
-// ✅ GOOD  
-function updateUser(user, updates) {
-  return { ...user, ...updates };
-}
-```
-
----
-
-## IV. CONDITIONALS & LOOPS
-
-### 1. Simplify Complex Conditions
-Extract complex conditions into named functions:
-```
-// ✅ GOOD
-function isUserAdmin(user) {
-  return user && user.isActive && user.role === 'admin';
-}
-
-if (isUserAdmin(user)) { ... }
-```
-
-### 2. Use Guard Clauses
-Exit early with guard clauses instead of deeply nested conditions:
-```
-function processOrder(order) {
-  if (!order) return false;
-  if (order.items.length === 0) return false;
-  if (order.total <= 0) return false;
-  // Process...
-}
-```
-
-### 3. Avoid Negative Conditions
-Use positive conditions when possible:
-- `if (isActive)` ✅ instead of `if (!isInactive)`
-
-### 4. Use Ternary Operators Appropriately
-Keep ternary operations simple and readable.
-
----
-
-## V. ERROR HANDLING
-
-### 1. Specific Try-Catch Blocks
-Keep try-catch blocks small and focused:
-```
-try {
-  const users = await fetchUsers();
-} catch (error) {
-  logger.error('Failed to fetch users', error);
-  throw new UserFetchError('Cannot retrieve users', error);
-}
-```
-
-### 2. Throw Meaningful Errors
-- Create custom error classes for different error types
-- Include context in error messages
-- Don't throw generic `Error`, use specific types
-
-### 3. Handle Errors, Don't Ignore Them
-- Don't silently catch and ignore errors
-- Log appropriately
-- Re-throw if you can't handle it
-
-### 4. Avoid Silent Failures
-Explicit error handling is better than optional chaining that returns undefined. Validate state and throw errors when expectations aren't met.
-
----
-
-## VI. COMMENTS & DOCUMENTATION
-**IMPORTANT** commnent with English and Japanese for better understanding and maintainability.
-### 1. Comments Explain Why, Not What
-- Code structure explains "what" - comments explain "why"
-- Avoid obvious comments
-- Document non-obvious decisions
-
-### 2. No Commented-Out Code
+### 3. No Commented-Out Code
 - Don't leave commented-out code in the codebase
 - Use version control if you need to retrieve old code
 
-### 3. Use TODO and FIXME
+### 4. Use TODO and FIXME
 ```
 // TODO: Optimize query when table exceeds 100k records
 // FIXME: Memory leak on logout (see issue #789)
 ```
 
-### 4. JSDoc for Public APIs
+### 5. JSDoc for Public APIs
 Document public functions, classes, and APIs with JSDoc comments including parameters, return types, and examples.
 
----
 
-## VII. DRY - Don't Repeat Yourself
+## Naming Rules
 
-### 1. Extract Common Logic
-If you write similar code in multiple places, extract it into a shared function.
+| Element | Convention |
+|---------|------------|
+| **Variables** | Reveal intent: `userCount` not `n` |
+| **Functions** | Verb + noun: `getUserById()` not `user()` |
+| **Booleans** | Question form: `isActive`, `hasPermission`, `canEdit` |
+| **Constants** | SCREAMING_SNAKE: `MAX_RETRY_COUNT` |
 
-### 2. Use Higher-Order Functions
-Use `map()`, `filter()`, `reduce()` to avoid repeating loop logic.
-
-### 3. Reusable Utilities
-Create utility functions for frequently used operations.
-
----
-
-## VIII. SOLID PRINCIPLES
-
-### Single Responsibility Principle (SRP)
-Each class/module should have one reason to change. Separate concerns: database, validation, notifications, etc.
-
-### Open/Closed Principle
-Classes should be open for extension, closed for modification. Use inheritance, strategies, or composition instead of modifying existing code.
-
-### Liskov Substitution Principle
-Derived classes must be substitutable for base classes without breaking the code.
-
-### Interface Segregation Principle
-Clients shouldn't depend on interfaces they don't use. Create specific interfaces rather than large general ones.
-
-### Dependency Inversion Principle
-Depend on abstractions, not concrete implementations. Inject dependencies rather than creating them internally.
+> **Rule:** If you need a comment to explain a name, rename it.
 
 ---
 
-## IX. CODE FORMATTING & STYLE
+## Function Rules
 
-### 1. Consistent Indentation
-- Use 2 or 4 spaces (don't mix tabs and spaces)
-- Maintain consistency across the entire project
-- Use linters like ESLint and Prettier
-
-### 2. Line Length
-- Keep lines under 80-100 characters
-- Easier to read on different screen sizes
-- Avoid horizontal scrolling
-
-### 3. Naming Conventions
-- **Constants:** `MAX_USERS`, `ADMIN_ROLE` (UPPER_SNAKE_CASE)
-- **Classes:** `UserService`, `DatabaseConnection` (PascalCase)
-- **Functions/Methods:** `getUserById()`, `calculateTotal()` (camelCase)
-- **Private members:** `_privateMethod()`, `_internalState`
-
-### 4. Use Blank Lines
-Use blank lines to separate logical sections within functions and between related groups of functions.
+| Rule | Description |
+|------|-------------|
+| **Small** | Max 20 lines, ideally 5-10 |
+| **One Thing** | Does one thing, does it well |
+| **One Level** | One level of abstraction per function |
+| **Few Args** | Max 3 arguments, prefer 0-2 |
+| **No Side Effects** | Don't mutate inputs unexpectedly |
 
 ---
 
-## X. ADVANCED PATTERNS
+## Code Structure
 
-### 1. Defensive Programming
-- Validate input parameters
-- Handle edge cases explicitly
-- Don't assume data is in expected format
-
-### 2. Type Safety (TypeScript)
-- Use strong typing to catch errors at compile time
-- Avoid `any` types
-- Leverage type inference
-
-### 3. Testability
-- Write code that's easy to test
-- Favor pure functions over functions with side effects
-- Inject dependencies rather than hardcoding them
-
-### 4. Performance
-- Use appropriate data structures (Map for O(1) lookup vs Array for O(n))
-- Memoize expensive computations
-- Lazy-load when possible
-- Profile before optimizing prematurely
+| Pattern | Apply |
+|---------|-------|
+| **Guard Clauses** | Early returns for edge cases |
+| **Flat > Nested** | Avoid deep nesting (max 2 levels) |
+| **Composition** | Small functions composed together |
+| **Colocation** | Keep related code close |
 
 ---
 
-## XI. CODE REVIEW CHECKLIST
+## AI Coding Style
 
-- [ ] Names are clear and meaningful?
-- [ ] Functions do one thing well?
-- [ ] No magic numbers/strings?
-- [ ] Comments are helpful, not obvious?
-- [ ] Error handling is appropriate?
-- [ ] No code duplication (DRY)?
-- [ ] Conditions are simple and readable?
-- [ ] Variable scope is narrow?
-- [ ] Side effects are controlled?
-- [ ] No commented-out code?
-- [ ] Code is testable?
-- [ ] Performance acceptable?
-- [ ] Security considerations addressed?
+| Situation | Action |
+|-----------|--------|
+| User asks for feature | Write it directly |
+| User reports bug | Fix it, don't explain |
+| No clear requirement | Ask, don't assume |
 
 ---
 
-## References
+## Anti-Patterns (DON'T)
 
-- **Clean Code** by Robert C. Martin (Uncle Bob)
-- **Code Complete** by Steve McConnell
-- **Refactoring** by Martin Fowler
-- **The Pragmatic Programmer**
-- **SOLID Principles Documentation**
+| ❌ Pattern | ✅ Fix |
+|-----------|-------|
+| Comment every line | Delete obvious comments |
+| Helper for one-liner | Inline the code |
+| Factory for 2 objects | Direct instantiation |
+| utils.ts with 1 function | Put code where used |
+| "First we import..." | Just write code |
+| Deep nesting | Guard clauses |
+| Magic numbers | Named constants |
+| God functions | Split by responsibility |
+
+---
+
+## 🔴 Before Editing ANY File (THINK FIRST!)
+
+**Before changing a file, ask yourself:**
+
+| Question | Why |
+|----------|-----|
+| **What imports this file?** | They might break |
+| **What does this file import?** | Interface changes |
+| **What tests cover this?** | Tests might fail |
+| **Is this a shared component?** | Multiple places affected |
+
+**Quick Check:**
+```
+File to edit: UserService.ts
+└── Who imports this? → UserController.ts, AuthController.ts
+└── Do they need changes too? → Check function signatures
+```
+
+> 🔴 **Rule:** Edit the file + all dependent files in the SAME task.
+> 🔴 **Never leave broken imports or missing updates.**
+
+---
+
+## Summary
+
+| Do | Don't |
+|----|-------|
+| Write code directly | Write tutorials |
+| Let code self-document | Add obvious comments |
+| Fix bugs immediately | Explain the fix first |
+| Inline small things | Create unnecessary files |
+| Name things clearly | Use abbreviations |
+| Keep functions small | Write 100+ line functions |
+
+> **Remember: The user wants working code, not a programming lesson.**
+
+---
+
+## 🔴 Self-Check Before Completing (MANDATORY)
+
+**Before saying "task complete", verify:**
+
+| Check | Question |
+|-------|----------|
+| ✅ **Goal met?** | Did I do exactly what user asked? |
+| ✅ **Files edited?** | Did I modify all necessary files? |
+| ✅ **Code works?** | Did I test/verify the change? |
+| ✅ **No errors?** | Lint and TypeScript pass? |
+| ✅ **Nothing forgotten?** | Any edge cases missed? |
+
+> 🔴 **Rule:** If ANY check fails, fix it before completing.
+
+---
