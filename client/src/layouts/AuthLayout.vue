@@ -1,0 +1,7 @@
+<template>
+  <div class="min-h-screen flex items-center justify-center bg-surface-50 dark:bg-surface-950">
+    <div class="w-full max-w-md p-6">
+      <router-view />
+    </div>
+  </div>
+</template>
