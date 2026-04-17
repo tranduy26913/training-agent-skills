@@ -1,0 +1,18 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://localhost:5174",
+      "localStorage": [
+        {
+          "name": "token",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWRtaW5AYXBwLmNvbSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc3NjQyODg4MiwiZXhwIjoxNzc3MDMzNjgyfQ.K5tlD2EhFXYfeAkT9wztaRDIE6rHx091yjYDt0xe4rw"
+        },
+        {
+          "name": "user",
+          "value": "{\"id\":1,\"name\":\"Administrator\",\"email\":\"admin@app.com\",\"role\":\"admin\",\"status\":\"active\",\"avatar\":null,\"created_at\":\"2026-04-15T09:50:48.000Z\",\"updated_at\":\"2026-04-15T10:00:08.000Z\"}"
+        }
+      ]
+    }
+  ]
+}

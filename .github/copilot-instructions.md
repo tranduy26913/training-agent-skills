@@ -6,3 +6,4 @@
 - **vueuse-functions** - REQUIRED: Use for any VueUse function in Vue.js implementation
 - **vue-testing-best-practices** - REQUIRED: Use for all Vue.js testing tasks
 - **vue-router-best-practices** - REQUIRED: Use for any Vue Router implementation tasks
+- **review-and-fix-tests** - REQUIRED: Use when reviewing, auditing, adding missing, or fixing UT/E2E tests

@@ -12,6 +12,18 @@ export const userRoutes: RouteRecordRaw[] = [
         component: () => import('./UserListPage.vue'),
         meta: { title: 'Users', breadcrumb: 'Users' },
       },
+      {
+        path: 'create',
+        name: 'UserCreate',
+        component: () => import('./UserCreatePage.vue'),
+        meta: { title: 'Create User' },
+      },
+      {
+        path: ':id/edit',
+        name: 'UserEdit',
+        component: () => import('./UserEditPage.vue'),
+        meta: { title: 'Edit User' },
+      },
     ],
   },
 ];
