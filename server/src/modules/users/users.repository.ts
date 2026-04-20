@@ -1,51 +1,7 @@
 import { BaseRepository } from '../../database/base.repository';
 import { pool } from '../../database/connection';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2/promise';
-
-// ユーザーデータ型 / User data type
-export interface UserRow extends RowDataPacket {
-  id: number;
-  name: string;
-  email: string;
-  password: string;
-  role: 'admin' | 'user' | 'moderator';
-  status: 'active' | 'inactive' | 'suspended';
-  avatar: string | null;
-  created_at: Date;
-  updated_at: Date;
-}
-
-// フィルター型 / Filter parameters type
-export interface UserFilters {
-  search?: string;
-  role?: string;
-  status?: string;
-  startDate?: string;
-  endDate?: string;
-  page?: number;
-  limit?: number;
-  sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
-}
-
-// 監査ログ型 / Audit log entry type
-export interface AuditLogEntry {
-  admin_id: number;
-  target_user_id: number;
-  action: 'CREATE' | 'UPDATE' | 'DELETE';
-  changed_fields?: Record<string, { old: unknown; new: unknown }> | null;
-}
-
-// 監査ログ行型 / Audit log row type
-export interface AuditLogRow extends RowDataPacket {
-  id: number;
-  admin_id: number;
-  target_user_id: number;
-  action: string;
-  changed_fields: Record<string, { old: unknown; new: unknown }> | null;
-  timestamp: Date;
-  admin_name: string;
-}
+import type { UserRow, UserFilters, AuditLogEntry, AuditLogRow } from '../../models/users.model';
 
 export class UsersRepository extends BaseRepository<UserRow> {
   constructor() {

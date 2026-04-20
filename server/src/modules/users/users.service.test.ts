@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { UsersService, ServiceError } from './users.service';
-import type { UserRow } from './users.repository';
+import type { UserRow } from '../../models/users.model';
 
 // パスワードハッシュモック / Mock hash utility
 vi.mock('../../utils/hash.util', () => ({

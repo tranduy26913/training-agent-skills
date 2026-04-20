@@ -1,3 +1,50 @@
+<script setup lang="ts">
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { storeToRefs } from 'pinia';
+import { useAuthStore } from '@/stores/auth.store';
+import { useUiStore } from '@/stores/ui.store';
+
+const { t } = useI18n();
+const authStore = useAuthStore();
+const uiStore = useUiStore();
+const { sidebarCollapsed } = storeToRefs(uiStore);
+const { isAdmin } = storeToRefs(authStore);
+
+interface MenuItem {
+  labelKey: string;
+  icon: string;
+  to: string;
+  roles?: string[];
+}
+
+const menuItems: MenuItem[] = [
+  {
+    labelKey: 'sidebar.overview',
+    icon: 'pi pi-home',
+    to: '/dashboard',
+  },
+  {
+    labelKey: 'sidebar.users',
+    icon: 'pi pi-users',
+    to: '/users',
+    roles: ['admin'],
+  },
+  {
+    labelKey: 'sidebar.settings',
+    icon: 'pi pi-cog',
+    to: '/settings',
+  },
+];
+
+const visibleMenuItems = computed(() => {
+  return menuItems.filter((item) => {
+    if (!item.roles) return true;
+    return item.roles.includes(authStore.userRole);
+  });
+});
+</script>
+
 <template>
   <aside
     class="fixed left-0 top-0 h-full bg-surface-0 dark:bg-surface-900 border-r border-surface-200 dark:border-surface-700 z-50 transition-all duration-300 flex flex-col"
@@ -6,14 +53,14 @@
     <!-- Logo -->
     <div class="h-16 flex items-center justify-center border-b border-surface-200 dark:border-surface-700 px-4">
       <span v-if="!sidebarCollapsed" class="text-xl font-bold text-primary">
-        {{ isAdmin ? 'Admin Panel' : 'User Panel' }}
+        {{ isAdmin ? t('sidebar.adminPanel') : t('sidebar.userPanel') }}
       </span>
       <span v-else class="text-xl font-bold text-primary">
         {{ isAdmin ? 'A' : 'U' }}
       </span>
     </div>
 
-    <!-- Navigation -->
+    <!-- Navigation / ナビゲーション -->
     <nav class="flex-1 py-4">
       <ul class="space-y-1 px-2">
         <li v-for="item in visibleMenuItems" :key="item.to">
@@ -23,7 +70,7 @@
             active-class="!bg-primary/10 !text-primary font-semibold"
           >
             <i :class="item.icon" class="text-lg" style="min-width: 24px; text-align: center;"></i>
-            <span v-if="!sidebarCollapsed" class="text-sm">{{ item.label }}</span>
+            <span v-if="!sidebarCollapsed" class="text-sm">{{ t(item.labelKey) }}</span>
           </router-link>
         </li>
       </ul>
@@ -40,48 +87,3 @@
     </div>
   </aside>
 </template>
-
-<script setup lang="ts">
-import { computed } from 'vue';
-import { storeToRefs } from 'pinia';
-import { useAuthStore } from '@/stores/auth.store';
-import { useUiStore } from '@/stores/ui.store';
-
-const authStore = useAuthStore();
-const uiStore = useUiStore();
-const { sidebarCollapsed } = storeToRefs(uiStore);
-const { isAdmin } = storeToRefs(authStore);
-
-interface MenuItem {
-  label: string;
-  icon: string;
-  to: string;
-  roles?: string[];
-}
-
-const menuItems: MenuItem[] = [
-  {
-    label: 'Overview',
-    icon: 'pi pi-home',
-    to: '/dashboard',
-  },
-  {
-    label: 'Users',
-    icon: 'pi pi-users',
-    to: '/users',
-    roles: ['admin'],
-  },
-  {
-    label: 'Settings',
-    icon: 'pi pi-cog',
-    to: '/settings',
-  },
-];
-
-const visibleMenuItems = computed(() => {
-  return menuItems.filter((item) => {
-    if (!item.roles) return true;
-    return item.roles.includes(authStore.userRole);
-  });
-});
-</script>

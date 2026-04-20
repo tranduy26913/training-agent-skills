@@ -1,19 +1,14 @@
 import { UsersRepository } from './users.repository';
 import { hashPassword } from '../../utils/hash.util';
-import type { UserFilters, UserRow, AuditLogRow } from './users.repository';
+import { ServiceError } from '../../models/common.model';
+import type { UserRow, UserFilters, AuditLogRow } from '../../models/users.model';
+import type { PaginatedResult } from '../../models/common.model';
 import type { CreateUserInput, UpdateUserInput } from './users.validation';
 
-// サービスエラー型 / Service error with status code
-export class ServiceError extends Error {
-  constructor(
-    message: string,
-    public code: number,
-  ) {
-    super(message);
-    this.name = 'ServiceError';
-  }
-}
+// ServiceErrorを再エクスポート / Re-export for controller usage
+export { ServiceError };
 
+// ユーザーサービス / Users business logic service
 export class UsersService {
   private repository: UsersRepository;
 
@@ -45,17 +40,19 @@ export class UsersService {
   }
 
   // ユーザー一覧取得 / Get paginated users with filters
-  async getUsers(filters: UserFilters): Promise<{ data: UserRow[]; total: number; page: number; limit: number; pages: number }> {
+  async getUsers(filters: UserFilters): Promise<PaginatedResult<UserRow>> {
     const page = filters.page || 1;
     const limit = filters.limit || 20;
     const { data, total } = await this.repository.findAllWithFilters(filters);
 
     return {
       data,
-      total,
-      page,
-      limit,
-      pages: Math.ceil(total / limit),
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
     };
   }
 

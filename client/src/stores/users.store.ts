@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia';
 import { ref, computed, shallowRef } from 'vue';
 import { useUsers } from '@/pages/users/composables/useUsers';
-import { useToast } from 'primevue/usetoast';
-import type { User, UserFilters, PaginationInfo, AuditLog } from '@/pages/users/composables/useUsers';
+import type { User, UserFilters, AuditLog } from '@/types/users.types';
+import type { PaginationInfo } from '@/types/api.types';
 
 export const useUsersStore = defineStore('users', () => {
   const { getUsers: apiGetUsers, getUser: apiGetUser, createUser: apiCreateUser, updateUser: apiUpdateUser, deleteUser: apiDeleteUser, getUserActivity: apiGetUserActivity } = useUsers();

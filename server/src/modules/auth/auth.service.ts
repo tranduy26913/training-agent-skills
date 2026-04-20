@@ -1,20 +1,14 @@
 import { pool } from '../../database/connection';
 import { comparePassword } from '../../utils/hash.util';
 import { signToken } from '../../utils/token.util';
-import type { RowDataPacket } from 'mysql2/promise';
+import type { UserRow } from '../../models/users.model';
+import type { LoginResponseData } from '../../models/auth.model';
 import type { LoginInput } from './auth.validation';
 
-interface UserRow extends RowDataPacket {
-  id: number;
-  name: string;
-  email: string;
-  password: string;
-  role: 'admin' | 'user' | 'moderator';
-  status: string;
-}
-
+// 認証サービス / Authentication service
 export class AuthService {
-  async login(input: LoginInput): Promise<{ token: string; user: Omit<UserRow, 'password'> } | null> {
+  // ログイン処理 / Login with email and password
+  async login(input: LoginInput): Promise<LoginResponseData | null> {
     const [rows] = await pool.query<UserRow[]>(
       'SELECT * FROM `users` WHERE `email` = ? LIMIT 1',
       [input.email]

@@ -102,6 +102,7 @@ client/
 │   │   │   ├── AppTopbar.vue
 │   │   │   ├── AppFooter.vue
 │   │   │   ├── AppBreadcrumb.vue
+│   │   │   ├── LanguageSwitcher.vue
 │   │   │   └── AppMenu.vue
 │   │   └── common/               # Reusable business components
 │   │       ├── StatusBadge.vue
@@ -130,8 +131,15 @@ client/
 │   │   ├── user.service.ts       # User CRUD API calls
 │   │   └── upload.service.ts     # File upload API
 │   │
+│   ├── locales/                  # ★ I18N TRANSLATIONS ★
+│   │   ├── index.ts              # Locale barrel export
+│   │   ├── en.ts                 # English translations
+│   │   ├── vi.ts                 # Vietnamese translations
+│   │   └── ja.ts                 # Japanese translations
+│   │
 │   ├── plugins/                  # Vue plugin registrations
 │   │   ├── primevue.ts           # PrimeVue + theme setup
+│   │   ├── i18n.ts               # vue-i18n setup & locale config
 │   │   ├── pinia.ts              # Pinia setup
 │   │   └── router.ts             # Router plugin
 │   │
@@ -383,6 +391,7 @@ database/
 | `@primevue/themes` | PrimeVue Aura/Lara theme | client |
 | `vue-router@4` | Client-side routing | client |
 | `pinia@2` | State management | client |
+| `vue-i18n@10` | Internationalization (EN, VI, JA) | client |
 | `axios` | HTTP client | client |
 | `express@4` | HTTP server framework | server |
 | `mysql2` | MySQL driver (Promise API) | server |

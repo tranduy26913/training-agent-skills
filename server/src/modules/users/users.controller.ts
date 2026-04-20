@@ -1,6 +1,6 @@
 import { Response } from 'express';
-import { UsersService, ServiceError } from './users.service';
-import { sendSuccess, sendError } from '../../utils/response.util';
+import { UsersService } from './users.service';
+import { sendSuccess, handleError } from '../../utils/response.util';
 import type { AuthenticatedRequest } from '../../types/express.d';
 
 const usersService = new UsersService();
@@ -22,15 +22,7 @@ export class UsersController {
       };
 
       const result = await usersService.getUsers(filters);
-      sendSuccess(res, {
-        data: result.data,
-        pagination: {
-          page: result.page,
-          limit: result.limit,
-          total: result.total,
-          pages: result.pages,
-        },
-      });
+      sendSuccess(res, result);
     } catch (error) {
       handleError(res, error);
     }
@@ -41,7 +33,7 @@ export class UsersController {
     try {
       const id = Number(req.params.id);
       const user = await usersService.getUser(id);
-      sendSuccess(res, { data: user });
+      sendSuccess(res, user);
     } catch (error) {
       handleError(res, error);
     }
@@ -52,7 +44,7 @@ export class UsersController {
     try {
       const adminId = req.user!.userId;
       const user = await usersService.createUser(req.body, adminId);
-      sendSuccess(res, { data: user }, 201);
+      sendSuccess(res, user, 201);
     } catch (error) {
       handleError(res, error);
     }
@@ -64,7 +56,7 @@ export class UsersController {
       const id = Number(req.params.id);
       const adminId = req.user!.userId;
       const user = await usersService.updateUser(id, req.body, adminId);
-      sendSuccess(res, { data: user });
+      sendSuccess(res, user);
     } catch (error) {
       handleError(res, error);
     }
@@ -88,18 +80,10 @@ export class UsersController {
       const id = Number(req.params.id);
       const limit = req.query.limit ? Number(req.query.limit) : undefined;
       const logs = await usersService.getUserActivity(id, limit);
-      sendSuccess(res, { data: logs });
+      sendSuccess(res, logs);
     } catch (error) {
       handleError(res, error);
     }
   }
 }
 
-// エラーハンドリング / Map ServiceError codes to HTTP responses
-function handleError(res: Response, error: unknown): void {
-  if (error instanceof ServiceError) {
-    sendError(res, error.message, error.code);
-    return;
-  }
-  sendError(res, 'Internal server error', 500);
-}

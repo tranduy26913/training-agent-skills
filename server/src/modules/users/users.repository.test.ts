@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { UsersRepository } from './users.repository';
-import type { UserFilters } from './users.repository';
+import type { UserFilters } from '../../models/users.model';
 
 // DB接続モック / Mock database connection
 vi.mock('../../database/connection', () => {
