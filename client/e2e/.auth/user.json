@@ -6,11 +6,11 @@
       "localStorage": [
         {
           "name": "token",
-          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWRtaW5AYXBwLmNvbSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc3NjQyODg4MiwiZXhwIjoxNzc3MDMzNjgyfQ.K5tlD2EhFXYfeAkT9wztaRDIE6rHx091yjYDt0xe4rw"
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWRtaW5AYXBwLmNvbSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc3Njc4Nzc1MywiZXhwIjoxNzc3MzkyNTUzfQ.0o6ivuOGAXgfJc0zcALNQ23HjT8Wy94P4yMhMwDqq74"
         },
         {
           "name": "user",
-          "value": "{\"id\":1,\"name\":\"Administrator\",\"email\":\"admin@app.com\",\"role\":\"admin\",\"status\":\"active\",\"avatar\":null,\"created_at\":\"2026-04-15T09:50:48.000Z\",\"updated_at\":\"2026-04-15T10:00:08.000Z\"}"
+          "value": "{\"id\":1,\"name\":\"Administrator\",\"email\":\"admin@app.com\",\"role\":\"admin\",\"status\":\"active\",\"avatar\":null,\"last_login_at\":null,\"points\":0,\"note\":null,\"birthday\":null,\"created_at\":\"2026-04-21T15:47:59.000Z\",\"updated_at\":\"2026-04-21T15:47:59.000Z\"}"
         }
       ]
     }

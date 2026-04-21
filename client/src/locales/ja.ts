@@ -1,3 +1,5 @@
+import { y } from "vue-router/dist/router-CWoNjPRp.mjs";
+
 /**
  * Japanese translations / 日本語翻訳
  */
@@ -22,6 +24,8 @@ export default {
     id: 'ID',
     overview: '概要',
     comingSoon: '近日公開。',
+    yes: 'はい',
+    no: 'いいえ',
   },
   sidebar: {
     adminPanel: '管理パネル',

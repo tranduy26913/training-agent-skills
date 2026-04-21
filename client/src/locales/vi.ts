@@ -22,6 +22,8 @@ export default {
     id: 'ID',
     overview: 'Tổng quan',
     comingSoon: 'sắp ra mắt.',
+    yes: 'Có',
+    no: 'Không',
   },
   sidebar: {
     adminPanel: 'Quản trị',

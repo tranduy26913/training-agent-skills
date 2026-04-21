@@ -60,6 +60,50 @@ body {
   box-shadow: none;
 }
 
+/* Form inputs — subtle elevation with stronger focus state */
+.p-inputtext,
+.p-textarea,
+.p-inputnumber-input,
+.p-password-input {
+  transition: box-shadow 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.p-inputtext:hover,
+.p-textarea:hover,
+.p-inputnumber-input:hover,
+.p-password-input:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.p-inputtext:focus,
+.p-textarea:focus,
+.p-inputnumber-input:focus,
+.p-password-input:focus {
+  box-shadow: 0 0 0 1px var(--p-primary-400), 0 4px 12px rgba(0, 0, 0, 0.14);
+}
+
+.dark .p-inputtext,
+.dark .p-textarea,
+.dark .p-inputnumber-input,
+.dark .p-password-input {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+.dark .p-inputtext:hover,
+.dark .p-textarea:hover,
+.dark .p-inputnumber-input:hover,
+.dark .p-password-input:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.42);
+}
+
+.dark .p-inputtext:focus,
+.dark .p-textarea:focus,
+.dark .p-inputnumber-input:focus,
+.dark .p-password-input:focus {
+  box-shadow: 0 0 0 1px var(--p-primary-300), 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
 /* Sidebar active nav item — left accent bar */
 nav .router-link-active {
   position: relative;

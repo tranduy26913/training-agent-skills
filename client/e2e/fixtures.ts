@@ -3,12 +3,6 @@ import { LoginPage } from './pages/login-page';
 import { UserListPage } from './pages/user-list-page';
 import { UserFormPage } from './pages/user-form-page';
 
-interface ApiResponse<T = unknown> {
-  success: boolean;
-  data: T;
-  message?: string;
-}
-
 export class ApiClient {
   private token: string | null = null;
 
@@ -21,8 +15,8 @@ export class ApiClient {
       body: JSON.stringify({ email, password }),
     });
     if (!response.ok) throw new Error(`Auth failed: ${response.status}`);
-    const body: ApiResponse<{ token: string }> = await response.json();
-    this.token = body.data.token;
+    const body: { token: string } = await response.json();
+    this.token = body.token;
   }
 
   async createUser(data: Record<string, unknown>): Promise<{ id: number }> {
@@ -35,9 +29,8 @@ export class ApiClient {
       body: JSON.stringify(data),
     });
     if (!response.ok) throw new Error(`Create user failed: ${response.status}`);
-    // Server wraps: { success, data: { data: user } }
-    const body: ApiResponse<{ data: { id: number } }> = await response.json();
-    return body.data.data;
+    const body: { id: number } = await response.json();
+    return body;
   }
 
   async updateUser(id: number, data: Record<string, unknown>): Promise<void> {

@@ -31,3 +31,5 @@ npm-debug.log*
 
 # Coverage
 coverage/
+/client/playwright-report
+/client/test-results

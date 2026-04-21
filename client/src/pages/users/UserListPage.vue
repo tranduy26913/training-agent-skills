@@ -55,6 +55,8 @@ function handleDelete(id: number): void {
     header: t('users.deleteHeader'),
     icon: 'pi pi-exclamation-triangle',
     acceptClass: 'p-button-danger',
+    acceptLabel: t('common.yes'),
+    rejectLabel: t('common.no'),
     accept: async () => {
       try {
         await usersStore.deleteUser(id);

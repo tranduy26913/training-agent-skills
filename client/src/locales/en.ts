@@ -1,3 +1,5 @@
+import { y } from "vue-router/dist/router-CWoNjPRp.mjs";
+
 /**
  * English translations / 英語翻訳
  */
@@ -22,6 +24,8 @@ export default {
     id: 'ID',
     overview: 'Overview',
     comingSoon: 'coming soon.',
+    yes: 'Yes',
+    no: 'No',
   },
   sidebar: {
     adminPanel: 'Admin Panel',
