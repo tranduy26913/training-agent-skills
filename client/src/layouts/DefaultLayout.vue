@@ -7,13 +7,13 @@
     <AppSidebar />
 
     <!-- Main content -->
-    <div class="flex-1 flex flex-col min-h-screen transition-all duration-300"
+    <div class="flex-1 flex flex-col min-h-screen min-w-0 overflow-x-hidden transition-all duration-200"
          :class="sidebarCollapsed ? 'ml-16' : 'ml-64'">
       <!-- Topbar -->
       <AppTopbar />
 
       <!-- Page content -->
-      <main class="flex-1 p-6">
+      <main class="flex-1 p-6 bg-surface-50 dark:bg-surface-950">
         <router-view />
       </main>
     </div>

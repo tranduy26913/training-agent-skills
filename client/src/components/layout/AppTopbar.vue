@@ -29,7 +29,7 @@ function handleLogout(): void {
 </script>
 
 <template>
-  <header class="h-16 bg-surface-0 dark:bg-surface-900 border-b border-surface-200 dark:border-surface-700 flex items-center justify-between px-6">
+  <header class="h-16 bg-surface-0 dark:bg-surface-900 flex items-center justify-between px-6 shadow-[0_2px_12px_rgba(0,0,0,0.06)] dark:shadow-[0_2px_12px_rgba(0,0,0,0.3)] z-40 relative">
     <!-- Left: Page title / ページタイトル -->
     <div>
       <h1 class="text-lg font-semibold text-surface-800 dark:text-surface-100">
