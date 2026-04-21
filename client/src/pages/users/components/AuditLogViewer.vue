@@ -1,6 +1,9 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
 import Skeleton from 'primevue/skeleton';
 import type { AuditLog } from '../composables/useUsers';
+
+const { t } = useI18n();
 
 // Props / プロパティ定義
 const props = defineProps<{
@@ -35,7 +38,7 @@ function formatLogEntry(log: AuditLog): string {
 
 <template>
   <div class="flex flex-col gap-3">
-    <h3 class="text-lg font-semibold text-surface-800 dark:text-surface-100">Activity Log</h3>
+    <h3 class="text-lg font-semibold text-surface-800 dark:text-surface-100">{{ t('users.activityLog') }}</h3>
 
     <!-- ローディング / Loading skeleton -->
     <div v-if="loading" class="flex flex-col gap-3">
@@ -44,7 +47,7 @@ function formatLogEntry(log: AuditLog): string {
 
     <!-- 空状態 / Empty state -->
     <div v-else-if="logs.length === 0" class="text-surface-500 text-sm py-4">
-      No activity recorded yet.
+      {{ t('users.noActivity') }}
     </div>
 
     <!-- ログ一覧 / Log entries list -->

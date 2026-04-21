@@ -74,6 +74,18 @@ export class UsersController {
     }
   }
 
+  // メール重複チェック / Check if email is already in use
+  async checkEmail(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const email = req.query.email as string;
+      const excludeId = req.query.excludeId ? Number(req.query.excludeId) : undefined;
+      const isDuplicate = await usersService.checkEmailDuplicate(email, excludeId);
+      sendSuccess(res, { exists: isDuplicate });
+    } catch (error) {
+      handleError(res, error);
+    }
+  }
+
   // ユーザーアクティビティ取得 / Get audit logs for a user
   async getUserActivity(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {

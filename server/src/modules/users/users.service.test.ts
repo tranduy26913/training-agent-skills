@@ -50,6 +50,8 @@ describe('UsersService', () => {
       email: 'john@test.com',
       role: 'user',
       status: 'active',
+      note: null,
+      birthday: null,
     } as UserRow;
 
     it('returns only changed keys', () => {
@@ -91,6 +93,23 @@ describe('UsersService', () => {
         role: { old: 'user', new: 'admin' },
       });
     });
+
+    it('tracks note and birthday changes', () => {
+      // noteとbirthdayの変更を追跡する
+      const result = service.buildChangedFields(oldUser, {
+        name: 'John',
+        email: 'john@test.com',
+        role: 'user',
+        status: 'active',
+        note: 'New note',
+        birthday: '1990-01-01',
+      });
+
+      expect(result).toEqual({
+        note: { old: null, new: 'New note' },
+        birthday: { old: null, new: '1990-01-01' },
+      });
+    });
   });
 
   describe('createUser', () => {
@@ -109,6 +128,23 @@ describe('UsersService', () => {
       expect(result.id).toBe(10);
       expect(mockRepo.createAuditLog).toHaveBeenCalledWith(
         expect.objectContaining({ action: 'CREATE', admin_id: 1, target_user_id: 10 }),
+      );
+    });
+
+    it('passes note and birthday to repository', async () => {
+      // noteとbirthdayをリポジトリに渡す
+      mockRepo.findByEmail.mockResolvedValue(null);
+      mockRepo.create.mockResolvedValue({ insertId: 11 });
+      mockRepo.findByIdWithoutPassword.mockResolvedValue({ id: 11, name: 'Test2', email: 'test2@test.com' });
+      mockRepo.createAuditLog.mockResolvedValue(undefined);
+
+      await service.createUser(
+        { name: 'Test2', email: 'test2@test.com', role: 'user', status: 'active', note: 'A note', birthday: '1990-05-01' },
+        1,
+      );
+
+      expect(mockRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ note: 'A note', birthday: '1990-05-01' }),
       );
     });
 
@@ -165,7 +201,7 @@ describe('UsersService', () => {
   describe('updateUser', () => {
     it('updates user and logs changed fields', async () => {
       // ユーザーを更新して変更フィールドをログする
-      const oldUser = { id: 1, name: 'Old', email: 'old@test.com', role: 'user', status: 'active' };
+      const oldUser = { id: 1, name: 'Old', email: 'old@test.com', role: 'user', status: 'active', note: null, birthday: null };
       mockRepo.findByIdWithoutPassword
         .mockResolvedValueOnce(oldUser)
         .mockResolvedValueOnce({ id: 1, name: 'New', email: 'old@test.com', role: 'user', status: 'active' });
@@ -186,6 +222,22 @@ describe('UsersService', () => {
           changed_fields: { name: { old: 'Old', new: 'New' } },
         }),
       );
+    });
+
+    it('does not include points in repository update call', async () => {
+      // pointsはリポジトリの更新呼び出しに含まれない
+      const oldUser = { id: 1, name: 'Bob', email: 'bob@test.com', role: 'user', status: 'active', note: null, birthday: null, points: 100 };
+      mockRepo.findByIdWithoutPassword
+        .mockResolvedValueOnce(oldUser)
+        .mockResolvedValueOnce(oldUser);
+      mockRepo.findByEmail.mockResolvedValue(null);
+      mockRepo.update.mockResolvedValue({ affectedRows: 1 });
+      mockRepo.createAuditLog.mockResolvedValue(undefined);
+
+      await service.updateUser(1, { name: 'Bob', email: 'bob@test.com', role: 'user', status: 'active' }, 5);
+
+      const updateCallArg = mockRepo.update.mock.calls[0][1];
+      expect(updateCallArg).not.toHaveProperty('points');
     });
 
     it('throws 409 when email taken by another user', async () => {
@@ -211,6 +263,36 @@ describe('UsersService', () => {
       } catch (error) {
         expect((error as ServiceError).code).toBe(404);
       }
+    });
+  });
+
+  describe('checkEmailDuplicate', () => {
+    it('returns true when email is taken', async () => {
+      // メールが使用済みの場合はtrueを返す
+      mockRepo.findByEmail.mockResolvedValue({ id: 5, email: 'used@test.com' });
+
+      const result = await service.checkEmailDuplicate('used@test.com');
+
+      expect(result).toBe(true);
+      expect(mockRepo.findByEmail).toHaveBeenCalledWith('used@test.com', undefined);
+    });
+
+    it('returns false when email is available', async () => {
+      // メールが使用可能な場合はfalseを返す
+      mockRepo.findByEmail.mockResolvedValue(null);
+
+      const result = await service.checkEmailDuplicate('free@test.com');
+
+      expect(result).toBe(false);
+    });
+
+    it('passes excludeId to repository when provided', async () => {
+      // excludeIdが指定された場合、リポジトリに渡す
+      mockRepo.findByEmail.mockResolvedValue(null);
+
+      await service.checkEmailDuplicate('me@test.com', 3);
+
+      expect(mockRepo.findByEmail).toHaveBeenCalledWith('me@test.com', 3);
     });
   });
 });

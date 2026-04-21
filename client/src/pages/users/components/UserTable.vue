@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Tag from 'primevue/tag';
@@ -6,6 +7,8 @@ import Button from 'primevue/button';
 import Skeleton from 'primevue/skeleton';
 import type { User, PaginationInfo } from '../composables/useUsers';
 import type { DataTablePageEvent, DataTableSortEvent } from 'primevue/datatable';
+
+const { t } = useI18n();
 
 // Props / プロパティ定義
 const props = defineProps<{
@@ -34,8 +37,9 @@ const statusSeverityMap: Record<string, 'success' | 'warn' | 'danger'> = {
 // スケルトン行数 / Number of skeleton rows shown while loading
 const SKELETON_ROWS = 5;
 
-// 日付フォーマット / Format date to DD/MM/YYYY HH:mm
-function formatDate(dateString: string): string {
+// 日付フォーマット / Format date to DD/MM/YYYY HH:mm (null-safe)
+function formatDate(dateString: string | null | undefined): string {
+  if (!dateString) return '-';
   const date = new Date(dateString);
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -78,53 +82,67 @@ function onSort(event: DataTableSortEvent): void {
     <!-- 空メッセージ / Empty state -->
     <template #empty>
       <div class="text-center py-8 text-surface-500">
-        No users found.
+        {{ t('users.noUsersFound') }}
       </div>
     </template>
 
-    <Column field="id" header="ID" sortable style="width: 80px">
+    <Column field="id" :header="t('common.id')" sortable style="width: 80px">
       <template #body="{ data }">
         <Skeleton v-if="loading" />
         <span v-else>{{ data.id }}</span>
       </template>
     </Column>
-    <Column field="name" header="Name" sortable>
+    <Column field="name" :header="t('users.name')" sortable>
       <template #body="{ data }">
         <Skeleton v-if="loading" />
         <span v-else>{{ data.name }}</span>
       </template>
     </Column>
-    <Column field="email" header="Email" sortable>
+    <Column field="email" :header="t('users.email')" sortable>
       <template #body="{ data }">
         <Skeleton v-if="loading" />
         <span v-else>{{ data.email }}</span>
       </template>
     </Column>
-    <Column field="role" header="Role" sortable>
+    <Column field="role" :header="t('users.role')" sortable>
       <template #body="{ data }">
         <Skeleton v-if="loading" />
         <span v-else class="capitalize">{{ data.role }}</span>
       </template>
     </Column>
-    <Column field="status" header="Status" sortable>
+    <Column field="status" :header="t('users.status')" sortable>
       <template #body="{ data }">
         <Skeleton v-if="loading" />
         <Tag v-else :value="data.status" :severity="statusSeverityMap[data.status]" />
       </template>
     </Column>
-    <Column field="created_at" header="Created At" sortable>
+    <Column field="created_at" :header="t('users.createdAt')" sortable>
       <template #body="{ data }">
         <Skeleton v-if="loading" />
         <span v-else>{{ formatDate(data.created_at) }}</span>
       </template>
     </Column>
-    <Column field="updated_at" header="Updated At" sortable>
+    <Column field="updated_at" :header="t('users.updatedAt')" sortable>
       <template #body="{ data }">
         <Skeleton v-if="loading" />
         <span v-else>{{ formatDate(data.updated_at) }}</span>
       </template>
     </Column>
-    <Column header="Actions" style="width: 150px">
+    <!-- [NEW] Last Login column -->
+    <Column field="last_login_at" :header="t('users.lastLogin')" sortable>
+      <template #body="{ data }">
+        <Skeleton v-if="loading" />
+        <span v-else>{{ formatDate(data.last_login_at) }}</span>
+      </template>
+    </Column>
+    <!-- [NEW] Points column -->
+    <Column field="points" :header="t('users.points')" sortable>
+      <template #body="{ data }">
+        <Skeleton v-if="loading" />
+        <span v-else>{{ data.points }}</span>
+      </template>
+    </Column>
+    <Column :header="t('common.actions')" style="width: 150px">
       <template #body="{ data }">
         <Skeleton v-if="loading" />
         <div v-else class="flex gap-2">

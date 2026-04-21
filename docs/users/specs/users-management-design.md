@@ -18,6 +18,7 @@ Tính năng quản lý user cho phép các admin xem danh sách toàn bộ user,
 |---------|------|--------|---------|
 | 1.0 | 2026-04-15 | Admin Team | Initial design |
 | 1.1 | 2026-04-16 | Admin Team | Add sortable columns and skeleton loading to UserTable |
+| 1.2 | 2026-04-20 | Admin Team | [CR] Add Last Login, Points columns; Add Note & Birthday fields; Add email duplicate check; Add clear filter button |
 
 ---
 
@@ -34,10 +35,15 @@ Cung cấp giao diện quản lý toàn diện cho admin quản lý user account
 - Lọc user theo role (admin/user/moderator) và status (active/inactive/suspended)
 - Lọc theo date range (created/updated)
 - Tạo user mới với mật khẩu mặc định: `username123`
-- Chỉnh sửa thông tin user (tên, email, role, status)
+- [UPDATE] Chỉnh sửa thông tin user (tên: 2-50 chars, email, role, status, note, birthday)
+- [DEPRECATED] Chỉnh sửa thông tin user (tên, email, role, status)
 - Xóa user (không thể xóa chính mình)
 - Xem lịch sử audit log cho mỗi user
 - Tracking audit log cho tất cả hành động (create/update/delete)
+- [NEW] Hiển thị thời gian login cuối cùng và điểm số (points) trong bảng user
+- [NEW] Thêm fields Note (optional, max 500 chars) và Birthday (optional) khi Create/Edit User
+- [NEW] Validate duplicate email với debounce 500ms (server check)
+- [NEW] Thêm nút Clear Filters để reset tất cả filter và reload bảng
 
 ### Out of Scope
 
@@ -91,6 +97,10 @@ users {
   role: ENUM('admin', 'user', 'moderator')
   status: ENUM('active', 'inactive', 'suspended')
   avatar: VARCHAR(500)
+  [NEW] last_login_at: TIMESTAMP (nullable)
+  [NEW] points: INT (default 0)
+  [NEW] note: VARCHAR(500) (nullable)
+  [NEW] birthday: DATE (nullable)
   created_at: TIMESTAMP
   updated_at: TIMESTAMP
 }
@@ -116,15 +126,20 @@ audit_logs {
 
 #### Display
 
-Hiển thị danh sách user dưới dạng bảng với các cột:
-- **ID**: User ID — sortable
-- **Name**: Tên user — sortable
-- **Email**: Email — sortable
-- **Role**: Vai trò (admin/user/moderator) — sortable
-- **Status**: Trạng thái (active/inactive/suspended) - có badge màu theo trạng thái — sortable
-- **Created At**: Ngày tạo (định dạng: DD/MM/YYYY HH:mm) — sortable, mặc định sort DESC
-- **Updated At**: Ngày chỉnh sửa gần nhất (định dạng: DD/MM/YYYY HH:mm) — sortable
-- **Actions**: Buttons (Edit, Delete) — không sortable
+Hiển thị danh sách user dưới dạng bảng với các cột chi tiết như bảng dưới đây:
+
+| No | Name | Control UI | Label (EN/VN/JP) | Validate | Description |
+|----|------|------------|------------------|----------|-------------|
+| 1 | ID | Text | ID/ID/ID | - | User ID, sortable |
+| 2 | Name | Text | Name/Tên User/ユーザー名 | - | Tên user, sortable |
+| 3 | Email | Text | Email/Email/メール | - | Email user, sortable |
+| 4 | Role | Badge | Role/Vai Trò/ロール | - | Vai trò (admin/user/moderator), sortable |
+| 5 | Status | Badge | Status/Trạng Thái/ステータス | - | Trạng thái (active/inactive/suspended) với badge màu, sortable |
+| 6 | Created At | Text | Created At/Ngày Tạo/作成日 | - | Định dạng DD/MM/YYYY HH:mm, sortable, mặc định sort DESC |
+| 7 | Updated At | Text | Updated At/Ngày Chỉnh Sửa/更新日 | - | Định dạng DD/MM/YYYY HH:mm, sortable |
+| 8 | Last Login | Text | Last Login/Lần Login Cuối/最後のログイン | - | [NEW] Thời gian login cuối cùng hoặc "-" nếu chưa có (DD/MM/YYYY HH:mm format) |
+| 9 | Points | Text | Points/Điểm/ポイント | - | [NEW] Số điểm của user (default 0, read-only) |
+| 10 | Actions | Button | Actions/Thao Tác/アクション | - | Buttons: Edit, Delete (không sortable) |
 
 #### Sorting
 
@@ -147,6 +162,9 @@ Hiển thị danh sách user dưới dạng bảng với các cột:
 - **Role Filter**: Dropdown lọc theo role (All, Admin, User, Moderator)
 - **Status Filter**: Dropdown lọc theo status (All, Active, Inactive, Suspended)
 - **Date Range Picker**: Lọc theo date range (created_at hoặc updated_at)
+- [NEW] **Clear Filters Button**: Nút để reset tất cả filters về trạng thái rỗng và reload bảng user từ trang 1
+  - Vị trí: Bên cạnh các filter controls
+  - Behavior: Click → reset search, role, status, dateRange → apply filters → reload table
 
 #### Pagination
 
@@ -165,10 +183,18 @@ Hiển thị danh sách user dưới dạng bảng với các cột:
 
 #### Form Fields
 
-- **Name** (required): Text input, min 3 characters, max 100 characters
-- **Email** (required): Email input, must be unique, format validation
-- **Role** (required): Dropdown (Admin, User, Moderator) - default "User"
-- **Status** (required): Dropdown (Active, Inactive, Suspended) - default "Active"
+| No | Name | Control UI | Label (EN/VN/JP) | Required | Validation | Max Length | Description |
+|----|------|------------|------------------|----------|------------|-----------|-------------|
+| 1 | [UPDATE] Name | InputText | Name/Tên User/ユーザー名 | Yes | Min 2, Max 50 | 50 | Tên của user |
+| 1 | [DEPRECATED] Name | InputText | Name/Tên User/ユーザー名 | Yes | Min 3, Max 100 | 100 | Tên của user |
+| 2 | [UPDATE] Email | InputText | Email/Email/メール | Yes | Valid format, Unique* | - | Email của user, được check trùng lặp trên server |
+| 2 | [DEPRECATED] Email | InputText | Email/Email/メール | Yes | Valid format, Unique | - | Email của user |
+| 3 | Role | Select | Role/Vai Trò/ロール | Yes | Enum | - | Admin/User/Moderator, default "User" |
+| 4 | Status | Select | Status/Trạng Thái/ステータス | Yes | Enum | - | Active/Inactive/Suspended, default "Active" |
+| 5 | [NEW] Note | InputTextarea | Note/Ghi Chú/メモ | No | Max 500 | 500 | Ghi chú bổ sung (optional) |
+| 6 | [NEW] Birthday | DatePicker | Birthday/Ngày Sinh/誕生日 | No | - | - | Ngày sinh (optional, no future dates) |
+
+*[NEW] Email duplicate check: Validate trên server với debounce 500ms khi client input, không cho phép submit nếu email trùng lặp
 
 #### Password Handling
 
@@ -183,19 +209,28 @@ Hiển thị danh sách user dưới dạng bảng với các cột:
 
 #### Validation
 
-- Client-side: Required fields, email format, length constraints
-- Server-side: Duplicate email check, enum validation, length validation
+- Client-side: Required fields, email format, [UPDATE] length constraints (Name: min 2 max 50, Email format, [NEW] Note: max 500)
+- [DEPRECATED] length constraints (Name: min 3 max 100, Email format)
+- Server-side: [UPDATE] Duplicate email check (excluding current user on edit), enum validation, length validation, [NEW] no future birthday
 
 ### 3.3 Edit User Page (`/users/:id/edit`)
 
 #### Form Fields
 
-- **Name** (required): Same as create
-- **Email** (required): Same as create, but check uniqueness excluding current user
-- **Role** (required): Same as create
-- **Status** (required): Same as create
-- **Created At** (read-only): Hiển thị ngày tạo
-- **Audit Log Sidebar** (optional): Hiển thị lịch sử thay đổi cho user này
+| No | Name | Control UI | Label (EN/VN/JP) | Required | Validation | Max Length | Description |
+|----|------|------------|------------------|----------|------------|-----------|-------------|
+| 1 | [UPDATE] Name | InputText | Name/Tên User/ユーザー名 | Yes | Min 2, Max 50 | 50 | Tên của user |
+| 1 | [DEPRECATED] Name | InputText | Name/Tên User/ユーザー名 | Yes | Min 3, Max 100 | 100 | Tên của user |
+| 2 | [UPDATE] Email | InputText | Email/Email/メール | Yes | Valid format, Unique* | - | Email của user, được check trùng lặp trên server |
+| 2 | [DEPRECATED] Email | InputText | Email/Email/メール | Yes | Valid format, Unique | - | Email của user |
+| 3 | Role | Select | Role/Vai Trò/ロール | Yes | Enum | - | Admin/User/Moderator |
+| 4 | Status | Select | Status/Trạng Thái/ステータス | Yes | Enum | - | Active/Inactive/Suspended |
+| 5 | [NEW] Note | InputTextarea | Note/Ghi Chú/メモ | No | Max 500 | 500 | Ghi chú bổ sung (optional) |
+| 6 | [NEW] Birthday | DatePicker | Birthday/Ngày Sinh/誕生日 | No | - | - | Ngày sinh (optional, no future dates) |
+| 7 | [NEW] Points | Text (read-only) | Points/Điểm/ポイント | No | - | - | Số điểm (read-only, not editable) |
+| 8 | Created At | InputText (read-only) | Created At/Ngày Tạo/作成日 | No | - | - | Hiển thị ngày tạo (read-only) |
+
+*[NEW] Email duplicate check: Check trên server, loại trừ email của user hiện tại, không cho phép submit nếu email trùng lặp với user khác
 
 #### Form Actions
 
@@ -211,6 +246,9 @@ Hiển thị danh sách user dưới dạng bảng với các cột:
 
 - Không thể thay đổi một user khác ngoài việc gọi API
 - Admin không thể sửa email thành email của user khác (unique constraint)
+- Birthday không cho phép chọn ngày trong tương lai
+- Note max 500 characters
+- Không thể edit Points (read-only)
 
 ---
 
@@ -256,6 +294,10 @@ Response (200 OK):
       "email": "john@example.com",
       "role": "admin",
       "status": "active",
+      "note": "Some note",
+      "birthday": "1990-01-15",
+      "points": 0,
+      "last_login_at": "2026-04-20T14:30:00Z",
       "created_at": "2026-01-15T10:30:00Z",
       "updated_at": "2026-04-10T14:20:00Z"
     }
@@ -284,7 +326,9 @@ Request Body:
   "name": "Jane Smith",
   "email": "jane@example.com",
   "role": "user",
-  "status": "active"
+  "status": "active",
+  "note": "Ghi chú về user này",
+  "birthday": "1990-05-15"
 }
 ```
 
@@ -295,7 +339,10 @@ Flow:
 4. Kiểm tra email đã tồn tại trong DB chưa, trả 409 nếu trùng
 5. Sinh password theo pattern: `<email_username>123` (vd: `jane.smith123`)
 6. Hash password bằng bcrypt
-7. Insert bản ghi mới vào bảng `users`
+7. Insert bản ghi mới vào bảng `users` với:
+   - All provided fields
+   - points = 0 [NEW]
+   - last_login_at = NULL [NEW]
 8. Tạo entry trong bảng `audit_logs` với action = `CREATE`
 9. Trả về thông tin user mới (không bao gồm password)
 
@@ -308,6 +355,10 @@ Response (201 Created):
     "email": "jane@example.com",
     "role": "user",
     "status": "active",
+    "note": "Ghi chú về user này",
+    "birthday": "1990-05-15",
+    "points": 0,
+    "last_login_at": null,
     "created_at": "2026-04-15T10:00:00Z",
     "updated_at": "2026-04-15T10:00:00Z"
   }
@@ -315,10 +366,13 @@ Response (201 Created):
 ```
 
 Validations:
-- Name: required, 3-100 chars
+- [UPDATE] Name: required, 2-50 chars
+- [DEPRECATED] Name: required, 3-100 chars
 - Email: required, valid format, unique
 - Role: required, enum
 - Status: required, enum
+- [NEW] Note: optional, max 500 chars
+- [NEW] Birthday: optional, valid date, no future dates
 
 Audit Log: Tạo entry CREATE
 
@@ -350,6 +404,10 @@ Response (200 OK):
     "role": "admin",
     "status": "active",
     "avatar": null,
+    "note": "Some note",
+    "birthday": "1990-01-15",
+    "points": 0,
+    "last_login_at": "2026-04-20T14:30:00Z",
     "created_at": "2026-01-15T10:30:00Z",
     "updated_at": "2026-04-10T14:20:00Z"
   }
@@ -372,7 +430,9 @@ Request Body:
   "name": "John Smith",
   "email": "john.smith@example.com",
   "role": "moderator",
-  "status": "inactive"
+  "status": "inactive",
+  "note": "Updated note",
+  "birthday": "1985-03-20"
 }
 ```
 
@@ -384,7 +444,7 @@ Flow:
 5. Validate request body (format, length, enum values)
 6. Kiểm tra email unique, loại trừ chính user đang cập nhật, trả 409 nếu trùng
 7. So sánh dữ liệu cũ vs mới để xây dựng `changed_fields` (chỉ lấy các field thực sự thay đổi)
-8. Update bản ghi trong bảng `users`
+8. Update bản ghi trong bảng `users` (note: points không thể được update từ endpoint này)
 9. Tạo entry trong bảng `audit_logs` với action = `UPDATE` kèm `changed_fields`
 10. Trả về thông tin user sau khi cập nhật
 
@@ -397,16 +457,24 @@ Response (200 OK):
     "email": "john.smith@example.com",
     "role": "moderator",
     "status": "inactive",
+    "note": "Updated note",
+    "birthday": "1985-03-20",
+    "points": 0,
+    "last_login_at": null,
     "updated_at": "2026-04-15T11:00:00Z"
   }
 }
 ```
 
 Validations:
-- Name: min 3, max 100 chars
+- [UPDATE] Name: min 2, max 50 chars
+- [DEPRECATED] Name: min 3, max 100 chars
 - Email: valid format, unique (excluding current user)
 - Role: enum
 - Status: enum
+- [NEW] Note: optional, max 500 chars
+- [NEW] Birthday: optional, valid date, no future dates
+- [NEW] Points: NOT editable (ignored if provided in request)
 
 Audit Log: Tạo entry UPDATE với changed_fields
 
@@ -487,6 +555,51 @@ Response (200 OK):
   ]
 }
 ```
+
+---
+
+#### SV-007 — GET /api/users/check-email [NEW]
+**Kiểm tra email có bị trùng lặp**
+
+Request:
+```
+GET /api/users/check-email?email=john@example.com&excludeId=1
+```
+
+Query Parameters:
+- `email` (required): Email cần kiểm tra
+- `excludeId` (optional): ID của user cần loại trừ (dùng khi edit user để cho phép giữ nguyên email)
+
+Flow:
+1. Validate query parameters (email format, required)
+2. Parse email, normalize to lowercase
+3. Query bảng `users` để kiểm tra email:
+   - Nếu `excludeId` có: WHERE email = ? AND id != excludeId
+   - Nếu `excludeId` không có: WHERE email = ?
+4. Trả về kết quả: `exists: true/false`
+
+Response (200 OK):
+```json
+{
+  "exists": false
+}
+```
+
+hoặc
+
+```json
+{
+  "exists": true
+}
+```
+
+Errors:
+- 400: Missing email parameter or invalid email format
+
+Notes:
+- Không cần auth token (hoặc có thể require auth)
+- Được gọi từ client với debounce 500ms khi user nhập email
+- Server có thể khu guard request frequency để tránh abuse
 
 ---
 

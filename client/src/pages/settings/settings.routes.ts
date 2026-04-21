@@ -10,7 +10,7 @@ export const settingsRoutes: RouteRecordRaw[] = [
         path: '',
         name: 'Settings',
         component: () => import('./SettingsPage.vue'),
-        meta: { title: 'Settings', breadcrumb: 'Settings' },
+        meta: { title: 'Settings', titleKey: 'settings.title', breadcrumb: 'Settings' },
       },
     ],
   },

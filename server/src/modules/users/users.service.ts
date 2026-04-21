@@ -27,16 +27,27 @@ export class UsersService {
     oldUser: UserRow,
     newData: UpdateUserInput,
   ): Record<string, { old: unknown; new: unknown }> | null {
-    const fields: (keyof UpdateUserInput)[] = ['name', 'email', 'role', 'status'];
+    // [UPDATE] include note and birthday in tracked fields
+    const fields: (keyof UpdateUserInput)[] = ['name', 'email', 'role', 'status', 'note', 'birthday'];
     const changes: Record<string, { old: unknown; new: unknown }> = {};
 
     for (const field of fields) {
-      if (oldUser[field] !== newData[field]) {
-        changes[field] = { old: oldUser[field], new: newData[field] };
+      const oldVal = oldUser[field as keyof UserRow];
+      const newVal = newData[field];
+      // newDataにフィールドが含まれない場合はスキップ / Skip if field not in update input
+      if (newVal === undefined) continue;
+      if (oldVal !== newVal) {
+        changes[field] = { old: oldVal, new: newVal };
       }
     }
 
     return Object.keys(changes).length > 0 ? changes : null;
+  }
+
+  // メール重複チェック / Check if email is already used by another user
+  async checkEmailDuplicate(email: string, excludeId?: number): Promise<boolean> {
+    const existing = await this.repository.findByEmail(email, excludeId);
+    return existing !== null;
   }
 
   // ユーザー一覧取得 / Get paginated users with filters
@@ -75,8 +86,14 @@ export class UsersService {
     const password = this.generatePassword(data.email);
     const hashedPassword = await hashPassword(password);
 
+    // [NEW] include note, birthday; last_login_at and points use DB defaults
     const result = await this.repository.create({
-      ...data,
+      name: data.name,
+      email: data.email,
+      role: data.role,
+      status: data.status,
+      note: data.note ?? null,
+      birthday: data.birthday ?? null,
       password: hashedPassword,
     } as Partial<UserRow>);
 
@@ -101,7 +118,15 @@ export class UsersService {
 
     const changedFields = this.buildChangedFields(oldUser, data);
 
-    await this.repository.update(id, data as Partial<UserRow>);
+    // [NEW] include note, birthday; [NOTE] points is read-only, never updated here
+    await this.repository.update(id, {
+      name: data.name,
+      email: data.email,
+      role: data.role,
+      status: data.status,
+      note: data.note ?? null,
+      birthday: data.birthday ?? null,
+    } as Partial<UserRow>);
 
     await this.repository.createAuditLog({
       admin_id: adminId,

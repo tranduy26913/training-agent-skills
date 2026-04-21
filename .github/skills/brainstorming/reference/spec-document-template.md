@@ -90,8 +90,8 @@ Describe the main goal of this feature and its intended users.
 
 #### Display
 
-- [Field/column 1]: [Description]
-- [Field/column 2]: [Description]
+- [Field/column 1]: [Description] | [Validate]
+- [Field/column 2]: [Description] | [Validate]
 
 #### Filtering & Search
 

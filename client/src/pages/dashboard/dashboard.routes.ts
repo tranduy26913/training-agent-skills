@@ -10,7 +10,7 @@ export const dashboardRoutes: RouteRecordRaw[] = [
         path: '',
         name: 'Dashboard',
         component: () => import('./DashboardPage.vue'),
-        meta: { title: 'Overview', breadcrumb: 'Overview' },
+        meta: { title: 'Overview', titleKey: 'dashboard.title', breadcrumb: 'Overview' },
       },
     ],
   },

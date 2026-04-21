@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, shallowRef } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
@@ -10,6 +11,7 @@ import UserTable from './components/UserTable.vue';
 import UserFilters from './components/UserFilters.vue';
 import type { UserFilters as UserFiltersType } from './composables/useUsers';
 
+const { t } = useI18n();
 const router = useRouter();
 const confirm = useConfirm();
 const toast = useToast();
@@ -49,16 +51,16 @@ function handleSortChange(field: string, order: 1 | -1): void {
 // 削除ハンドラ / Delete user with confirmation
 function handleDelete(id: number): void {
   confirm.require({
-    message: 'Are you sure you want to delete this user?',
-    header: 'Confirm Deletion',
+    message: t('users.deleteConfirm'),
+    header: t('users.deleteHeader'),
     icon: 'pi pi-exclamation-triangle',
     acceptClass: 'p-button-danger',
     accept: async () => {
       try {
         await usersStore.deleteUser(id);
-        toast.add({ severity: 'success', summary: 'Success', detail: 'User deleted successfully', life: 3000 });
+        toast.add({ severity: 'success', summary: t('common.success'), detail: t('users.deletedSuccess'), life: 3000 });
       } catch {
-        toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to delete user', life: 3000 });
+        toast.add({ severity: 'error', summary: t('common.error'), detail: t('users.deletedError'), life: 3000 });
       }
     },
   });
@@ -68,9 +70,9 @@ function handleDelete(id: number): void {
 <template>
   <div>
     <div class="flex justify-between items-center mb-4">
-      <h2 data-testid="users-list-heading" class="text-2xl font-semibold text-surface-800 dark:text-surface-100">Users</h2>
+      <h2 data-testid="users-list-heading" class="text-2xl font-semibold text-surface-800 dark:text-surface-100">{{ t('users.title') }}</h2>
       <Button
-        label="Create User"
+        :label="t('users.createUser')"
         icon="pi pi-plus"
         @click="router.push({ name: 'UserCreate' })"
       />

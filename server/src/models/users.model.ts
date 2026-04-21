@@ -18,6 +18,11 @@ export interface UserRow extends RowDataPacket {
   role: UserRole;
   status: UserStatus;
   avatar: string | null;
+  // [NEW] fields
+  last_login_at: Date | null;
+  points: number;
+  note: string | null;
+  birthday: Date | null;
   created_at: Date;
   updated_at: Date;
 }

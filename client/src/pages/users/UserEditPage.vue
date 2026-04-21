@@ -1,18 +1,19 @@
 <script setup lang="ts">
 import { shallowRef, onMounted, onUnmounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { useUsersStore } from '@/stores/users.store';
 import UserForm from './components/UserForm.vue';
 import AuditLogViewer from './components/AuditLogViewer.vue';
 
+const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const toast = useToast();
 const usersStore = useUsersStore();
 
-// メールエラー / Email conflict error
-const emailError = shallowRef<string | null>(null);
+// メールエラー参照は不要になりました（フォーム内部で処理） / emailError removed - form handles it internally
 // 送信中フラグ / Submitting loading flag
 const submitting = shallowRef(false);
 
@@ -31,19 +32,24 @@ onUnmounted(() => {
 });
 
 // フォーム送信ハンドラ / Handle form submission
-async function handleSubmit(formData: { name: string; email: string; role: string; status: string }): Promise<void> {
-  emailError.value = null;
+async function handleSubmit(formData: { name: string; email: string; role: string; status: string; note: string; birthday: string }): Promise<void> {
   submitting.value = true;
   try {
-    await usersStore.updateUser(userId, formData);
-    toast.add({ severity: 'success', summary: 'Success', detail: 'User updated successfully', life: 3000 });
+    await usersStore.updateUser(userId, {
+      name: formData.name,
+      email: formData.email,
+      role: formData.role as any,
+      status: formData.status as any,
+      note: formData.note || undefined,
+      birthday: formData.birthday || undefined,
+    });
+    toast.add({ severity: 'success', summary: t('common.success'), detail: t('users.updatedSuccess'), life: 3000 });
     router.push({ name: 'UserList' });
   } catch (error: any) {
-    if (error.response?.status === 409) {
-      emailError.value = 'This email is already in use';
-    } else {
-      toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to update user', life: 3000 });
-    }
+    const detail = error.response?.status === 409
+      ? t('users.emailInUse')
+      : t('users.updatedError');
+    toast.add({ severity: 'error', summary: t('common.error'), detail, life: 3000 });
   } finally {
     submitting.value = false;
   }
@@ -57,7 +63,7 @@ function handleCancel(): void {
 
 <template>
   <div>
-    <h2 data-testid="users-edit-heading" class="text-2xl font-semibold text-surface-800 dark:text-surface-100 mb-6">Edit User</h2>
+    <h2 data-testid="users-edit-heading" class="text-2xl font-semibold text-surface-800 dark:text-surface-100 mb-6">{{ t('users.editUser') }}</h2>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- 左: フォーム / Left: User form -->
@@ -65,7 +71,6 @@ function handleCancel(): void {
         <UserForm
           mode="edit"
           :initial-data="usersStore.currentUser"
-          :email-error="emailError"
           :loading="submitting"
           @submit="handleSubmit"
           @cancel="handleCancel"

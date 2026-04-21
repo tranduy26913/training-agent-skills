@@ -1,9 +1,13 @@
 <script setup lang="ts">
-import { shallowRef } from 'vue';
+import { computed, shallowRef } from 'vue';
+import { useI18n } from 'vue-i18n';
 import InputText from 'primevue/inputtext';
 import Select from 'primevue/select';
 import DatePicker from 'primevue/datepicker';
+import Button from 'primevue/button';
 import type { UserFilters } from '../composables/useUsers';
+
+const { t } = useI18n();
 
 // Emits / イベント定義
 const emit = defineEmits<{
@@ -19,28 +23,31 @@ const dateRange = shallowRef<Date[] | null>(null);
 // デバウンスタイマー / Debounce timer for search
 let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
-// ロールオプション / Role options
-const roleOptions = [
-  { label: 'All Roles', value: '' },
-  { label: 'Admin', value: 'admin' },
-  { label: 'User', value: 'user' },
-  { label: 'Moderator', value: 'moderator' },
-];
+// ロールオプション / Role options (computed for reactivity)
+const roleOptions = computed(() => [
+  { label: t('users.allRoles'), value: '' },
+  { label: t('users.roles.admin'), value: 'admin' },
+  { label: t('users.roles.user'), value: 'user' },
+  { label: t('users.roles.moderator'), value: 'moderator' },
+]);
 
-// ステータスオプション / Status options
-const statusOptions = [
-  { label: 'All Statuses', value: '' },
-  { label: 'Active', value: 'active' },
-  { label: 'Inactive', value: 'inactive' },
-  { label: 'Suspended', value: 'suspended' },
-];
+// ステータスオプション / Status options (computed for reactivity)
+const statusOptions = computed(() => [
+  { label: t('users.allStatuses'), value: '' },
+  { label: t('users.statuses.active'), value: 'active' },
+  { label: t('users.statuses.inactive'), value: 'inactive' },
+  { label: t('users.statuses.suspended'), value: 'suspended' },
+]);
 
 // フィルター発行 / Emit current filter values
 function emitFilters(): void {
   const filters: UserFilters = {};
-  if (search.value) filters.search = search.value;
-  if (role.value) filters.role = role.value;
-  if (status.value) filters.status = status.value;
+//   if (search.value) 
+  filters.search = search.value;
+//   if (role.value) 
+  filters.role = role.value;
+//   if (status.value) 
+  filters.status = status.value;
   if (dateRange.value && dateRange.value[0]) {
     filters.startDate = dateRange.value[0].toISOString().split('T')[0];
   }
@@ -67,16 +74,25 @@ function onSelectChange(): void {
 function onDateChange(): void {
   emitFilters();
 }
+
+// フィルタークリア / Reset all filters and re-emit
+function clearFilters(): void {
+  search.value = '';
+  role.value = '';
+  status.value = '';
+  dateRange.value = null;
+  emitFilters();
+}
 </script>
 
 <template>
   <div class="flex flex-wrap gap-3 items-end mb-4">
     <!-- 検索 / Search input -->
     <div class="flex flex-col gap-1">
-      <label class="text-sm text-surface-600 dark:text-surface-400">Search</label>
+      <label class="text-sm text-surface-600 dark:text-surface-400">{{ t('common.search') }}</label>
       <InputText
         v-model="search"
-        placeholder="Search by name or email..."
+        :placeholder="t('users.searchPlaceholder')"
         @input="onSearchInput"
         class="w-64"
       />
@@ -84,13 +100,13 @@ function onDateChange(): void {
 
     <!-- ロール / Role select -->
     <div class="flex flex-col gap-1">
-      <label class="text-sm text-surface-600 dark:text-surface-400">Role</label>
+      <label class="text-sm text-surface-600 dark:text-surface-400">{{ t('users.role') }}</label>
       <Select
         v-model="role"
         :options="roleOptions"
         optionLabel="label"
         optionValue="value"
-        placeholder="All Roles"
+        :placeholder="t('users.allRoles')"
         @change="onSelectChange"
         class="w-40"
       />
@@ -98,13 +114,13 @@ function onDateChange(): void {
 
     <!-- ステータス / Status select -->
     <div class="flex flex-col gap-1">
-      <label class="text-sm text-surface-600 dark:text-surface-400">Status</label>
+      <label class="text-sm text-surface-600 dark:text-surface-400">{{ t('users.status') }}</label>
       <Select
         v-model="status"
         :options="statusOptions"
         optionLabel="label"
         optionValue="value"
-        placeholder="All Statuses"
+        :placeholder="t('users.allStatuses')"
         @change="onSelectChange"
         class="w-44"
       />
@@ -112,14 +128,25 @@ function onDateChange(): void {
 
     <!-- 日付範囲 / Date range picker -->
     <div class="flex flex-col gap-1">
-      <label class="text-sm text-surface-600 dark:text-surface-400">Date Range</label>
+      <label class="text-sm text-surface-600 dark:text-surface-400">{{ t('users.dateRange') }}</label>
       <DatePicker
         v-model="dateRange"
         selectionMode="range"
-        placeholder="Select date range"
+        :placeholder="t('users.datePlaceholder')"
         dateFormat="dd/mm/yy"
         @date-select="onDateChange"
         class="w-56"
+      />
+    </div>
+
+    <!-- フィルタークリアボタン / Clear all filters button -->
+    <div class="flex flex-col justify-end">
+      <Button
+        :label="t('users.clearFilters')"
+        icon="pi pi-filter-slash"
+        severity="secondary"
+        outlined
+        @click="clearFilters"
       />
     </div>
   </div>

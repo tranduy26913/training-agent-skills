@@ -23,6 +23,16 @@ class UsersApiClient extends BaseApiClient<User, CreateUserDto, UpdateUserDto> {
     );
     return response.data;
   }
+
+  // メール重複チェック / Check if email already exists
+  async checkEmail(email: string, excludeId?: number): Promise<{ exists: boolean }> {
+    const params = new URLSearchParams({ email });
+    if (excludeId !== undefined) params.set('excludeId', String(excludeId));
+    const response: AxiosResponse<{ exists: boolean }> = await apiClient.get(
+      `${this.basePath}/check-email?${params.toString()}`,
+    );
+    return response.data;
+  }
 }
 
 // シングルトンインスタンス / Singleton instance

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed, shallowRef } from 'vue';
 import { useUsers } from '@/pages/users/composables/useUsers';
-import type { User, UserFilters, AuditLog } from '@/types/users.types';
+import type { User, UserFilters, AuditLog, CreateUserDto, UpdateUserDto } from '@/types/users.types';
 import type { PaginationInfo } from '@/types/api.types';
 
 export const useUsersStore = defineStore('users', () => {
@@ -55,14 +55,14 @@ export const useUsersStore = defineStore('users', () => {
   }
 
   // ユーザー作成 / Create user
-  async function createUser(data: { name: string; email: string; role: string; status: string }): Promise<void> {
-    const user = await apiCreateUser(data as any);
+  async function createUser(data: CreateUserDto): Promise<void> {
+    const user = await apiCreateUser(data);
     return;
   }
 
   // ユーザー更新 / Update user
-  async function updateUser(id: number, data: { name: string; email: string; role: string; status: string }): Promise<void> {
-    await apiUpdateUser(id, data as any);
+  async function updateUser(id: number, data: UpdateUserDto): Promise<void> {
+    await apiUpdateUser(id, data);
   }
 
   // ユーザー削除 / Delete user

@@ -9,6 +9,11 @@ export interface User {
   role: UserRole;
   status: UserStatus;
   avatar: string | null;
+  // [NEW] fields
+  last_login_at: string | null;
+  points: number;
+  note: string | null;
+  birthday: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -19,6 +24,9 @@ export interface CreateUserDto {
   email: string;
   role: UserRole;
   status: UserStatus;
+  // [NEW] optional fields
+  note?: string;
+  birthday?: string;
 }
 
 // ユーザー更新入力 / Update user DTO

@@ -57,7 +57,9 @@ export class UsersRepository extends BaseRepository<UserRow> {
     const sortDir = filters.sortOrder === 'asc' ? 'ASC' : 'DESC';
 
     const [rows] = await pool.query<UserRow[]>(
-      `SELECT u.id, u.name, u.email, u.role, u.status, u.avatar, u.created_at, u.updated_at
+      `SELECT u.id, u.name, u.email, u.role, u.status, u.avatar,
+              u.last_login_at, u.points, u.note, u.birthday,
+              u.created_at, u.updated_at
        FROM \`users\` u ${whereClause} ORDER BY ${sortColumn} ${sortDir} LIMIT ? OFFSET ?`,
       [...params, limit, offset]
     );
@@ -73,7 +75,7 @@ export class UsersRepository extends BaseRepository<UserRow> {
   // IDでユーザー取得（パスワード除外） / Find user by ID excluding password
   async findByIdWithoutPassword(id: number): Promise<UserRow | null> {
     const [rows] = await pool.query<UserRow[]>(
-      'SELECT id, name, email, role, status, avatar, created_at, updated_at FROM `users` WHERE id = ?',
+      'SELECT id, name, email, role, status, avatar, last_login_at, points, note, birthday, created_at, updated_at FROM `users` WHERE id = ?',
       [id]
     );
     return rows[0] || null;
