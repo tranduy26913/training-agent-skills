@@ -1,222 +1,560 @@
+```markdown
+
 ---
-title: [Concise Title Describing the Specification's Focus]
-version: [Optional: e.g., 1.0, Date]
-date_created: [YYYY-MM-DD]
-last_updated: [Optional: YYYY-MM-DD]
-owner: [Optional: Team/Individual responsible for this spec]
+title: [Feature Design Title]
+version: [e.g., 1.0]
+author: [Team or Owner]
+date: [YYYY-MM-DD]
+status: [Draft | Review | Approved]
 ---
 
-# Revision History
-Maintain a log of all changes to the document, including version, author, date, and description of changes.
-| Version | Date | Reason For Changes | author |
-|---------|------|--------------------|--------|
-|         |      |                    |        |
-|         |      |                    |        |
+# [Feature Design Title]
 
-# 1. Introduction
-## 1.1 Purpose
-Identify the purpose of this SDD and its intended audience (developers, stakeholders, testers, etc.).
+## Executive Summary
 
-## 1.2 Scope
-Provide a brief description of the software and explain the project's goals, objectives, and benefits.
+Provide a concise summary of the feature objective, business value, and expected outcome.
 
-## 1.3 Definitions and Acronyms
-List any key terms, definitions, and acronyms used throughout the document.
+## Changelog
 
-## 1.4 References
-Include links or references to external sources, related work, or other design documents (e.g., Software Requirements Specification).
+| Version | Date | Author | Summary |
+|---------|------|--------|---------|
+| 1.0 | [YYYY-MM-DD] | [Author] | Initial design |
 
-## 1.5 Overview
-Provide an overview of the entire document and its organization.
+---
 
-# 2. Overall Description
-## 2.1 Product Context and Constraints
-Describe the context in which the product operates and any constraints (e.g., target hardware, development software, networking limitations).
+## 1. Objective & Scope
 
-## 2.2 Functional Requirements
-Detail what the system must do, often linking back to specific requirements documents if they exist separately.
+### Purpose
 
-## 2.3 User Characteristics
-Describe the target audience for the software.
+Describe the main goal of this feature and its intended users.
 
-## 2.4 Assumptions and Dependencies
-List any assumptions made during the design process and external dependencies.
+### In Scope
 
-# 3. System Architecture
-## 3.1 Architectural Design
-Develop a modular program structure and explain the relationships and interactions between the components and modules.
+- [List features included in this delivery]
+- [...]
 
-## 3.2 Decomposition Description
-Provide a detailed breakdown of subsystems or modules.
+### Out of Scope
 
-## 3.3 Design Rationale
-Discuss the reasoning and trade-offs considered for selecting the chosen architecture.
+- [List features explicitly excluded from this delivery]
+- [...]
 
-# 4. Detailed Design
-## 4.1 API Design (Server - Backend)
-### 4.1.1 Internal Structure
+---
 
-Describe the internal composition of the component.
+## 2. Architecture
 
-### Required elements:
+### 2.1 System Architecture
 
-* Classes / Services / Controllers / Handlers
-* Interfaces and abstractions
-* Data models / DTOs / Entities
+```text
+[Client Application]
+      |
+   HTTP/REST
+      |
+[Backend API]
+  - Controller
+  - Service
+  - Repository
+  - Validation
+      |
+    SQL/ORM
+      |
+[Database]
+  - Existing tables
+  - New tables
+```
 
-### Example:
-text AuthComponent
-    ├── AuthController
-    ├── AuthService
-    ├── TokenService
-    ├── AuthMiddleware
-    └── DTOs
+### 2.2 Data Model
 
-### 4.1.2 API Specifications
-Define all exposed interfaces. Each API has numbered and named for easy reference. For each API, provide:
+#### [Main Table] (Existing)
+```sql
+[table_name] {
+  id: INT (PRIMARY KEY)
+  ...
+  created_at: TIMESTAMP
+  updated_at: TIMESTAMP
+}
+```
 
-### For REST APIs:
-* **Name**: <SV.1> <Method> <Endpoint> (e.g., `<SV.1> POST /auth/login`)
-* **Description**: Authenticates a user and returns an access token.
-* **Request schema**
-* **Response schema**
-* **Exposed Functions**:
-For each function:
-+ Name
-* Pseudo-code (mandatory): Write concise pseudo-code; do not expand it into detailed implementation code.
-* **Error cases**
-* **Authentication / Authorization requirements**
+#### [New Table] (NEW)
+```sql
+[table_name] {
+  id: INT (PRIMARY KEY)
+  ...
+}
+```
 
-### Example:
-```text 
-<SV.1> POST `/auth/login`
-Description: Authenticates a user and returns an access token.
-Request: { email: string password: string }
-Response: { accessToken: string }
-Pseudo-code: 
-  function validateUser(email, password): 
-      user = findByEmail(email)
-      if user is null: 
-        return null
-      if password != user.passwordHash:
-        return null
-      return user
+---
 
-Errors: 
-- 401: Invalid credentials
+## 3. Feature Specifications
+
+### 3.1 [List Page Name] (`/path`)
+
+#### Display
+
+- [Field/column 1]: [Description] | [Validate]
+- [Field/column 2]: [Description] | [Validate]
+
+#### Filtering & Search
+
+- [Search by ...]
+- [Filter by ...]
+- [Date range ...]
+
+#### Pagination
+
+- [Server-side/client-side]
+- [Default limit]
+- [Limit options]
+
+#### UX Interactions
+
+- [Interaction 1 -> expected behavior]
+- [Interaction 2 -> expected behavior]
+
+### 3.2 [Create Page Name] (`/path/create`)
+
+#### Form Fields
+
+- **[Field A]** (required): [Validation]
+- **[Field B]** (optional): [Validation]
+
+#### Form Actions
+
+- **Save**: [Validate -> submit -> success flow]
+- **Cancel**: [Cancel flow]
+
+#### Validation
+
+- Client-side: [Rules]
+- Server-side: [Rules]
+
+### 3.3 [Edit Page Name] (`/path/:id/edit`)
+
+#### Form Fields
+
+- [Same as create + read-only fields if needed]
+
+#### Form Actions
+
+- **Save**: [Update flow]
+- **Cancel**: [Cancel flow]
+
+#### Additional Panel (Optional)
+
+- [Audit/history/sidebar details]
+
+#### Validations
+
+- [Business constraints]
+
+---
+
+## 4. Backend API Specification
+
+### 4.1 Endpoints
+
+#### SV-001 - GET /api/[resource]
+**[Endpoint description]**
+
+Request:
+```http
+GET /api/[resource]?page=1&limit=10
+```
+
+Query Parameters:
+- `page` (optional): default 1
+- `limit` (optional): default 10
+- `search` (optional): search fields
+
+Flow:
+1. Verify JWT token
+2. Check role/permission
+3. Validate query parameters
+4. Query data
+5. Return result with pagination metadata
+
+Response (200 OK):
+```json
+{
+  "data": [],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 0,
+    "pages": 0
+  }
+}
+```
+
+Errors:
+- 401: Not authenticated
+- 403: Forbidden
+
+---
+
+#### SV-002 - POST /api/[resource]
+**[Create resource description]**
+
+Request Body:
+```json
+{
+  "field": "value"
+}
+```
+
+Flow:
+1. Verify JWT token
+2. Check role/permission
+3. Validate request body
+4. Insert to database
+5. Return created entity
+
+Response (201 Created):
+```json
+{
+  "data": {}
+}
+```
+
+Errors:
 - 400: Validation error
+- 409: Conflict (duplicate)
+
+---
+
+#### SV-003 - GET /api/[resource]/:id
+**[Get detail description]**
+
+Flow:
+1. Verify JWT token
+2. Validate route parameter
+3. Query by id
+4. Return entity
+
+Response (200 OK):
+```json
+{
+  "data": {}
+}
 ```
 
-## 4.2 Page or Component Details (Client - Frontend)
-### 4.2.1 Internal Structure
-Describe the internal composition of the component.
+Errors:
+- 404: Not found
 
-### Required elements:
-* Pages / Components
-* Data models
+---
 
-### Example:
-```text 
-AuthPage 
-  ├── LoginForm
-  ├── RegisterForm
-  └── AuthService
+#### SV-004 - PUT /api/[resource]/:id
+**[Update description]**
+
+Request Body:
+```json
+{
+  "field": "new value"
+}
 ```
-### 4.2.1 Page or Component Overview
-IF DESIGN FOR PAGE: Describe the design of each page, including layout, components, and interactions.
-IF DESIGN FOR COMPONENT: Describe the design of each component, including its responsibilities, interfaces, and interactions.
-For each major component, provide low-level design details, including class diagrams, API designs, or interface descriptions.
 
-For each Page/Component, define:
+Flow:
+1. Verify JWT token
+2. Validate route parameter and request body
+3. Check existing record
+4. Update entity
+5. Return updated entity
 
-* **Name**
-* **Responsibility**
+Response (200 OK):
+```json
+{
+  "data": {}
+}
+```
 
-  * Clearly describe the business purpose and scope
-* **Boundaries**
+Errors:
+- 400: Validation error
+- 404: Not found
+- 409: Conflict
 
-  * What the component handles vs. what it explicitly does NOT handle
-* **Dependencies**
+---
 
-  * Internal modules
-  * External services / APIs
-  * Shared libraries
+#### SV-005 - DELETE /api/[resource]/:id
+**[Delete description]**
 
-* **Detail of each Item in the page or component**
-  * For UI components, describe the visual structure and arrangement of elements
-  * Use structured table to illustrate layout
-| No | NameItem | Control UI | Label | Validate | Note | Actions |
-|----|----------|------------|-------|----------|------|---------|
-|    |          |            |       |          |      |         |
-|    |          |            |       |          |      |         |
-  * Actions: Describe the user interactions and expected behavior for each control or element. Include any state changes, API calls, or side effects that occur as a result of the action. Refer to the API specifications defined in section 4.1.2 or Function specifications in section 4.2.2.
+Flow:
+1. Verify JWT token
+2. Check permission and business constraints
+3. Delete entity
+4. Return success message
 
-## 4.2.2 Page or Component Specifications
+Response (200 OK):
+```json
+{
+  "message": "Deleted successfully"
+}
+```
 
-For each Page or Component client (frontend), define:
+Errors:
+- 400: Bad request
+- 404: Not found
 
-### 1. Purpose
+---
 
-* Why the Page or Component exists
+#### SV-006 - GET /api/[resource]/:id/activity
+**[Activity history description]**
 
-### 2. Exposed Functions / Methods
+Flow:
+1. Verify JWT token
+2. Validate route parameter
+3. Query activity logs
+4. Return logs
 
-For each function:
+Response (200 OK):
+```json
+{
+  "data": []
+}
+```
 
-* **Numbered + Name**
-* **Input parameters (type + meaning)**
-* **Return type**
-* **Pseudo-code (mandatory)** Write concise pseudo-code; do not expand it into detailed implementation code.
+### 4.2 Authorization
 
-* **Side effects (if any)**
+All endpoints require:
+1. JWT verification
+2. Role/permission validation
 
-### Example
+Special cases:
+- [Add any endpoint-specific authorization rules]
 
-#### Component: `UserForm`
+### 4.3 Error Handling
 
-**Purpose:**
-Handles user input for creating or updating user profiles.
+All errors must follow this format:
+```json
+{
+  "error": "Error message",
+  "code": "ERROR_CODE",
+  "details": {}
+}
+```
 
-**Functions:**
+---
 
-**CL-1: validateUser(email: string, password: string): User | null**
+## 5. Frontend Components
 
-* Verifies user credentials
+### 5.1 File Structure
 
-Pseudo-code:
-```ts 
-function validateUser(email, password):
-  user = findByEmail(email) if user is null: return null if password != user.passwordHash: return null return user
-**CL-2: generateToken(user: User): string**
+```text
+client/src/pages/[feature]/
+├── [ListPage].vue
+├── [CreatePage].vue
+├── [EditPage].vue
+├── components/
+│   ├── [Table].vue
+│   ├── [Filters].vue
+│   ├── [Form].vue
+│   └── [OptionalViewer].vue
+├── composables/
+│   └── use[Feature].ts
+└── [feature].routes.ts
+```
 
-Pseudo-code:
-ts function generateToken(user): payload = { userId: user.id } token = jwt.sign(payload, secret) return token
+### 5.2 Component Details
 
-## 4.4 Edge Cases & Error Handling
-Descripe all edge cases and error scenarios that the component must handle. Explicitly define:
-* Validation failures
-* External service failures
-* Timeout / retry behavior
-* Null / undefined handling
-* Security constraints
+#### Layout Overview
 
-## 4.5 Non-Functional Considerations
+```text
+[DefaultLayout]
+├── [Topbar]
+├── [Sidebar]
+└── <router-view>
+    ├── [ListPage]      <- /path
+    ├── [CreatePage]    <- /path/create
+    └── [EditPage]      <- /path/:id/edit
+```
 
-Where applicable:
-* Performance constraints
-* Concurrency / race conditions
-* Caching strategy
-* Logging / observability
-* Security (e.g., input sanitization, auth checks)
+Component relationships:
 
-## Expected Outcome
+```text
+[ParentPage]
+  |- [ChildA] emits: ...
+  |- [ChildB] emits: ...
+```
 
-A complete, implementation-ready component specification that:
+#### [ListPage].vue
 
-* Can be directly handed to developers or code-generation agents
-* Eliminates ambiguity in behavior and structure
-* Clearly defines responsibilities, contracts, and execution flow
+- [Primary responsibilities]
+- [Events and handlers]
 
-## 6. Verification and Validation
-### 6.1 Test Plan Overview
-Describe the approach to testing the system, including unit, integration, and acceptance testing.
+**Flow - onMounted:**
+1. [Step]
+2. [Step]
+
+**Flow - handleFilterChange(filters):**
+1. [Step]
+2. [Step]
+
+#### [Table].vue
+
+- [Table responsibilities]
+- [Props]
+- [Emits]
+
+#### [Filters].vue
+
+- [Filter controls]
+
+**Flow - handleSearchInput(value):**
+1. [Step]
+2. [Step]
+
+#### [Form].vue
+
+- [Create/edit mode details]
+
+**Props:**
+- `mode`: `'create' | 'edit'`
+- `initialData?`: [Type]
+
+**Emits:**
+- `submit(formData)`
+- `cancel`
+
+**Flow - handleSubmit():**
+1. Validate fields
+2. Emit submit if valid
+
+#### [CreatePage].vue
+
+- [Create flow summary]
+
+#### [EditPage].vue
+
+- [Edit flow summary]
+
+#### [OptionalViewer].vue
+
+- [Sidebar/history/extra details]
+
+### 5.3 Composable
+
+#### use[Feature].ts
+```typescript
+// API calls
+getItems(filters)
+createItem(data)
+getItem(id)
+updateItem(id, data)
+deleteItem(id)
+getItemActivity(id)
+
+// State management
+items: Ref<Item[]>
+loading: Ref<boolean>
+error: Ref<string>
+pagination: Ref<PaginationInfo>
+```
+
+### 5.4 Store Management
+
+#### File: client/src/stores/[feature].store.ts
+
+Use this state/getter/action pattern:
+
+```typescript
+interface [Feature]State {
+  items: Item[]
+  currentItem: Item | null
+  activityLogs: ActivityLog[]
+  pagination: PaginationInfo
+  filters: ItemFilters
+  loading: boolean
+  error: string | null
+}
+
+// Actions
+fetchItems(filters?: ItemFilters): Promise<void>
+fetchItem(id: number): Promise<void>
+createItem(data: CreateItemDto): Promise<Item>
+updateItem(id: number, data: UpdateItemDto): Promise<void>
+deleteItem(id: number): Promise<void>
+fetchItemActivity(id: number): Promise<void>
+```
+
+Store dependencies:
+
+| Store | Role |
+|-------|------|
+| use[Feature]Store | Manage feature state |
+| useAuthStore | Provide auth token/context |
+| useUiStore | Show success/error toasts |
+
+---
+
+## 6. Sequence Diagrams
+
+### 6.1 Create Flow
+
+```text
+Actor        Frontend      Backend       Database
+  |             |             |              |
+  |-- Submit -->|             |              |
+  |             |-- POST ---->|              |
+  |             |             |-- INSERT --->|
+  |             |<-- 201 -----|              |
+```
+
+### 6.2 Delete Flow
+
+```text
+Actor        Frontend      Backend       Database
+  |             |             |              |
+  |-- Delete -->|             |              |
+  |             |-- DELETE -->|              |
+  |             |             |-- DELETE --->|
+  |             |<-- 200 -----|              |
+```
+
+---
+
+## 7. Security Considerations
+
+- Authentication: [Rule]
+- Authorization: [Rule]
+- Input Validation: [Rule]
+- SQL Injection Prevention: [Rule]
+- Sensitive Data Protection: [Rule]
+- Audit Trail: [Rule]
+
+---
+
+## 8. Error Scenarios & Handling
+
+| Scenario | Status | Response |
+|----------|--------|----------|
+| Not authenticated | 401 | "Not authenticated" |
+| Forbidden | 403 | "Forbidden" |
+| Validation failed | 400 | "Validation error" |
+| Conflict | 409 | "Already exists" |
+| Not found | 404 | "Not found" |
+| Database error | 500 | "Internal server error" |
+
+---
+
+## 9. Testing Strategy
+
+### Backend Tests
+- Unit: [Service/business rules]
+- Integration: [API + database]
+- Authorization: [Permission rules]
+
+### Frontend Tests
+- Component: [Form/table/filter]
+- Integration: [API + store]
+- E2E: [Main user flows]
+
+---
+
+## 10. Performance Considerations
+- Pagination: [Strategy]
+- Filtering: [Indexed columns]
+- Search: [Strategy]
+- Caching: [If applicable]
+- Lazy Loading: [If applicable]
+
+---
+
+```

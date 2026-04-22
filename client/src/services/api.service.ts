@@ -19,9 +19,14 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      // Do not redirect when the auth endpoint itself returns 401 (wrong credentials).
+      // Only redirect when a protected endpoint returns 401 (expired/missing token).
+      const isAuthEndpoint = (error.config?.url as string | undefined)?.includes('/auth/');
+      if (!isAuthEndpoint) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

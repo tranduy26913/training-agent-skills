@@ -1,19 +1,11 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { authService, type LoginPayload } from '@/services/auth.service';
-import { useRouter } from 'vue-router';
-
-export interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: 'admin' | 'user' | 'moderator';
-  status: string;
-}
+import { authService } from '@/services/auth.service';
+import type { LoginPayload, AuthUser } from '@/types/auth.types';
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(localStorage.getItem('token'));
-  const user = ref<User | null>(
+  const user = ref<AuthUser | null>(
     localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!) : null
   );
 
@@ -23,10 +15,10 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function login(payload: LoginPayload): Promise<void> {
     const response = await authService.login(payload);
-    token.value = response.data.token;
-    user.value = response.data.user;
-    localStorage.setItem('token', response.data.token);
-    localStorage.setItem('user', JSON.stringify(response.data.user));
+    token.value = response.token;
+    user.value = response.user;
+    localStorage.setItem('token', response.token);
+    localStorage.setItem('user', JSON.stringify(response.user));
   }
 
   function logout(): void {

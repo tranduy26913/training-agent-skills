@@ -9,7 +9,7 @@ export const authRoutes: RouteRecordRaw[] = [
         path: '',
         name: 'Login',
         component: () => import('./LoginPage.vue'),
-        meta: { title: 'Login' },
+        meta: { title: 'Login', titleKey: 'auth.loginTitle' },
       },
     ],
   },

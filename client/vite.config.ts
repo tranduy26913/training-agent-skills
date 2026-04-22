@@ -9,6 +9,14 @@ export default defineConfig({
       '@': resolve(__dirname, 'src'),
     },
   },
+  test: {
+    environment: 'happy-dom',
+    globals: true,
+    exclude: ['e2e/**', 'node_modules/**'],
+    alias: {
+      '@': resolve(__dirname, 'src'),
+    },
+  },
   server: {
     port: 5173,
     proxy: {

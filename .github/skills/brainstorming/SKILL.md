@@ -13,6 +13,15 @@ Start by understanding the current project context, then ask questions one at a 
 Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
 </HARD-GATE>
 
+<TEMPLATE-COMPLIANCE-GATE>
+When writing any spec document, the output MUST follow the referenced template structure 100%.
+- Keep every top-level section in the same order as the template.
+- Keep every required subsection heading defined by the template.
+- Do not rename, merge, remove, or reorder required sections.
+- Fill section content, but do not alter the required skeleton.
+If any required section is missing, the spec is considered invalid and must be corrected before presenting to the user.
+</TEMPLATE-COMPLIANCE-GATE>
+
 ## Anti-Pattern: "This Is Too Simple To Need A Design"
 
 Every project goes through this process. A todo list, a single-function utility, a config change — all of them. "Simple" projects are where unexamined assumptions cause the most wasted work. The design can be short (a few sentences for truly simple projects), but you MUST present it and get approval.
@@ -26,14 +35,16 @@ You MUST create a task for each of these items and complete them in order:
 2. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
 3. **Propose 2-3 approaches** — with trade-offs and your recommendation
 4. **Present design** — in sections scaled to their complexity, get user approval after each section
-5. **Write design doc** — save to `docs/<topic>/specs/<topic>-design.md`, use Vietnamese for the content, while keeping the headers/section titles in English (Follow the template in reference/spec-document-template.md)
+5. **Write design doc** — save to `docs/<topic>/specs/<topic>-design.md`, use Vietnamese for the content, while keeping the headers/section titles in English. Follow the template in [spec-document-template](reference/spec-document-template.md) with 100% structural compliance (all required sections/subsections preserved in order).
 6. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
 7. **User reviews written spec** — ask user to review the spec file before proceeding
 8. **Transition to implementation** — invoke writing-plans skill to create implementation plan
 
-**Template of <topic>-design.md: (mandatory)**
+**Template of <topic>-design.md: (mandatory, strict)**
 - The specification file must be formatted in well formed Markdown.
 - Specification files must follow the template below, ensuring that all sections are filled out appropriately. The front matter for the markdown should be structured correctly as per the example following → See [spec-document-template](reference/spec-document-template.md)
+- Structural compliance is mandatory: section hierarchy and ordering from the template are required and cannot be modified.
+- If project-specific content does not apply to a required section, keep that section and explicitly mark it as "Not applicable" with a short reason.
 
 ## Rule when Change Request
 Objective: Maintain a "Single Source of Truth" by ensuring all logic or UI changes are reflected in the documentation (.md spec) before any code implementation.
@@ -144,6 +155,7 @@ After writing the spec document, look at it with fresh eyes:
 2. **Internal consistency:** Do any sections contradict each other? Does the architecture match the feature descriptions?
 3. **Scope check:** Is this focused enough for a single implementation plan, or does it need decomposition?
 4. **Ambiguity check:** Could any requirement be interpreted two different ways? If so, pick one and make it explicit.
+5. **Template compliance check (mandatory):** Verify 100% section/subsection presence and exact ordering against [spec-document-template](reference/spec-document-template.md). If any mismatch exists, fix before user review.
 
 Fix any issues inline. No need to re-review — just fix and move on.
 

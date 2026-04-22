@@ -3,10 +3,120 @@
 @tailwind utilities;
 
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Noto Sans', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
+  overflow-x: hidden;
 }
+
+/* ===========================================================
+   PrimeVue Component Elevation — global CSS overrides
+   (components not covered by definePreset shadow tokens)
+   =========================================================== */
+
+/* DataTable — elevated card appearance */
+.p-datatable {
+  border-radius: 0.75rem;
+  overflow: hidden;
+  box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.06), 0 4px 16px -2px rgba(0, 0, 0, 0.07);
+}
+.dark .p-datatable {
+  box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.35), 0 4px 16px -2px rgba(0, 0, 0, 0.4);
+}
+
+/* Panel — card elevation */
+.p-panel {
+  border-radius: 0.75rem;
+  overflow: hidden;
+  box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.06), 0 4px 16px -2px rgba(0, 0, 0, 0.07);
+}
+.dark .p-panel {
+  box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.35), 0 4px 16px -2px rgba(0, 0, 0, 0.4);
+}
+
+/* Select / DatePicker overlay — elevated dropdown */
+.p-select-overlay,
+.p-datepicker-panel {
+  box-shadow: 0 10px 20px -4px rgba(0, 0, 0, 0.13), 0 4px 8px -4px rgba(0, 0, 0, 0.08) !important;
+}
+.dark .p-select-overlay,
+.dark .p-datepicker-panel {
+  box-shadow: 0 10px 20px -4px rgba(0, 0, 0, 0.5), 0 4px 8px -4px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Button — micro-interaction lift on hover */
+.p-button:not(.p-button-link):not(.p-button-text):not(:disabled) {
+  transition: box-shadow 0.15s ease, transform 0.1s ease;
+}
+.p-button:not(.p-button-link):not(.p-button-text):not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
+}
+.p-button:not(.p-button-link):not(.p-button-text):not(:disabled):active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* Form inputs — subtle elevation with stronger focus state */
+.p-inputtext,
+.p-textarea,
+.p-inputnumber-input,
+.p-password-input {
+  transition: box-shadow 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.p-inputtext:hover,
+.p-textarea:hover,
+.p-inputnumber-input:hover,
+.p-password-input:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.p-inputtext:focus,
+.p-textarea:focus,
+.p-inputnumber-input:focus,
+.p-password-input:focus {
+  box-shadow: 0 0 0 1px var(--p-primary-400), 0 4px 12px rgba(0, 0, 0, 0.14);
+}
+
+.dark .p-inputtext,
+.dark .p-textarea,
+.dark .p-inputnumber-input,
+.dark .p-password-input {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+.dark .p-inputtext:hover,
+.dark .p-textarea:hover,
+.dark .p-inputnumber-input:hover,
+.dark .p-password-input:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.42);
+}
+
+.dark .p-inputtext:focus,
+.dark .p-textarea:focus,
+.dark .p-inputnumber-input:focus,
+.dark .p-password-input:focus {
+  box-shadow: 0 0 0 1px var(--p-primary-300), 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* Sidebar active nav item — left accent bar */
+nav .router-link-active {
+  position: relative;
+}
+nav .router-link-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 60%;
+  width: 3px;
+  background: var(--p-primary-500);
+  border-radius: 0 3px 3px 0;
+}
+
