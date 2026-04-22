@@ -28,6 +28,15 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('user');
   }
 
+  /**
+   * Update current user's info in state and localStorage.
+   * 現在のユーザー情報をstateとlocalStorageに反映する。
+   */
+  function updateUser(updatedUser: Partial<AuthUser>): void {
+    user.value = { ...user.value!, ...updatedUser };
+    localStorage.setItem('user', JSON.stringify(user.value));
+  }
+
   return {
     token,
     user,
@@ -36,5 +45,6 @@ export const useAuthStore = defineStore('auth', () => {
     userRole,
     login,
     logout,
+    updateUser,
   };
 });
