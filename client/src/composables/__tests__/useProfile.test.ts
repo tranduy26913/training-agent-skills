@@ -24,7 +24,7 @@ const mockUser = {
   email: 'test@example.com',
   role: 'user' as const,
   status: 'active',
-  avatar: null,
+  avatar: undefined,
   birthday: undefined,
   note: undefined,
 };
