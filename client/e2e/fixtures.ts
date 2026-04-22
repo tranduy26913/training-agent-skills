@@ -2,6 +2,7 @@ import { test as base } from '@playwright/test';
 import { LoginPage } from './pages/login-page';
 import { UserListPage } from './pages/user-list-page';
 import { UserFormPage } from './pages/user-form-page';
+import { ProfilePage } from './pages/profile-page';
 
 export class ApiClient {
   private token: string | null = null;
@@ -57,6 +58,7 @@ type Fixtures = {
   loginPage: LoginPage;
   userListPage: UserListPage;
   userFormPage: UserFormPage;
+  profilePage: ProfilePage;
   api: ApiClient;
 };
 
@@ -71,6 +73,10 @@ export const test = base.extend<Fixtures>({
 
   userFormPage: async ({ page }, use) => {
     await use(new UserFormPage(page, 'create'));
+  },
+
+  profilePage: async ({ page }, use) => {
+    await use(new ProfilePage(page));
   },
 
   api: async ({ baseURL }, use) => {
