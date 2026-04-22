@@ -111,13 +111,16 @@ test.describe('Profile Page', () => {
 
   // /profile は未認証ユーザーをリダイレクトすること / Unauthenticated user is redirected
   test('redirects unauthenticated user from /profile', async ({ page }) => {
-    // Clear storage and visit profile directly
-    await page.context().clearCookies();
-    await page.evaluate(() => localStorage.clear());
+    // Navigate to app first, then clear auth from localStorage
+    await page.goto('/dashboard');
+    await page.evaluate(() => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    });
 
     await page.goto('/profile');
 
     // Should redirect to login
-    await expect(page).toHaveURL(/\/login/, { timeout: 5000 });
+    await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
   });
 });

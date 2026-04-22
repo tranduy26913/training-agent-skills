@@ -47,11 +47,12 @@ export class ProfilePage {
 
   // パスワード変更モーダルのロケーター / Change password modal locators
   get passwordModal() {
+    const dialog = this.page.locator('.p-dialog');
     return {
-      currentPassword: this.page.getByPlaceholder('Current Password'),
-      newPassword: this.page.getByPlaceholder('New Password'),
-      confirmPassword: this.page.getByPlaceholder('Confirm New Password'),
-      submit: this.page.getByRole('button', { name: 'Change Password' }),
+      currentPassword: dialog.getByPlaceholder('Current Password').first(),
+      newPassword: dialog.getByPlaceholder('New Password').first(),
+      confirmPassword: dialog.getByPlaceholder('Confirm New Password').first(),
+      submit: dialog.getByRole('button', { name: 'Change Password' }),
     };
   }
 }

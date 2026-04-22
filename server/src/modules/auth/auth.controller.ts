@@ -32,7 +32,7 @@ export class AuthController {
    */
   async updateMe(req: Request, res: Response): Promise<void> {
     try {
-      const userId = (req as any).user?.id;
+      const userId = (req as any).user?.userId;
       const updated = await authService.updateProfile(userId, req.body);
       sendSuccess(res, updated);
     } catch (error) {
@@ -46,7 +46,7 @@ export class AuthController {
    */
   async changeMyPassword(req: Request, res: Response): Promise<void> {
     try {
-      const userId = (req as any).user?.id;
+      const userId = (req as any).user?.userId;
       await authService.changePassword(userId, req.body);
       sendSuccess(res, { message: 'Password updated successfully' });
     } catch (error) {
