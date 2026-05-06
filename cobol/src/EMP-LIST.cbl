@@ -69,28 +69,28 @@ READ-LOOP.
 PARSE-HEADER.
     UNSTRING WS-LINE DELIMITED BY '|'
         INTO WS-LINE-TYPE
-             WS-PAGE-STR
-             WS-LIMIT-STR
-             WS-TOTAL-STR
-             WS-PAGES-STR
+            WS-PAGE-STR
+            WS-LIMIT-STR
+            WS-TOTAL-STR
+            WS-PAGES-STR
     END-UNSTRING.
 
 PROCESS-RECORD.
     INITIALIZE WS-EMPLOYEE
     UNSTRING WS-LINE DELIMITED BY '|'
         INTO WS-LINE-TYPE
-             WS-EMP-ID
-             WS-EMP-CODE
-             WS-FULL-NAME
-             WS-EMAIL
-             WS-PHONE
-             WS-DEPARTMENT
-             WS-POSITION
-             WS-SALARY-STR
-             WS-HIRE-DATE
-             WS-STATUS
-             WS-CREATED-AT
-             WS-UPDATED-AT
+            WS-EMP-ID
+            WS-EMP-CODE
+            WS-FULL-NAME
+            WS-EMAIL
+            WS-PHONE
+            WS-DEPARTMENT
+            WS-POSITION
+            WS-SALARY-STR
+            WS-HIRE-DATE
+            WS-STATUS
+            WS-CREATED-AT
+            WS-UPDATED-AT
     END-UNSTRING
     IF WS-FIRST-RECORD = 'N'
         DISPLAY ',' WITH NO ADVANCING

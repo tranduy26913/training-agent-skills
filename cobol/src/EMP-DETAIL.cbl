@@ -45,18 +45,18 @@ OUTPUT-EMPLOYEE.
     INITIALIZE WS-EMPLOYEE
     UNSTRING WS-LINE DELIMITED BY '|'
         INTO WS-LINE-TYPE
-             WS-EMP-ID
-             WS-EMP-CODE
-             WS-FULL-NAME
-             WS-EMAIL
-             WS-PHONE
-             WS-DEPARTMENT
-             WS-POSITION
-             WS-SALARY-STR
-             WS-HIRE-DATE
-             WS-STATUS
-             WS-CREATED-AT
-             WS-UPDATED-AT
+            WS-EMP-ID
+            WS-EMP-CODE
+            WS-FULL-NAME
+            WS-EMAIL
+            WS-PHONE
+            WS-DEPARTMENT
+            WS-POSITION
+            WS-SALARY-STR
+            WS-HIRE-DATE
+            WS-STATUS
+            WS-CREATED-AT
+            WS-UPDATED-AT
     END-UNSTRING
     DISPLAY '{"status":"OK","data":{'           WITH NO ADVANCING
     DISPLAY '"id":'                             WITH NO ADVANCING
