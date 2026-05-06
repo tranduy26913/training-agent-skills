@@ -1,0 +1,13 @@
+ 01  WS-EMPLOYEE.
+           05  WS-EMP-ID         PIC X(10)   VALUE SPACES.
+           05  WS-EMP-CODE       PIC X(20)   VALUE SPACES.
+           05  WS-FULL-NAME      PIC X(100)  VALUE SPACES.
+           05  WS-EMAIL          PIC X(255)  VALUE SPACES.
+           05  WS-PHONE          PIC X(20)   VALUE SPACES.
+           05  WS-DEPARTMENT     PIC X(20)   VALUE SPACES.
+           05  WS-POSITION       PIC X(20)   VALUE SPACES.
+           05  WS-SALARY-STR     PIC X(15)   VALUE SPACES.
+           05  WS-HIRE-DATE      PIC X(10)   VALUE SPACES.
+           05  WS-STATUS         PIC X(10)   VALUE SPACES.
+           05  WS-CREATED-AT     PIC X(19)   VALUE SPACES.
+           05  WS-UPDATED-AT     PIC X(19)   VALUE SPACES.
