@@ -117,7 +117,13 @@ function onAvatarChange(event: Event): void {
 const onSubmit = handleSubmit((values) => {
   const dto: UpdateProfileDto = {
     name: values.name,
-    birthday: values.birthday ? values.birthday.toISOString().split('T')[0] : undefined,
+    birthday: values.birthday
+      ? [
+          values.birthday.getFullYear(),
+          String(values.birthday.getMonth() + 1).padStart(2, '0'),
+          String(values.birthday.getDate()).padStart(2, '0'),
+        ].join('-')
+      : undefined,
     note: values.note || undefined,
     avatar: values.avatar || undefined,
   };
@@ -204,7 +210,6 @@ function roleSeverity(role: string): string {
         :max-date="today"
         :placeholder="t('profile.birthdayPlaceholder')"
         show-icon
-        fluid
         data-testid="profile-birthday"
       />
     </div>

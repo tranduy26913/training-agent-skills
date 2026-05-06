@@ -103,6 +103,24 @@ describe('ProfileForm', () => {
     }
   });
 
+  it('formats birthday using local date (not UTC) to avoid off-by-one day across timezones', async () => {
+    // タイムゾーンに関係なく、ローカル日付でbirthdayをフォーマットする
+    // e.g. UTC+7: new Date('2026-04-23') is 2026-04-22T17:00:00Z — toISOString() would return '2026-04-22', not '2026-04-23'
+    const userWithBirthday: AuthUser = {
+      ...mockUser,
+      birthday: '2026-04-23',
+    };
+    const wrapper = mountProfileForm(userWithBirthday);
+    await wrapper.find('form').trigger('submit');
+    await new Promise((r) => setTimeout(r, 50));
+    const submitted = wrapper.emitted('submit');
+    if (submitted && submitted.length > 0) {
+      const dto = submitted[0][0] as any;
+      // Must match the local date "2026-04-23", not the UTC-shifted "2026-04-22"
+      expect(dto.birthday).toBe('2026-04-23');
+    }
+  });
+
   it('renders save button', () => {
     // 保存ボタンが表示される
     const wrapper = mountProfileForm();
