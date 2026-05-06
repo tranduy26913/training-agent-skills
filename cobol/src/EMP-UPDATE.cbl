@@ -2,7 +2,7 @@ IDENTIFICATION DIVISION.
 PROGRAM-ID. EMP-UPDATE.
 AUTHOR. COBOL-CGI.
 *>================================================================
-*> EMP-UPDATE  EValidate employee update input
+*> EMP-UPDATE — Validate employee update input
 *>
 *> Input protocol (stdin from Node.js CGI runner):
 *>   EMPLOYEE_ID|<id>
@@ -89,7 +89,7 @@ READ-INPUT.
     END-EVALUATE.
 
 VALIDATE-INPUT.
-*>-- Required: employee_id
+    *>-- Required: employee_id
     IF FUNCTION TRIM(WS-EMPLOYEE-ID) = SPACES
         DISPLAY 'RESULT|ERROR'
         DISPLAY 'CODE|VALIDATION_ERROR'
@@ -98,7 +98,7 @@ VALIDATE-INPUT.
         STOP RUN
     END-IF
 
-*>-- Required: full_name
+    *>-- Required: full_name
     IF FUNCTION TRIM(WS-FULL-NAME) = SPACES
         DISPLAY 'RESULT|ERROR'
         DISPLAY 'CODE|VALIDATION_ERROR'
@@ -107,7 +107,7 @@ VALIDATE-INPUT.
         STOP RUN
     END-IF
 
-*>-- Required: email with @ check
+    *>-- Required: email with @ check
     IF FUNCTION TRIM(WS-EMAIL) = SPACES
         DISPLAY 'RESULT|ERROR'
         DISPLAY 'CODE|VALIDATION_ERROR'
@@ -117,7 +117,7 @@ VALIDATE-INPUT.
     END-IF
     PERFORM CHECK-EMAIL-FORMAT
 
-*>-- Required: department enum
+    *>-- Required: department enum
     IF FUNCTION TRIM(WS-DEPARTMENT) = SPACES
         DISPLAY 'RESULT|ERROR'
         DISPLAY 'CODE|VALIDATION_ERROR'
@@ -127,7 +127,7 @@ VALIDATE-INPUT.
     END-IF
     PERFORM CHECK-DEPARTMENT
 
-*>-- Required: position enum
+    *>-- Required: position enum
     IF FUNCTION TRIM(WS-POSITION) = SPACES
         DISPLAY 'RESULT|ERROR'
         DISPLAY 'CODE|VALIDATION_ERROR'
@@ -137,7 +137,7 @@ VALIDATE-INPUT.
     END-IF
     PERFORM CHECK-POSITION
 
-*>-- Required: salary
+    *>-- Required: salary
     IF FUNCTION TRIM(WS-SALARY-STR) = SPACES
         DISPLAY 'RESULT|ERROR'
         DISPLAY 'CODE|VALIDATION_ERROR'
@@ -146,7 +146,7 @@ VALIDATE-INPUT.
         STOP RUN
     END-IF
 
-*>-- Required: hire_date YYYY-MM-DD
+    *>-- Required: hire_date YYYY-MM-DD
     IF FUNCTION TRIM(WS-HIRE-DATE) = SPACES
         DISPLAY 'RESULT|ERROR'
         DISPLAY 'CODE|VALIDATION_ERROR'
@@ -162,13 +162,13 @@ VALIDATE-INPUT.
         STOP RUN
     END-IF
 
-*>-- Required: status enum
+    *>-- Required: status enum
     IF FUNCTION TRIM(WS-STATUS) = SPACES
         MOVE 'active' TO WS-STATUS
     END-IF
     PERFORM CHECK-STATUS
 
-*>-- All validations passed
+    *>-- All validations passed
     DISPLAY 'RESULT|VALID'
     DISPLAY 'EMPLOYEE_ID|' WITH NO ADVANCING
     DISPLAY FUNCTION TRIM(WS-EMPLOYEE-ID)

@@ -2,7 +2,7 @@ IDENTIFICATION DIVISION.
 PROGRAM-ID. EMP-DELETE.
 AUTHOR. COBOL-CGI.
 *>================================================================
-*> EMP-DELETE  EValidate employee delete request
+*> EMP-DELETE — Validate employee delete request
 *>
 *> Input protocol (stdin from Node.js CGI runner):
 *>   EMPLOYEE_ID|<id>
@@ -63,7 +63,7 @@ READ-INPUT.
     END-IF.
 
 VALIDATE-INPUT.
-*>-- Required: employee_id must not be blank
+    *>-- Required: employee_id must not be blank
     IF FUNCTION TRIM(WS-EMPLOYEE-ID) = SPACES
         DISPLAY 'RESULT|ERROR'
         DISPLAY 'CODE|VALIDATION_ERROR'
@@ -72,7 +72,7 @@ VALIDATE-INPUT.
         STOP RUN
     END-IF
 
-*>-- employee_id must be a positive integer
+    *>-- employee_id must be a positive integer
     MOVE FUNCTION NUMVAL(FUNCTION TRIM(WS-EMPLOYEE-ID))
         TO WS-ID-NUMERIC
     IF WS-ID-NUMERIC <= 0
@@ -83,7 +83,7 @@ VALIDATE-INPUT.
         STOP RUN
     END-IF
 
-*>-- Validation passed  ECGI runner will check existence and delete
+    *>-- Validation passed — CGI runner will check existence and delete
     DISPLAY 'RESULT|VALID'
     DISPLAY 'EMPLOYEE_ID|' WITH NO ADVANCING
     DISPLAY FUNCTION TRIM(WS-EMPLOYEE-ID)

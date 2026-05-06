@@ -2,7 +2,7 @@ IDENTIFICATION DIVISION.
 PROGRAM-ID. EMP-CREATE.
 AUTHOR. COBOL-CGI.
 *>================================================================
-*> EMP-CREATE  EValidate new employee input
+*> EMP-CREATE — Validate new employee input
 *>
 *> Input protocol (stdin from Node.js CGI runner, pipe-delimited):
 *>   EMPLOYEE_CODE|<value>
@@ -16,13 +16,13 @@ AUTHOR. COBOL-CGI.
 *>   STATUS|<value>
 *>   END
 *>
-*> Output  Eon validation failure:
+*> Output — on validation failure:
 *>   STATUS|ERROR
 *>   CODE|<error_code>
 *>   FIELD|<field_name>
 *>   MESSAGE|<human_readable>
 *>
-*> Output  Eon validation success:
+*> Output — on validation success:
 *>   STATUS|VALID
 *>   EMPLOYEE_CODE|<trimmed_value>
 *>   FULL_NAME|<trimmed_value>
@@ -95,7 +95,7 @@ READ-INPUT.
     END-EVALUATE.
 
 VALIDATE-INPUT.
-*>-- Required: employee_code
+    *>-- Required: employee_code
     IF FUNCTION TRIM(WS-EMP-CODE) = SPACES
         DISPLAY 'RESULT|ERROR'
         DISPLAY 'CODE|VALIDATION_ERROR'
@@ -111,7 +111,7 @@ VALIDATE-INPUT.
         STOP RUN
     END-IF
 
-*>-- Required: full_name
+    *>-- Required: full_name
     IF FUNCTION TRIM(WS-FULL-NAME) = SPACES
         DISPLAY 'RESULT|ERROR'
         DISPLAY 'CODE|VALIDATION_ERROR'
@@ -120,7 +120,7 @@ VALIDATE-INPUT.
         STOP RUN
     END-IF
 
-*>-- Required: email with @ check
+    *>-- Required: email with @ check
     IF FUNCTION TRIM(WS-EMAIL) = SPACES
         DISPLAY 'RESULT|ERROR'
         DISPLAY 'CODE|VALIDATION_ERROR'
@@ -133,7 +133,7 @@ VALIDATE-INPUT.
         PERFORM CHECK-EMAIL-FORMAT
     END-IF
 
-*>-- Required: department enum
+    *>-- Required: department enum
     IF FUNCTION TRIM(WS-DEPARTMENT) = SPACES
         DISPLAY 'RESULT|ERROR'
         DISPLAY 'CODE|VALIDATION_ERROR'
@@ -143,7 +143,7 @@ VALIDATE-INPUT.
     END-IF
     PERFORM CHECK-DEPARTMENT
 
-*>-- Required: position enum
+    *>-- Required: position enum
     IF FUNCTION TRIM(WS-POSITION) = SPACES
         DISPLAY 'RESULT|ERROR'
         DISPLAY 'CODE|VALIDATION_ERROR'
@@ -153,7 +153,7 @@ VALIDATE-INPUT.
     END-IF
     PERFORM CHECK-POSITION
 
-*>-- Required: salary (non-negative numeric string)
+    *>-- Required: salary (non-negative numeric string)
     IF FUNCTION TRIM(WS-SALARY-STR) = SPACES
         DISPLAY 'RESULT|ERROR'
         DISPLAY 'CODE|VALIDATION_ERROR'
@@ -162,7 +162,7 @@ VALIDATE-INPUT.
         STOP RUN
     END-IF
 
-*>-- Required: hire_date format YYYY-MM-DD
+    *>-- Required: hire_date format YYYY-MM-DD
     IF FUNCTION TRIM(WS-HIRE-DATE) = SPACES
         DISPLAY 'RESULT|ERROR'
         DISPLAY 'CODE|VALIDATION_ERROR'
@@ -178,13 +178,13 @@ VALIDATE-INPUT.
         STOP RUN
     END-IF
 
-*>-- Default status to 'active' if blank
+    *>-- Default status to 'active' if blank
     IF FUNCTION TRIM(WS-STATUS) = SPACES
         MOVE 'active' TO WS-STATUS
     END-IF
     PERFORM CHECK-STATUS
 
-*>-- All validations passed  Eoutput validated fields
+    *>-- All validations passed — output validated fields
     DISPLAY 'RESULT|VALID'
     DISPLAY 'EMPLOYEE_CODE|' WITH NO ADVANCING
     DISPLAY FUNCTION TRIM(WS-EMP-CODE)
