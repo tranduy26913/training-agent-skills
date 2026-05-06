@@ -3,6 +3,7 @@ import cors from 'cors';
 import { corsConfig, appConfig } from './config';
 import { authRoutes } from './modules/auth/auth.routes';
 import { usersRoutes } from './modules/users/users.routes';
+import { employeesRoutes } from './modules/employees/employees.routes';
 import { authMiddleware } from './middleware/auth.middleware';
 import { errorMiddleware } from './middleware/error.middleware';
 import { logger } from './utils/logger.util';
@@ -23,6 +24,7 @@ app.use((req, _res, next) => {
 // Routes / ルート設定
 app.use(`${appConfig.apiPrefix}/auth`, authRoutes);
 app.use(`${appConfig.apiPrefix}/users`, usersRoutes);
+app.use(`${appConfig.apiPrefix}/employees`, employeesRoutes);
 
 // Health check
 app.get(`${appConfig.apiPrefix}/health`, (_req, res) => {
