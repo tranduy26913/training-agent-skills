@@ -101,49 +101,51 @@ This structure informs the task decomposition. Each task should produce self-con
 ````markdown
 ### Task N: [Component Name]
 
-**Effort (hours):** Estimated time required for an experienced developer to analyze, implement, and complete the task entirely manually, without any AI assistance.
-
 **Files:**
 - Create: `exact/path/to/file.py`
 - Modify: `exact/path/to/existing.py:123-145`
 - Test: `tests/exact/path/to/test.py`
 
-**Use Skills:**
-- [ ] `ttd.md`  for test-driven development
-- [ ] `code-review.md` for self-review after implementation
+- [ ] **Step 1: Write the failing test**
 
-**Implementation**:
-```ts 
-// Pseudo-code from specs. Do not write detailed implementation code in the plan - only concise pseudo-code. (The executor will write the actual code based on the pseudo-code.)
+```python
+def test_specific_behavior():
+    result = function(input)
+    assert result == expected
 ```
 
-**Verification:**
-- [ ] Run `npm test` and ensure all tests pass
+- [ ] **Step 2: Run test to verify it fails**
 
-**Commit**
-```bash 
+Run: `pytest tests/path/test.py::test_name -v`
+Expected: FAIL with "function not defined"
+
+- [ ] **Step 3: Write minimal implementation**
+
+```python
+def function(input):
+    return expected
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `pytest tests/path/test.py::test_name -v`
+Expected: PASS
+
+- [ ] **Step 5: Commit**
+
+```bash
 git add tests/path/test.py src/path/file.py
 git commit -m "feat: add specific feature"
 ```
-
 **Effort Total (hours):** Estimated time required for an experienced developer to analyze, implement, and complete all tasks entirely manually, without any AI assistance.
 
 ````
 
-## No Placeholders
-Every step must contain the actual content an engineer needs. These are **plan failures** — never write them:
-- "TBD", "TODO", "implement later", "fill in details"
-- "Add appropriate error handling" / "add validation" / "handle edge cases"
-- "Write tests for the above" (without actual test code)
-- "Similar to Task N" (repeat the code — the engineer may be reading tasks out of order)
-- Steps that describe what to do without showing how (code blocks required for code steps)
-- References to types, functions, or methods not defined in any task 
-
 ## REMEMBER
-- Exact file paths always
+- Task following TDD principles: write failing test, verify it fails, implement, verify it passes, commit.
 - Follow the pseudo-code strictly; don't add extra steps or skip steps. DONT WRITE DETAILED IMPLEMENTATION CODE IN THE PLAN - only concise pseudo-code. (The executor will write the actual code based on the pseudo-code.)
 - Exact commands with expected output
-- DRY, YAGNI, TDD, frequent commits 
+- DRY, YAGNI, frequent commits 
 
 ## Self-Review
 After writing the complete plan, look at the spec with fresh eyes and check the plan against it. This is a checklist you run yourself — not a subagent dispatch.
