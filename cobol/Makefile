@@ -1,52 +1,82 @@
-#================================================================
-# Makefile — Build all COBOL CGI programs
+# Makefile for COBOL Employee CGI Programs
+# Requires: GnuCOBOL 3.x, MariaDB C Client (libmariadb)
+# Usage:
+#   make all        - Build all CGI programs
+#   make clean      - Remove build artifacts
+#   make install    - Copy CGIs to build/ (same as all)
 #
-# Architecture: Node.js CGI Runner (port 8081) replaces Apache.
-# COBOL programs read piped data from stdin, output JSON to stdout.
-#
-# Usage (from d:\training\cobol\):
-#   C:\msys64\mingw64\bin\mingw32-make.exe all
-#   C:\msys64\mingw64\bin\mingw32-make.exe clean
-#
-# Required environment (set automatically below):
-#   COB_CONFIG_DIR  = GnuCOBOL config directory
-#   PATH includes   = C:/msys64/mingw64/bin (for gcc)
-#================================================================
+# Prerequisites:
+#   - GnuCOBOL:  C:\msys64\mingw64\bin\cobc.exe
+#   - MariaDB:   C:\msys64\mingw64\lib\libmariadb.dll.a
+#   - GCC:       C:\msys64\mingw64\bin\gcc.exe
 
 COBC     = C:/msys64/mingw64/bin/cobc.exe
-COBFLAGS = -x -free -Wobsolete
-SRCDIR   = src
-BUILDDIR = build
-COPYDIR  = copybooks
+GCC      = C:/msys64/mingw64/bin/gcc.exe
+COBFLAGS = -x -free
+CC_FLAGS = -c -I/C/msys64/mingw64/include/mysql \
+           -IC:/msys64/mingw64/include/mysql
+LD_FLAGS = -LC:/msys64/mingw64/lib -lmariadb
 
-export COB_CONFIG_DIR  = C:/msys64/mingw64/share/gnucobol/config
-export COB_LIBRARY_PATH= C:/msys64/mingw64/lib/gnucobol
-export PATH           := C:/msys64/mingw64/bin:$(PATH)
+BUILD_DIR = build
+SRC_DIR   = src
+COPY_DIR  = copybooks
+HELPER_DIR = c-helpers
 
 PROGRAMS = emp-list emp-detail emp-create emp-update emp-delete
-TARGETS  = $(addprefix $(BUILDDIR)/, $(addsuffix .exe, $(PROGRAMS)))
 
-.PHONY: all clean
+.PHONY: all clean dirs
 
-all: $(BUILDDIR) $(TARGETS)
+all: dirs $(BUILD_DIR)/mysql_helper.o $(patsubst %, $(BUILD_DIR)/%.exe, $(PROGRAMS))
 
-$(BUILDDIR):
-	mkdir -p $(BUILDDIR)
+dirs:
+	if not exist $(BUILD_DIR) mkdir $(BUILD_DIR)
 
-$(BUILDDIR)/emp-list.exe: $(SRCDIR)/EMP-LIST.cbl $(COPYDIR)/EMP-RECORD.cpy
-	$(COBC) $(COBFLAGS) -I $(COPYDIR) -o $@ $<
+# Compile C helper object
+$(BUILD_DIR)/mysql_helper.o: $(HELPER_DIR)/mysql_helper.c
+	$(GCC) -c $(HELPER_DIR)/mysql_helper.c \
+	    -IC:/msys64/mingw64/include/mysql \
+	    -o $(BUILD_DIR)/mysql_helper.o
 
-$(BUILDDIR)/emp-detail.exe: $(SRCDIR)/EMP-DETAIL.cbl $(COPYDIR)/EMP-RECORD.cpy
-	$(COBC) $(COBFLAGS) -I $(COPYDIR) -o $@ $<
+# Pattern rule: compile each COBOL program
+$(BUILD_DIR)/emp-list.exe: $(SRC_DIR)/EMP-LIST.cbl $(BUILD_DIR)/mysql_helper.o
+	$(COBC) $(COBFLAGS) \
+	    -I $(COPY_DIR) \
+	    $(SRC_DIR)/EMP-LIST.cbl \
+	    $(BUILD_DIR)/mysql_helper.o \
+	    $(LD_FLAGS) \
+	    -o $(BUILD_DIR)/emp-list.exe
 
-$(BUILDDIR)/emp-create.exe: $(SRCDIR)/EMP-CREATE.cbl $(COPYDIR)/EMP-RECORD.cpy
-	$(COBC) $(COBFLAGS) -I $(COPYDIR) -o $@ $<
+$(BUILD_DIR)/emp-detail.exe: $(SRC_DIR)/EMP-DETAIL.cbl $(BUILD_DIR)/mysql_helper.o
+	$(COBC) $(COBFLAGS) \
+	    -I $(COPY_DIR) \
+	    $(SRC_DIR)/EMP-DETAIL.cbl \
+	    $(BUILD_DIR)/mysql_helper.o \
+	    $(LD_FLAGS) \
+	    -o $(BUILD_DIR)/emp-detail.exe
 
-$(BUILDDIR)/emp-update.exe: $(SRCDIR)/EMP-UPDATE.cbl $(COPYDIR)/EMP-RECORD.cpy
-	$(COBC) $(COBFLAGS) -I $(COPYDIR) -o $@ $<
+$(BUILD_DIR)/emp-create.exe: $(SRC_DIR)/EMP-CREATE.cbl $(BUILD_DIR)/mysql_helper.o
+	$(COBC) $(COBFLAGS) \
+	    -I $(COPY_DIR) \
+	    $(SRC_DIR)/EMP-CREATE.cbl \
+	    $(BUILD_DIR)/mysql_helper.o \
+	    $(LD_FLAGS) \
+	    -o $(BUILD_DIR)/emp-create.exe
 
-$(BUILDDIR)/emp-delete.exe: $(SRCDIR)/EMP-DELETE.cbl $(COPYDIR)/EMP-RECORD.cpy
-	$(COBC) $(COBFLAGS) -I $(COPYDIR) -o $@ $<
+$(BUILD_DIR)/emp-update.exe: $(SRC_DIR)/EMP-UPDATE.cbl $(BUILD_DIR)/mysql_helper.o
+	$(COBC) $(COBFLAGS) \
+	    -I $(COPY_DIR) \
+	    $(SRC_DIR)/EMP-UPDATE.cbl \
+	    $(BUILD_DIR)/mysql_helper.o \
+	    $(LD_FLAGS) \
+	    -o $(BUILD_DIR)/emp-update.exe
+
+$(BUILD_DIR)/emp-delete.exe: $(SRC_DIR)/EMP-DELETE.cbl $(BUILD_DIR)/mysql_helper.o
+	$(COBC) $(COBFLAGS) \
+	    -I $(COPY_DIR) \
+	    $(SRC_DIR)/EMP-DELETE.cbl \
+	    $(BUILD_DIR)/mysql_helper.o \
+	    $(LD_FLAGS) \
+	    -o $(BUILD_DIR)/emp-delete.exe
 
 clean:
-	rm -rf $(BUILDDIR)
+	if exist $(BUILD_DIR) rmdir /s /q $(BUILD_DIR)

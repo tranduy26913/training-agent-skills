@@ -64,7 +64,7 @@ export class CobolGateway {
     const qs = this.toQueryString(filters as Record<string, unknown>);
     let response: Response;
     try {
-      response = await fetch(`${this.baseUrl}/emp-list.cgi${qs}`);
+      response = await fetch(`${this.baseUrl}/emp-list.exe${qs}`);
     } catch {
       throw new ServiceError('COBOL service unavailable', 502);
     }
@@ -79,7 +79,7 @@ export class CobolGateway {
   async getEmployee(id: number): Promise<EmployeeRow> {
     let response: Response;
     try {
-      response = await fetch(`${this.baseUrl}/emp-detail.cgi?id=${id}`);
+      response = await fetch(`${this.baseUrl}/emp-detail.exe?id=${id}`);
     } catch {
       throw new ServiceError('COBOL service unavailable', 502);
     }
@@ -91,7 +91,7 @@ export class CobolGateway {
   async createEmployee(data: CreateEmployeeDto): Promise<EmployeeRow> {
     let response: Response;
     try {
-      response = await fetch(`${this.baseUrl}/emp-create.cgi`, {
+      response = await fetch(`${this.baseUrl}/emp-create.exe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -107,7 +107,7 @@ export class CobolGateway {
   async updateEmployee(id: number, data: UpdateEmployeeDto): Promise<EmployeeRow> {
     let response: Response;
     try {
-      response = await fetch(`${this.baseUrl}/emp-update.cgi?id=${id}`, {
+      response = await fetch(`${this.baseUrl}/emp-update.exe?id=${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -123,7 +123,7 @@ export class CobolGateway {
   async deleteEmployee(id: number): Promise<void> {
     let response: Response;
     try {
-      response = await fetch(`${this.baseUrl}/emp-delete.cgi?id=${id}`, {
+      response = await fetch(`${this.baseUrl}/emp-delete.exe?id=${id}`, {
         method: 'DELETE',
       });
     } catch {

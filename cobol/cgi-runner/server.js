@@ -1,410 +1,180 @@
 /**
- * COBOL CGI Runner  EExpress server on port 8081
+ * cobol/cgi-runner/server.js
+ * Node.js CGI runner - spawns COBOL .exe files as CGI processes.
+ * Replaces Apache httpd for Windows development environment.
  *
- * Replaces Apache httpd for local development.
- * Handles MySQL queries directly and delegates business logic
- * (validation, JSON formatting) to compiled COBOL programs via
- * stdin/stdout pipes.
+ * Usage: node cobol/cgi-runner/server.js
+ * Port:  8081 (matches COBOL_CGI_URL in .env)
  *
- * Start: node cobol/cgi-runner/server.js   (from project root)
- *
- * Architecture:
- *   Node.js API :3000  ↁE CobolGateway HTTP  ↁE this server :8081
- *   This server  ↁE MySQL (queries)  ↁE COBOL stdin  ↁE JSON stdout
+ * CGI routing:
+ *   GET  /cgi-bin/emp-list.exe    → build/emp-list.exe
+ *   GET  /cgi-bin/emp-detail.exe  → build/emp-detail.exe
+ *   POST /cgi-bin/emp-create.exe  → build/emp-create.exe
+ *   PUT  /cgi-bin/emp-update.exe  → build/emp-update.exe
+ *   DELETE /cgi-bin/emp-delete.exe → build/emp-delete.exe
  */
-import 'dotenv/config';
-import express from 'express';
-import mysql from 'mysql2/promise';
-import { spawn } from 'child_process';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const COBOL_BUILD = path.resolve(__dirname, '..', 'build');
-const EXE = process.platform === 'win32' ? '.exe' : '';
-
-const dbConfig = {
-  host:     process.env.DB_HOST     || 'localhost',
-  port:     parseInt(process.env.DB_PORT || '3306', 10),
-  user:     process.env.DB_USER     || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME     || 'app_db',
-  dateStrings: true,       // Return DATE/DATETIME as strings
-  decimalNumbers: false,   // Return DECIMAL as strings to preserve precision
-};
+const http = require('http');
+const { spawn } = require('child_process');
+const path = require('path');
+const fs = require('fs');
+const url = require('url');
 
 const PORT = parseInt(process.env.COBOL_CGI_PORT || '8081', 10);
+const BUILD_DIR = path.resolve(__dirname, '..', 'build');
 
-const app = express();
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: true }));
+// Map URL path → executable name
+const CGI_MAP = {
+  '/cgi-bin/emp-list.exe':   'emp-list.exe',
+  '/cgi-bin/emp-detail.exe': 'emp-detail.exe',
+  '/cgi-bin/emp-create.exe': 'emp-create.exe',
+  '/cgi-bin/emp-update.exe': 'emp-update.exe',
+  '/cgi-bin/emp-delete.exe': 'emp-delete.exe',
+};
 
-// ── Helpers ────────────────────────────────────────────────────────────────
+const server = http.createServer((req, res) => {
+  const parsed = url.parse(req.url, true);
+  const pathname = parsed.pathname;
 
-/** Spawn a COBOL program, pipe stdinData, collect stdout */
-function runCobol(program, stdinData) {
-  return new Promise((resolve, reject) => {
-    const exePath = path.join(COBOL_BUILD, program + EXE);
-    // GnuCOBOL runtime requires MinGW64 DLLs and COB_CONFIG_DIR
-    const cobEnv = {
-      ...process.env,
-      PATH: `C:\\msys64\\mingw64\\bin;${process.env.PATH || ''}`,
-      COB_CONFIG_DIR: 'C:\\msys64\\mingw64\\share\\gnucobol\\config',
-    };
-    const proc = spawn(exePath, [], {
-      stdio: ['pipe', 'pipe', 'pipe'],
-      env: cobEnv,
-    });
-    let stdout = '';
-    let stderr = '';
-    proc.stdout.on('data', chunk => { stdout += chunk.toString(); });
-    proc.stderr.on('data', chunk => { stderr += chunk.toString(); });
-    proc.on('close', code => {
-      if (code !== 0 && code !== null) {
-        reject(new Error(`COBOL ${program} exited with code ${code}: ${stderr}`));
-      } else {
-        resolve(stdout);
-      }
-    });
-    proc.on('error', err => reject(new Error(`Failed to start ${exePath}: ${err.message}`)));
-    proc.stdin.write(stdinData, 'utf8');
-    proc.stdin.end();
-  });
-}
-
-/** Parse multi-line key|value output from write COBOL programs */
-function parseCobolKV(output) {
-  const result = {};
-  for (const line of output.trim().split('\n')) {
-    const pipeIdx = line.indexOf('|');
-    if (pipeIdx === -1) continue;
-    const key = line.slice(0, pipeIdx).trim();
-    const val = line.slice(pipeIdx + 1).trim();
-    if (key) result[key] = val;
+  const exeName = CGI_MAP[pathname];
+  if (!exeName) {
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ERROR', code: 'NOT_FOUND', message: `CGI not found: ${pathname}` }));
+    return;
   }
-  return result;
-}
 
-/** Build error JSON when COBOL reports a validation failure */
-function cobolErrorResponse(kv) {
-  const code    = kv.CODE    || 'VALIDATION_ERROR';
-  const field   = kv.FIELD   || '';
-  const message = kv.MESSAGE || 'Validation failed';
-  const statusMap = {
-    NOT_FOUND:       404,
-    DUPLICATE_CODE:  409,
-    DUPLICATE_EMAIL: 409,
-    VALIDATION_ERROR: 400,
-    DB_ERROR:        502,
+  const exePath = path.join(BUILD_DIR, exeName);
+  if (!fs.existsSync(exePath)) {
+    res.writeHead(503, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ERROR', code: 'CGI_NOT_BUILT', message: `Executable not found: ${exePath}. Run: cd cobol && make all` }));
+    return;
+  }
+
+  // Prepare CGI environment variables
+  const env = {
+    ...process.env,
+    REQUEST_METHOD: req.method,
+    QUERY_STRING: parsed.query ? url.format({ query: parsed.query }).slice(1) : '',
+    PATH_INFO: pathname,
+    CONTENT_TYPE: req.headers['content-type'] || '',
+    CONTENT_LENGTH: req.headers['content-length'] || '0',
+    SERVER_NAME: 'localhost',
+    SERVER_PORT: String(PORT),
+    GATEWAY_INTERFACE: 'CGI/1.1',
+    SERVER_PROTOCOL: 'HTTP/1.1',
+    SCRIPT_NAME: pathname,
+    HTTP_HOST: req.headers['host'] || `localhost:${PORT}`,
+    // Pass DB config to COBOL via environment
+    DB_HOST: process.env.DB_HOST || 'localhost',
+    DB_PORT: process.env.DB_PORT || '3306',
+    DB_USER: process.env.DB_USER || 'root',
+    DB_PASSWORD: process.env.DB_PASSWORD || '',
+    DB_NAME: process.env.DB_NAME || 'app_db',
+    // Add MariaDB DLL to PATH so COBOL exe can find it
+    PATH: `C:\\msys64\\mingw64\\bin;${process.env.PATH || ''}`,
   };
-  return { httpStatus: statusMap[code] || 400, body: { status: 'ERROR', code, field, message } };
-}
 
-/** Format a MySQL row as the pipe-delimited RECORD line COBOL expects */
-function rowToCobolRecord(row) {
-  const f = v => (v == null ? '' : String(v).replace(/\|/g, ' '));
-  return [
-    'RECORD',
-    f(row.id),
-    f(row.employee_code),
-    f(row.full_name),
-    f(row.email),
-    f(row.phone),
-    f(row.department),
-    f(row.position),
-    f(row.salary),
-    f(row.hire_date),
-    f(row.status),
-    f(row.created_at),
-    f(row.updated_at),
-  ].join('|');
-}
+  // Collect request body (for POST/PUT)
+  const bodyChunks = [];
+  req.on('data', chunk => bodyChunks.push(chunk));
+  req.on('end', () => {
+    const body = Buffer.concat(bodyChunks);
 
-// ── Routes ─────────────────────────────────────────────────────────────────
+    const cgiProcess = spawn(exePath, [], { env, stdio: ['pipe', 'pipe', 'pipe'] });
 
-/**
- * GET /cgi-bin/emp-list.cgi
- * Query params: page, limit, search, department, status
- */
-app.get('/cgi-bin/emp-list.cgi', async (req, res) => {
-  let conn;
-  try {
-    const page   = Math.max(1, parseInt(req.query.page  || '1',  10));
-    const limit  = Math.min(100, Math.max(1, parseInt(req.query.limit || '10', 10)));
-    const offset = (page - 1) * limit;
-
-    const conditions = [];
-    const params     = [];
-
-    if (req.query.search) {
-      conditions.push('(full_name LIKE ? OR employee_code LIKE ? OR email LIKE ?)');
-      const like = `%${req.query.search}%`;
-      params.push(like, like, like);
+    // Send request body to CGI stdin
+    if (body.length > 0) {
+      cgiProcess.stdin.write(body);
     }
-    if (req.query.department) { conditions.push('department = ?'); params.push(req.query.department); }
-    if (req.query.status)     { conditions.push('status = ?');     params.push(req.query.status);     }
+    cgiProcess.stdin.end();
 
-    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    const outputChunks = [];
+    const errorChunks = [];
 
-    conn = await mysql.createConnection(dbConfig);
+    cgiProcess.stdout.on('data', chunk => outputChunks.push(chunk));
+    cgiProcess.stderr.on('data', chunk => errorChunks.push(chunk));
 
-    const [[{ total }]] = await conn.execute(
-      `SELECT COUNT(*) AS total FROM employees ${where}`, params,
-    );
-    const pages = Math.ceil(total / limit);
+    cgiProcess.on('close', (code) => {
+      const output = Buffer.concat(outputChunks).toString('utf8');
+      const errorOutput = Buffer.concat(errorChunks).toString('utf8');
 
-    const [rows] = await conn.execute(
-      `SELECT * FROM employees ${where} ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`,
-      params,
-    );
-    await conn.end();
-    conn = null;
+      if (errorOutput) {
+        console.error(`[CGI STDERR] ${exeName}:`, errorOutput.trim());
+      }
 
-    // Build stdin for COBOL
-    const lines = [`HEADER|${page}|${limit}|${total}|${pages}`];
-    for (const row of rows) lines.push(rowToCobolRecord(row));
-    lines.push('EOF');
-    const stdin = lines.join('\n') + '\n';
+      if (!output) {
+        res.writeHead(502, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'ERROR', code: 'EMPTY_RESPONSE', message: 'CGI produced no output' }));
+        return;
+      }
 
-    const output = await runCobol('emp-list', stdin);
-    const parsed = JSON.parse(output.trim());
-    res.json(parsed);
-  } catch (err) {
-    if (conn) await conn.end().catch(() => {});
-    console.error('[emp-list]', err.message);
-    res.status(500).json({ status: 'ERROR', code: 'DB_ERROR', message: err.message });
-  }
+      // Parse CGI output: headers + blank line (possibly whitespace-only) + body
+      // COBOL DISPLAY "" may emit a space before newline, so match \n[ \t]*\n
+      const splitMatch = output.match(/\r?\n[ \t]*\r?\n/);
+      const splitIdx = splitMatch ? output.indexOf(splitMatch[0]) : -1;
+
+      let headers = {};
+      let responseBody = output;
+
+      if (splitIdx !== -1) {
+        const headerSection = output.substring(0, splitIdx);
+        responseBody = output.substring(splitIdx + splitMatch[0].length);
+
+        headerSection.split(/\r?\n/).forEach(line => {
+          const colonIdx = line.indexOf(':');
+          if (colonIdx > 0) {
+            const key = line.substring(0, colonIdx).trim().toLowerCase();
+            const val = line.substring(colonIdx + 1).trim();
+            headers[key] = val;
+          }
+        });
+      }
+
+      // Determine HTTP status from JSON body if no Status header
+      let httpStatus = 200;
+      const statusHeader = headers['status'];
+      if (statusHeader) {
+        httpStatus = parseInt(statusHeader, 10) || 200;
+      } else {
+        try {
+          const bodyJson = JSON.parse(responseBody);
+          if (bodyJson.status === 'CREATED') httpStatus = 201;
+          else if (bodyJson.status === 'ERROR') {
+            const errCode = bodyJson.code;
+            if (errCode === 'NOT_FOUND')       httpStatus = 404;
+            else if (errCode === 'DUPLICATE_CODE' || errCode === 'DUPLICATE_EMAIL') httpStatus = 409;
+            else if (errCode === 'VALIDATION_ERROR') httpStatus = 400;
+            else httpStatus = 500;
+          }
+        } catch (_) { /* not JSON */ }
+      }
+
+      res.writeHead(httpStatus, {
+        'Content-Type': headers['content-type'] || 'application/json',
+        'Content-Length': Buffer.byteLength(responseBody, 'utf8'),
+      });
+      res.end(responseBody);
+    });
+
+    cgiProcess.on('error', (err) => {
+      console.error(`[CGI ERROR] Failed to spawn ${exeName}:`, err.message);
+      res.writeHead(502, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'ERROR', code: 'SPAWN_FAILED', message: err.message }));
+    });
+  });
 });
 
-/**
- * GET /cgi-bin/emp-detail.cgi?id=:id
- */
-app.get('/cgi-bin/emp-detail.cgi', async (req, res) => {
-  let conn;
-  try {
-    const id = parseInt(req.query.id || '0', 10);
-    if (!id || id <= 0) {
-      return res.status(400).json({ status: 'ERROR', code: 'VALIDATION_ERROR', message: 'id must be a positive integer' });
-    }
-    conn = await mysql.createConnection(dbConfig);
-    const [rows] = await conn.execute('SELECT * FROM employees WHERE id = ?', [id]);
-    await conn.end();
-    conn = null;
-
-    const stdin = rows.length === 0
-      ? 'NOT_FOUND\n'
-      : rowToCobolRecord(rows[0]) + '\nEOF\n';
-
-    const output = await runCobol('emp-detail', stdin);
-    const parsed = JSON.parse(output.trim());
-    const httpStatus = parsed.status === 'ERROR' && parsed.code === 'NOT_FOUND' ? 404 : 200;
-    res.status(httpStatus).json(parsed);
-  } catch (err) {
-    if (conn) await conn.end().catch(() => {});
-    console.error('[emp-detail]', err.message);
-    res.status(500).json({ status: 'ERROR', code: 'DB_ERROR', message: err.message });
-  }
+server.listen(PORT, () => {
+  console.log(`COBOL CGI Runner listening on http://localhost:${PORT}`);
+  console.log(`Build dir: ${BUILD_DIR}`);
+  console.log('Available CGI endpoints:');
+  Object.keys(CGI_MAP).forEach(route => {
+    const exists = fs.existsSync(path.join(BUILD_DIR, CGI_MAP[route]));
+    console.log(`  ${route} → ${exists ? 'READY' : 'NOT BUILT (run: cd cobol && make all)'}`);
+  });
 });
 
-/**
- * POST /cgi-bin/emp-create.cgi
- * Body: { employee_code, full_name, email, phone, department, position, salary, hire_date, status }
- */
-app.post('/cgi-bin/emp-create.cgi', async (req, res) => {
-  let conn;
-  try {
-    const body = req.body || {};
-
-    // Build stdin for COBOL validation
-    const lines = [
-      `EMPLOYEE_CODE|${body.employee_code || ''}`,
-      `FULL_NAME|${body.full_name || ''}`,
-      `EMAIL|${body.email || ''}`,
-      `PHONE|${body.phone || ''}`,
-      `DEPARTMENT|${body.department || ''}`,
-      `POSITION|${body.position || ''}`,
-      `SALARY|${body.salary ?? ''}`,
-      `HIRE_DATE|${body.hire_date || ''}`,
-      `STATUS|${body.status || ''}`,
-      'END',
-    ];
-    const stdin = lines.join('\n') + '\n';
-
-    const output = await runCobol('emp-create', stdin);
-    const kv     = parseCobolKV(output);
-
-    if (kv.RESULT !== 'VALID') {
-      const { httpStatus, body: errBody } = cobolErrorResponse(kv);
-      return res.status(httpStatus).json(errBody);
-    }
-
-    // COBOL validation passed  Echeck uniqueness then insert
-    conn = await mysql.createConnection(dbConfig);
-
-    const [[codeRow]] = await conn.execute(
-      'SELECT COUNT(*) AS cnt FROM employees WHERE employee_code = ?', [kv.EMPLOYEE_CODE],
-    );
-    if (codeRow.cnt > 0) {
-      await conn.end(); conn = null;
-      return res.status(409).json({ status: 'ERROR', code: 'DUPLICATE_CODE', message: 'Employee code already exists' });
-    }
-
-    const [[emailRow]] = await conn.execute(
-      'SELECT COUNT(*) AS cnt FROM employees WHERE email = ?', [kv.EMAIL],
-    );
-    if (emailRow.cnt > 0) {
-      await conn.end(); conn = null;
-      return res.status(409).json({ status: 'ERROR', code: 'DUPLICATE_EMAIL', message: 'Email already exists' });
-    }
-
-    const [insertResult] = await conn.execute(
-      `INSERT INTO employees (employee_code, full_name, email, phone, department, position, salary, hire_date, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        kv.EMPLOYEE_CODE, kv.FULL_NAME, kv.EMAIL,
-        kv.PHONE || null, kv.DEPARTMENT, kv.POSITION,
-        parseFloat(kv.SALARY), kv.HIRE_DATE, kv.STATUS || 'active',
-      ],
-    );
-
-    const [[newRow]] = await conn.execute('SELECT * FROM employees WHERE id = ?', [insertResult.insertId]);
-    await conn.end();
-    conn = null;
-
-    // Use EMP-DETAIL to format the response
-    const detailStdin = rowToCobolRecord(newRow) + '\nEOF\n';
-    const detailOut   = await runCobol('emp-detail', detailStdin);
-    const detail      = JSON.parse(detailOut.trim());
-    res.status(201).json({ status: 'CREATED', data: detail.data });
-  } catch (err) {
-    if (conn) await conn.end().catch(() => {});
-    console.error('[emp-create]', err.message);
-    res.status(500).json({ status: 'ERROR', code: 'DB_ERROR', message: err.message });
-  }
-});
-
-/**
- * PUT /cgi-bin/emp-update.cgi?id=:id
- * Body: { full_name, email, phone, department, position, salary, hire_date, status }
- */
-app.put('/cgi-bin/emp-update.cgi', async (req, res) => {
-  let conn;
-  try {
-    const id = parseInt(req.query.id || '0', 10);
-    if (!id || id <= 0) {
-      return res.status(400).json({ status: 'ERROR', code: 'VALIDATION_ERROR', message: 'id must be a positive integer' });
-    }
-
-    const body = req.body || {};
-
-    // Build stdin for COBOL validation
-    const lines = [
-      `EMPLOYEE_ID|${id}`,
-      `FULL_NAME|${body.full_name || ''}`,
-      `EMAIL|${body.email || ''}`,
-      `PHONE|${body.phone || ''}`,
-      `DEPARTMENT|${body.department || ''}`,
-      `POSITION|${body.position || ''}`,
-      `SALARY|${body.salary ?? ''}`,
-      `HIRE_DATE|${body.hire_date || ''}`,
-      `STATUS|${body.status || ''}`,
-      'END',
-    ];
-    const stdin = lines.join('\n') + '\n';
-
-    const output = await runCobol('emp-update', stdin);
-    const kv     = parseCobolKV(output);
-
-    if (kv.RESULT !== 'VALID') {
-      const { httpStatus, body: errBody } = cobolErrorResponse(kv);
-      return res.status(httpStatus).json(errBody);
-    }
-
-    conn = await mysql.createConnection(dbConfig);
-
-    // Check record exists
-    const [[existRow]] = await conn.execute('SELECT id FROM employees WHERE id = ?', [id]);
-    if (!existRow) {
-      await conn.end(); conn = null;
-      return res.status(404).json({ status: 'ERROR', code: 'NOT_FOUND', message: 'Employee not found' });
-    }
-
-    // Check email uniqueness (excluding self)
-    const [[emailRow]] = await conn.execute(
-      'SELECT COUNT(*) AS cnt FROM employees WHERE email = ? AND id != ?', [kv.EMAIL, id],
-    );
-    if (emailRow.cnt > 0) {
-      await conn.end(); conn = null;
-      return res.status(409).json({ status: 'ERROR', code: 'DUPLICATE_EMAIL', message: 'Email already exists' });
-    }
-
-    await conn.execute(
-      `UPDATE employees SET full_name=?, email=?, phone=?, department=?, position=?, salary=?, hire_date=?, status=?
-       WHERE id=?`,
-      [
-        kv.FULL_NAME, kv.EMAIL, kv.PHONE || null,
-        kv.DEPARTMENT, kv.POSITION, parseFloat(kv.SALARY),
-        kv.HIRE_DATE, kv.STATUS, id,
-      ],
-    );
-
-    const [[updatedRow]] = await conn.execute('SELECT * FROM employees WHERE id = ?', [id]);
-    await conn.end();
-    conn = null;
-
-    const detailStdin = rowToCobolRecord(updatedRow) + '\nEOF\n';
-    const detailOut   = await runCobol('emp-detail', detailStdin);
-    const detail      = JSON.parse(detailOut.trim());
-    res.json({ status: 'OK', data: detail.data });
-  } catch (err) {
-    if (conn) await conn.end().catch(() => {});
-    console.error('[emp-update]', err.message);
-    res.status(500).json({ status: 'ERROR', code: 'DB_ERROR', message: err.message });
-  }
-});
-
-/**
- * DELETE /cgi-bin/emp-delete.cgi?id=:id
- */
-app.delete('/cgi-bin/emp-delete.cgi', async (req, res) => {
-  let conn;
-  try {
-    const idStr = req.query.id || '';
-
-    // COBOL validates the ID
-    const stdin  = `EMPLOYEE_ID|${idStr}\nEND\n`;
-    const output = await runCobol('emp-delete', stdin);
-    const kv     = parseCobolKV(output);
-
-    if (kv.RESULT !== 'VALID') {
-      const { httpStatus, body: errBody } = cobolErrorResponse(kv);
-      return res.status(httpStatus).json(errBody);
-    }
-
-    const id = parseInt(kv.EMPLOYEE_ID, 10);
-    conn = await mysql.createConnection(dbConfig);
-
-    const [[existRow]] = await conn.execute('SELECT id FROM employees WHERE id = ?', [id]);
-    if (!existRow) {
-      await conn.end(); conn = null;
-      return res.status(404).json({ status: 'ERROR', code: 'NOT_FOUND', message: 'Employee not found' });
-    }
-
-    await conn.execute('DELETE FROM employees WHERE id = ?', [id]);
-    await conn.end();
-    conn = null;
-
-    res.json({ status: 'OK', message: 'Employee deleted successfully' });
-  } catch (err) {
-    if (conn) await conn.end().catch(() => {});
-    console.error('[emp-delete]', err.message);
-    res.status(500).json({ status: 'ERROR', code: 'DB_ERROR', message: err.message });
-  }
-});
-
-// ── Start ──────────────────────────────────────────────────────────────────
-
-app.listen(PORT, () => {
-  console.log(`COBOL CGI Runner listening on http://localhost:${PORT}/cgi-bin/`);
-  console.log(`COBOL build directory: ${COBOL_BUILD}`);
+process.on('SIGINT', () => {
+  console.log('\nShutting down CGI runner...');
+  server.close(() => process.exit(0));
 });

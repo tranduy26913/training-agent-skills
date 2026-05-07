@@ -1,90 +1,156 @@
-IDENTIFICATION DIVISION.
-PROGRAM-ID. EMP-DELETE.
-AUTHOR. COBOL-CGI.
-*>================================================================
-*> EMP-DELETE — Validate employee delete request
-*>
-*> Input protocol (stdin from Node.js CGI runner):
-*>   EMPLOYEE_ID|<id>
-*>   END
-*>
-*> Output on error:
-*>   STATUS|ERROR
-*>   CODE|VALIDATION_ERROR
-*>   FIELD|id
-*>   MESSAGE|<message>
-*>
-*> Output on success:
-*>   STATUS|VALID
-*>   EMPLOYEE_ID|<id>
-*>
-*> The CGI runner performs the actual existence check in MySQL
-*> and executes the DELETE statement after receiving STATUS|VALID.
-*>================================================================
-ENVIRONMENT DIVISION.
-CONFIGURATION SECTION.
+      *> EMP-DELETE.cbl - Delete an employee by ID
+      *> CGI program: reads id from QUERY_STRING, deletes from MySQL
+      *> Called via: DELETE /cgi-bin/emp-delete.exe?id=1
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. EMP-DELETE.
+       AUTHOR. Training Team.
 
-DATA DIVISION.
-WORKING-STORAGE SECTION.
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.
 
-01  WS-LINE              PIC X(100)  VALUE SPACES.
-01  WS-KEY               PIC X(30)   VALUE SPACES.
-01  WS-VALUE             PIC X(20)   VALUE SPACES.
-01  WS-EOF-FLAG          PIC X       VALUE 'N'.
-01  WS-EMPLOYEE-ID       PIC X(10)   VALUE SPACES.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
 
-*> Validate that ID is a positive integer using NUMVAL
-01  WS-ID-NUMERIC        PIC 9(10)   VALUE 0.
+      *> Shared DB connection variables
+       COPY DB-VARS.
 
-PROCEDURE DIVISION.
-MAIN-PARA.
-    PERFORM READ-INPUT UNTIL WS-EOF-FLAG = 'Y'
-    PERFORM VALIDATE-INPUT
-    STOP RUN.
+      *> Query string parameter parsing
+       01 WS-PARAM-KEY            PIC X(50)     VALUE SPACES.
+       01 WS-PARAM-VALUE          PIC X(500)    VALUE SPACES.
+       01 WS-PARSE-STATUS         PIC S9(9) COMP-5 VALUE 0.
 
-READ-INPUT.
-    ACCEPT WS-LINE FROM CONSOLE
-    IF WS-LINE = SPACES
-        MOVE 'Y' TO WS-EOF-FLAG
-        EXIT PARAGRAPH
-    END-IF
-    IF FUNCTION TRIM(WS-LINE) = 'END'
-        MOVE 'Y' TO WS-EOF-FLAG
-        EXIT PARAGRAPH
-    END-IF
-    MOVE SPACES TO WS-KEY
-    MOVE SPACES TO WS-VALUE
-    UNSTRING WS-LINE DELIMITED BY '|'
-        INTO WS-KEY
-            WS-VALUE
-    END-UNSTRING
-    IF WS-KEY = 'EMPLOYEE_ID'
-        MOVE FUNCTION TRIM(WS-VALUE) TO WS-EMPLOYEE-ID
-    END-IF.
+      *> ID parameter
+       01 WS-ID-NUM               PIC 9(10)     VALUE 0.
+       01 WS-ID-STR               PIC X(12)     VALUE SPACES.
 
-VALIDATE-INPUT.
-    *>-- Required: employee_id must not be blank
-    IF FUNCTION TRIM(WS-EMPLOYEE-ID) = SPACES
-        DISPLAY 'RESULT|ERROR'
-        DISPLAY 'CODE|VALIDATION_ERROR'
-        DISPLAY 'FIELD|id'
-        DISPLAY 'MESSAGE|employee id is required'
-        STOP RUN
-    END-IF
+      *> SQL and result
+       01 WS-SQL                  PIC X(1000)   VALUE SPACES.
+       01 WS-EXEC-STATUS          PIC S9(9) COMP-5 VALUE 0.
+       01 WS-FETCH-STATUS         PIC S9(9) COMP-5 VALUE 0.
+       01 WS-COUNT-VAL            PIC 9(10)     VALUE 0.
 
-    *>-- employee_id must be a positive integer
-    MOVE FUNCTION NUMVAL(FUNCTION TRIM(WS-EMPLOYEE-ID))
-        TO WS-ID-NUMERIC
-    IF WS-ID-NUMERIC <= 0
-        DISPLAY 'RESULT|ERROR'
-        DISPLAY 'CODE|VALIDATION_ERROR'
-        DISPLAY 'FIELD|id'
-        DISPLAY 'MESSAGE|employee id must be a positive integer'
-        STOP RUN
-    END-IF
+      *> Column fetch
+       01 WS-COL-BUF              PIC X(200)    VALUE SPACES.
+       01 WS-COL-BUF-LEN          PIC S9(9) COMP-5 VALUE 200.
+       01 WS-COL-IDX              PIC S9(9) COMP-5 VALUE 0.
+       01 WS-COL-STATUS           PIC S9(9) COMP-5 VALUE 0.
 
-    *>-- Validation passed — CGI runner will check existence and delete
-    DISPLAY 'RESULT|VALID'
-    DISPLAY 'EMPLOYEE_ID|' WITH NO ADVANCING
-    DISPLAY FUNCTION TRIM(WS-EMPLOYEE-ID)
-    .
+      *> Helpers
+       01 WS-LONG-VAL             PIC S9(9) COMP-5 VALUE 0.
+       01 WS-NUM-BUF-LEN          PIC S9(9) COMP-5 VALUE 20.
+
+       PROCEDURE DIVISION.
+       MAIN-LOGIC.
+           PERFORM PRINT-CGI-HEADERS
+           PERFORM GET-ENV-VARS
+           PERFORM CONNECT-DATABASE
+           IF WS-DB-STATUS NOT = 0
+               PERFORM OUTPUT-DB-ERROR
+               STOP RUN
+           END-IF
+           PERFORM PARSE-ID-PARAM
+           IF WS-ID-NUM = 0
+               DISPLAY '{"status":"ERROR","code":"VALIDATION_ERROR",'
+                   NO ADVANCING
+               DISPLAY '"message":"id parameter is required"}'
+               PERFORM DISCONNECT-DATABASE
+               STOP RUN
+           END-IF
+           PERFORM CHECK-EMPLOYEE-EXISTS
+           PERFORM DELETE-EMPLOYEE
+           PERFORM DISCONNECT-DATABASE
+           STOP RUN.
+
+       PRINT-CGI-HEADERS.
+           DISPLAY "Content-Type: application/json"
+           DISPLAY "".
+
+       COPY DB-PROCS.
+
+       PARSE-ID-PARAM.
+           MOVE "id                " TO WS-PARAM-KEY
+           CALL "parse_qparam" USING BY REFERENCE WS-QUERY-STRING
+               BY REFERENCE WS-PARAM-KEY
+               BY REFERENCE WS-PARAM-VALUE
+               BY REFERENCE WS-PARSE-STATUS
+           IF WS-PARSE-STATUS = 0 AND WS-PARAM-VALUE NOT = SPACES
+               MOVE FUNCTION NUMVAL(
+                   FUNCTION TRIM(WS-PARAM-VALUE TRAILING))
+                   TO WS-ID-NUM
+           END-IF
+
+           MOVE WS-ID-NUM TO WS-LONG-VAL
+           MOVE 20 TO WS-NUM-BUF-LEN
+           CALL "format_long_str" USING BY REFERENCE WS-LONG-VAL
+               BY REFERENCE WS-ID-STR BY REFERENCE WS-NUM-BUF-LEN.
+
+       CHECK-EMPLOYEE-EXISTS.
+           STRING
+               "SELECT COUNT(*) FROM employees WHERE id = "
+               DELIMITED SIZE
+               FUNCTION TRIM(WS-ID-STR TRAILING) DELIMITED SIZE
+               INTO WS-SQL
+
+           CALL "mysql_exec_query" USING
+               BY REFERENCE WS-SQL
+               BY REFERENCE WS-EXEC-STATUS
+           IF WS-EXEC-STATUS NOT = 0
+               PERFORM OUTPUT-DB-ERROR
+               PERFORM DISCONNECT-DATABASE
+               STOP RUN
+           END-IF
+
+           CALL "mysql_fetch_next" USING BY REFERENCE WS-FETCH-STATUS
+           IF WS-FETCH-STATUS = 0
+               MOVE 0 TO WS-COL-IDX
+               CALL "mysql_get_col_val" USING
+                   BY REFERENCE WS-COL-IDX
+                   BY REFERENCE WS-COL-BUF
+                   BY REFERENCE WS-COL-BUF-LEN
+                   BY REFERENCE WS-COL-STATUS
+               MOVE FUNCTION NUMVAL(
+                   FUNCTION TRIM(WS-COL-BUF TRAILING))
+                   TO WS-COUNT-VAL
+               IF WS-COUNT-VAL = 0
+                   DISPLAY '{"status":"ERROR","code":"NOT_FOUND",'
+                       NO ADVANCING
+                   DISPLAY '"message":"Employee not found"}'
+                   PERFORM DISCONNECT-DATABASE
+                   STOP RUN
+               END-IF
+           END-IF.
+
+       DELETE-EMPLOYEE.
+           MOVE SPACES TO WS-SQL
+           STRING
+               "DELETE FROM employees WHERE id = "
+               DELIMITED SIZE
+               FUNCTION TRIM(WS-ID-STR TRAILING) DELIMITED SIZE
+               INTO WS-SQL
+
+           CALL "mysql_exec_query" USING
+               BY REFERENCE WS-SQL
+               BY REFERENCE WS-EXEC-STATUS
+
+           IF WS-EXEC-STATUS NOT = 0
+               PERFORM OUTPUT-DB-ERROR
+               PERFORM DISCONNECT-DATABASE
+               STOP RUN
+           END-IF
+
+           DISPLAY '{"status":"OK","message":"Employee deleted successfully"}'.
+
+       OUTPUT-DB-ERROR.
+           MOVE 200 TO WS-ERR-BUF-LEN
+           CALL "mysql_get_error" USING
+               BY REFERENCE WS-ERR-BUF
+               BY REFERENCE WS-ERR-BUF-LEN
+           DISPLAY '{"status":"ERROR","code":"DB_ERROR","message":"'
+               NO ADVANCING
+           DISPLAY FUNCTION TRIM(WS-ERR-BUF TRAILING) NO ADVANCING
+           DISPLAY '"}'.
+
+       DISCONNECT-DATABASE.
+           CALL "mysql_close_db".
+
+       END PROGRAM EMP-DELETE.

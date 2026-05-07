@@ -22,7 +22,9 @@ export class EmployeesController {
         page: req.query.page ? Number(req.query.page) : undefined,
         limit: req.query.limit ? Number(req.query.limit) : undefined,
       };
+      console.log('Received filters:', filters);
       const result = await this.gateway.getEmployees(filters as any);
+      console.log('Received result:', result);
       sendSuccess(res, result);
     } catch (error) {
       handleError(res, error);
