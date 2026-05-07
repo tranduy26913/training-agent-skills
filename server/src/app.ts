@@ -4,6 +4,7 @@ import { corsConfig, appConfig } from './config';
 import { authRoutes } from './modules/auth/auth.routes';
 import { usersRoutes } from './modules/users/users.routes';
 import { employeesRoutes } from './modules/employees/employees.routes';
+import { notebookLmRoutes } from './modules/notebooklm/notebooklm.routes';
 import { authMiddleware } from './middleware/auth.middleware';
 import { errorMiddleware } from './middleware/error.middleware';
 import { logger } from './utils/logger.util';
@@ -25,6 +26,7 @@ app.use((req, _res, next) => {
 app.use(`${appConfig.apiPrefix}/auth`, authRoutes);
 app.use(`${appConfig.apiPrefix}/users`, usersRoutes);
 app.use(`${appConfig.apiPrefix}/employees`, employeesRoutes);
+app.use(`${appConfig.apiPrefix}/notebooklm`, notebookLmRoutes);
 
 // Health check
 app.get(`${appConfig.apiPrefix}/health`, (_req, res) => {

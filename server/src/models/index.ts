@@ -3,3 +3,4 @@ export * from './common.model';
 export * from './auth.model';
 export * from './users.model';
 export * from './employees.model';
+export * from './notebooklm.model';

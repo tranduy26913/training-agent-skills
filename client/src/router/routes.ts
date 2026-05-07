@@ -4,6 +4,7 @@ import { userRoutes } from '@/pages/users/users.routes';
 import { employeeRoutes } from '@/pages/employees/employees.routes';
 import { settingsRoutes } from '@/pages/settings/settings.routes';
 import { profileRoutes } from '@/pages/profile/profile.routes';
+import { notebooklmWorkspaceRoutes } from '@/pages/notebooklm/workspace/workspace.routes';
 import type { RouteRecordRaw } from 'vue-router';
 
 export const routes: RouteRecordRaw[] = [
@@ -15,6 +16,7 @@ export const routes: RouteRecordRaw[] = [
   ...dashboardRoutes,
   ...userRoutes,
   ...employeeRoutes,
+  ...notebooklmWorkspaceRoutes,
   ...settingsRoutes,
   ...profileRoutes,
   {
