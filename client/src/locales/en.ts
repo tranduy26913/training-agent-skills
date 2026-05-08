@@ -1,5 +1,3 @@
-import { y } from "vue-router/dist/router-CWoNjPRp.mjs";
-
 /**
  * English translations / 英語翻訳
  */
@@ -33,6 +31,7 @@ export default {
     overview: 'Overview',
     users: 'Users',
     employees: 'Employees',
+    notebooklm: 'NotebookLM',
     settings: 'Settings',
   },
   topbar: {

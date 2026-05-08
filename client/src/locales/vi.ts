@@ -31,6 +31,7 @@ export default {
     overview: 'Tổng quan',
     users: 'Người dùng',
     employees: 'Nhân viên',
+    notebooklm: 'NotebookLM',
     settings: 'Cài đặt',
   },
   topbar: {

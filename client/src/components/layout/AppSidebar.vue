@@ -37,6 +37,11 @@ const menuItems: MenuItem[] = [
     roles: ['admin'],
   },
   {
+    labelKey: 'sidebar.notebooklm',
+    icon: 'pi pi-book',
+    to: '/notebooklm',
+  },
+  {
     labelKey: 'sidebar.settings',
     icon: 'pi pi-cog',
     to: '/settings',
