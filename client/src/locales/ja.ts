@@ -32,6 +32,7 @@ export default {
     users: 'ユーザー',
     employees: '従業員',
     notebooklm: 'NotebookLM',
+    notebooklmOperations: 'NotebookLM運用',
     settings: '設定',
   },
   topbar: {
@@ -202,5 +203,15 @@ export default {
       active: '活動中',
       inactive: '停止中',
     },
+  },
+  notebooklmOperations: {
+    title: 'NotebookLM運用',
+    monitorTitle: 'ジョブ監視',
+    retryTitle: 'リトライ要求作成',
+    dlqEditTitle: 'DLQ項目編集',
+    filterFailedOnly: 'failed/dead-letterのみ表示',
+    retrySaved: 'リトライ要求を送信しました',
+    dlqSaved: 'DLQメモを更新しました',
+    purgeConfirm: '選択したDLQ項目を完全削除しますか？',
   },
 } as const;

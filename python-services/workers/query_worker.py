@@ -5,12 +5,12 @@ from typing import Any
 
 from workers.retry_policy import apply_retry_policy
 
-DELETE_JOB_TYPE = "DELETE_DOC"
-DELETE_STEPS = ("vector_delete", "chunks_delete", "document_delete")
+QUERY_JOB_TYPE = "QUERY"
+QUERY_STEPS = ("prepare", "retrieve", "synthesize", "store")
 
 
-class DeleteWorker:
-    """Queue consumer that performs document deletion and cleanup steps."""
+class QueryWorker:
+    """Queue consumer that runs query workflow steps for NotebookLM operations."""
 
     def __init__(self, connection: Any, default_max_retries: int = 3) -> None:
         self.connection = connection
@@ -27,12 +27,13 @@ class DeleteWorker:
             if not self._mark_job_running(job["id"]):
                 self.connection.commit()
                 return False
-            document_id = self._extract_document_id(job.get("payload"))
 
-            for step_name in DELETE_STEPS:
+            query_payload = self._extract_payload(job.get("payload"))
+
+            for step_name in QUERY_STEPS:
                 self._mark_step_running(job["id"], step_name)
                 self._touch_heartbeat(job["id"])
-                self._run_step(step_name, document_id, job)
+                self._run_step(step_name, query_payload, job)
                 self._mark_step_completed(job["id"], step_name)
 
             self._mark_job_completed(job["id"])
@@ -40,7 +41,7 @@ class DeleteWorker:
             return True
         except Exception as error:
             if "job" in locals() and job:
-                self._handle_step_failure(job, step_name if "step_name" in locals() else "vector_delete", error)
+                self._handle_step_failure(job, step_name if "step_name" in locals() else "prepare", error)
                 self.connection.commit()
                 return True
 
@@ -68,7 +69,7 @@ class DeleteWorker:
         )
         cursor = self.connection.cursor()
         try:
-            cursor.execute(sql, (DELETE_JOB_TYPE,))
+            cursor.execute(sql, (QUERY_JOB_TYPE,))
             return cursor.fetchone()
         finally:
             cursor.close()
@@ -116,9 +117,7 @@ class DeleteWorker:
 
     def _handle_step_failure(self, job: dict[str, Any], step_name: str, error: Exception) -> None:
         error_message = str(error)
-        job_id = int(job["id"])
-
-        self._mark_step_failed(job_id, step_name, error_message)
+        self._mark_step_failed(int(job["id"]), step_name, error_message)
         apply_retry_policy(
             execute=self._execute,
             job=job,
@@ -128,37 +127,36 @@ class DeleteWorker:
             default_max_retries=self.default_max_retries,
         )
 
-    def _run_step(self, step_name: str, document_id: int, job: dict[str, Any]) -> None:
-        if step_name == "vector_delete":
-            self.delete_chunk_vectors(document_id, job)
+    def _run_step(self, step_name: str, payload: dict[str, Any], job: dict[str, Any]) -> None:
+        if step_name == "prepare":
+            self.prepare_query(payload, job)
             return
-        if step_name == "chunks_delete":
-            self.delete_chunks(document_id, job)
+        if step_name == "retrieve":
+            self.retrieve_context(payload, job)
             return
-        self.mark_document_deleted(document_id, job)
+        if step_name == "synthesize":
+            self.synthesize_answer(payload, job)
+            return
+        self.store_result(payload, job)
 
-    def delete_chunk_vectors(self, document_id: int, job: dict[str, Any]) -> None:
-        self._execute(
-            "UPDATE chunks SET vector_id = NULL WHERE document_id = %s",
-            (document_id,),
-        )
+    def prepare_query(self, payload: dict[str, Any], job: dict[str, Any]) -> None:
+        """Hook for prepare step implementation."""
 
-    def delete_chunks(self, document_id: int, job: dict[str, Any]) -> None:
-        self._execute("DELETE FROM chunks WHERE document_id = %s", (document_id,))
+    def retrieve_context(self, payload: dict[str, Any], job: dict[str, Any]) -> None:
+        """Hook for retrieval step implementation."""
 
-    def mark_document_deleted(self, document_id: int, job: dict[str, Any]) -> None:
-        self._execute(
-            "UPDATE documents SET status = 'deleted', file_data = NULL, updated_at = NOW() "
-            "WHERE id = %s",
-            (document_id,),
-        )
+    def synthesize_answer(self, payload: dict[str, Any], job: dict[str, Any]) -> None:
+        """Hook for synthesis step implementation."""
 
-    def _extract_document_id(self, payload_json: Any) -> int:
+    def store_result(self, payload: dict[str, Any], job: dict[str, Any]) -> None:
+        """Hook for final persistence step implementation."""
+
+    def _extract_payload(self, payload_json: Any) -> dict[str, Any]:
         if isinstance(payload_json, str):
             payload_json = json.loads(payload_json)
-        if not isinstance(payload_json, dict) or "document_id" not in payload_json:
-            raise ValueError("Job payload must include document_id")
-        return int(payload_json["document_id"])
+        if not isinstance(payload_json, dict):
+            raise ValueError("Job payload must be an object")
+        return payload_json
 
     def _execute(self, sql: str, params: tuple[Any, ...]) -> int:
         cursor = self.connection.cursor()

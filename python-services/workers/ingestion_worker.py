@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from workers.retry_policy import apply_retry_policy
+
 INGEST_JOB_TYPE = "INGEST"
 INGESTION_STEPS = ("parse", "chunk", "embed", "index")
 
@@ -22,7 +24,9 @@ class IngestionWorker:
                 self.connection.commit()
                 return False
 
-            self._mark_job_running(job["id"])
+            if not self._mark_job_running(job["id"]):
+                self.connection.commit()
+                return False
             document_id = self._extract_document_id(job.get("payload"))
 
             for step_name in INGESTION_STEPS:
@@ -72,15 +76,18 @@ class IngestionWorker:
     def _touch_heartbeat(self, job_id: int) -> None:
         self._execute("UPDATE jobs SET updated_at = NOW() WHERE id = %s", (job_id,))
 
-    def _mark_job_running(self, job_id: int) -> None:
-        self._execute(
-            "UPDATE jobs SET status = 'processing', updated_at = NOW() WHERE id = %s",
+    def _mark_job_running(self, job_id: int) -> bool:
+        updated_rows = self._execute(
+            "UPDATE jobs SET status = 'processing', updated_at = NOW() "
+            "WHERE id = %s AND status = 'pending'",
             (job_id,),
         )
+        return updated_rows > 0
 
     def _mark_job_completed(self, job_id: int) -> None:
         self._execute(
-            "UPDATE jobs SET status = 'done', updated_at = NOW() WHERE id = %s",
+            "UPDATE jobs SET status = 'done', updated_at = NOW() "
+            "WHERE id = %s AND status = 'processing'",
             (job_id,),
         )
 
@@ -110,26 +117,15 @@ class IngestionWorker:
     def _handle_step_failure(self, job: dict[str, Any], step_name: str, error: Exception) -> None:
         error_message = str(error)
         job_id = int(job["id"])
-        current_retry = int(job.get("retry_count") or 0)
-        max_retries = int(job.get("max_retries") or self.default_max_retries)
 
         self._mark_step_failed(job_id, step_name, error_message)
-        self._execute(
-            "UPDATE jobs SET retry_count = retry_count + 1, error_message = %s, updated_at = NOW() WHERE id = %s",
-            (error_message, job_id),
-        )
-
-        if current_retry + 1 >= max_retries:
-            self._execute(
-                "UPDATE jobs SET status = 'dead_letter', error_message = %s, updated_at = NOW() WHERE id = %s",
-                (error_message, job_id),
-            )
-            return
-
-        self._execute(
-            "UPDATE jobs SET status = 'pending', error_message = %s, updated_at = NOW() "
-            "WHERE id = %s",
-            (error_message, job_id),
+        apply_retry_policy(
+            execute=self._execute,
+            job=job,
+            error_message=error_message,
+            failed_step=step_name,
+            source_worker=self.__class__.__name__,
+            default_max_retries=self.default_max_retries,
         )
 
     def _run_step(self, step_name: str, document_id: int, job: dict[str, Any]) -> None:
@@ -163,9 +159,10 @@ class IngestionWorker:
             raise ValueError("Job payload must include document_id")
         return int(payload_json["document_id"])
 
-    def _execute(self, sql: str, params: tuple[Any, ...]) -> None:
+    def _execute(self, sql: str, params: tuple[Any, ...]) -> int:
         cursor = self.connection.cursor()
         try:
             cursor.execute(sql, params)
+            return int(getattr(cursor, "rowcount", 1) or 0)
         finally:
             cursor.close()

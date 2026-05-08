@@ -42,6 +42,12 @@ const menuItems: MenuItem[] = [
     to: '/notebooklm',
   },
   {
+    labelKey: 'sidebar.notebooklmOperations',
+    icon: 'pi pi-chart-line',
+    to: '/notebooklm/jobs',
+    roles: ['admin'],
+  },
+  {
     labelKey: 'sidebar.settings',
     icon: 'pi pi-cog',
     to: '/settings',

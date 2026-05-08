@@ -32,6 +32,7 @@ export default {
     users: 'Người dùng',
     employees: 'Nhân viên',
     notebooklm: 'NotebookLM',
+    notebooklmOperations: 'Vận hành NotebookLM',
     settings: 'Cài đặt',
   },
   topbar: {
@@ -202,5 +203,15 @@ export default {
       active: 'Hoạt động',
       inactive: 'Không hoạt động',
     },
+  },
+  notebooklmOperations: {
+    title: 'Vận hành NotebookLM',
+    monitorTitle: 'Giám sát job',
+    retryTitle: 'Tạo yêu cầu retry',
+    dlqEditTitle: 'Sửa DLQ item',
+    filterFailedOnly: 'Chỉ hiển thị job lỗi/dead-letter',
+    retrySaved: 'Đã gửi yêu cầu retry',
+    dlqSaved: 'Đã cập nhật ghi chú DLQ',
+    purgeConfirm: 'Xóa vĩnh viễn DLQ item đã chọn?',
   },
 } as const;

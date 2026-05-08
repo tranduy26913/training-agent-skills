@@ -32,6 +32,7 @@ export default {
     users: 'Users',
     employees: 'Employees',
     notebooklm: 'NotebookLM',
+    notebooklmOperations: 'NotebookLM Operations',
     settings: 'Settings',
   },
   topbar: {
@@ -202,5 +203,15 @@ export default {
       active: 'Active',
       inactive: 'Inactive',
     },
+  },
+  notebooklmOperations: {
+    title: 'NotebookLM Operations',
+    monitorTitle: 'Job Monitor',
+    retryTitle: 'Create Retry Request',
+    dlqEditTitle: 'Edit DLQ Item',
+    filterFailedOnly: 'Only failed/dead-letter jobs',
+    retrySaved: 'Retry request submitted',
+    dlqSaved: 'DLQ note updated',
+    purgeConfirm: 'Purge selected dead-letter item permanently?',
   },
 } as const;

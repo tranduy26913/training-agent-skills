@@ -17,6 +17,7 @@ export type NotebooklmWorkspaceStatus = 'active' | 'deleted';
 export type NotebooklmDocumentStatus = 'pending' | 'processing' | 'indexed' | 'failed' | 'deleted';
 export type NotebooklmJobStatus = 'pending' | 'processing' | 'retrying' | 'done' | 'failed' | 'dead_letter';
 export type NotebooklmJobStepStatus = 'pending' | 'running' | 'done' | 'failed';
+export type NotebooklmJobType = 'INGEST' | 'QUERY' | 'DELETE_DOC' | 'DELETE_WORKSPACE';
 
 export interface Workspace {
   id: number;
@@ -61,6 +62,72 @@ export interface WorkspaceJobProgress {
   status: NotebooklmJobStatus;
   steps: WorkspaceJobStep[];
   updatedAt: string;
+}
+
+export interface NotebooklmJobMonitorItem {
+  id: number;
+  type: NotebooklmJobType;
+  status: NotebooklmJobStatus;
+  retryCount: number;
+  workerId: string | null;
+  workspaceId: number | null;
+  correlationId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  stepsSummary?: {
+    total: number;
+    done: number;
+    failed: number;
+    running: number;
+  };
+}
+
+export interface NotebooklmJobStepDetail {
+  id: number;
+  stepName: string;
+  status: NotebooklmJobStepStatus;
+  detail: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+}
+
+export interface NotebooklmJobDetail extends NotebooklmJobMonitorItem {
+  payload: Record<string, unknown> | null;
+  steps: NotebooklmJobStepDetail[];
+}
+
+export interface NotebooklmDlqItem {
+  id: number;
+  jobId: number;
+  reason: string | null;
+  payload: Record<string, unknown> | null;
+  note: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NotebooklmOperationsFilters extends PaginationParams, SortParams {
+  search?: string;
+  type?: NotebooklmJobType | '';
+  status?: NotebooklmJobStatus | '';
+  workspaceId?: number;
+  failedOnly?: boolean;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface NotebooklmRetryRequestDto {
+  reason: string;
+  force?: boolean;
+}
+
+export interface NotebooklmDlqNoteDto {
+  note: string;
+}
+
+export interface NotebooklmDlqPurgeDto {
+  ids?: number[];
+  olderThanDays?: number;
 }
 
 export interface WorkspaceFilters extends PaginationParams, SortParams {
