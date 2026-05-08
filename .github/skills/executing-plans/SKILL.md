@@ -42,6 +42,12 @@ After all tasks complete and verified:
 - Announce: "I'm using the finishing-a-development-branch skill to complete this work."
 - **REQUIRED SUB-SKILL:** Use `finishing-a-development-branch` skill to complete the work (merge, PR, or keep branch)
 - Follow that skill to verify tests, present options, execute choice -->
+## When use tool [vscode_askQuestions]
+- Always present next-step suggestions as a short list of selectable options using the VS Code vscode_askQuestions tool.
+- Provide 3–6 concise options. Do not accept freeform text unless the user explicitly requests it.
+- Each option must have a clear label and optional description. Mark the recommended default with recommended: true.
+- Wait for the user's choice, then continue handling that specific selection.
+- allowFreeformInput: true, allow the user to provide freeform text input if they select an "Other" option or if the question requires it. Handle the freeform input appropriately based on the context of the question.
 
 ## When to Stop and Ask for Help
 
@@ -52,6 +58,10 @@ After all tasks complete and verified:
 - Verification fails repeatedly
 
 **Ask for clarification rather than guessing.**
+- Allways use tool vscode_askQuestion to ask for help.
+
+## When have next-step suggestions
+**If you have a next-step suggestion for the user, use tool vscode_askQuestions:**
 
 ## When to Revisit Earlier Steps
 
