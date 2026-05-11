@@ -41,9 +41,13 @@ export class ChatController {
       const userId = req.user!.userId;
 
       const parsed = createSessionSchema.safeParse(req.body);
-      const dto = parsed.success ? parsed.data : {};
+      if (!parsed.success) {
+        const message = parsed.error.errors.map((e) => e.message).join(', ');
+        sendError(res, message, 400);
+        return;
+      }
 
-      const session = await this.service.createSession(workspaceId, dto, userId);
+      const session = await this.service.createSession(workspaceId, parsed.data, userId);
       sendSuccess(res, { data: session }, 201);
     } catch (error) {
       handleError(res, error);
@@ -63,6 +67,7 @@ export class ChatController {
         return;
       }
 
+      // [CR-NBLM-LLM-001] llmProviderを含む更新データを渡す / Pass update data including llmProvider
       const session = await this.service.updateSession(sessionId, parsed.data, userId);
       sendSuccess(res, { data: session });
     } catch (error) {

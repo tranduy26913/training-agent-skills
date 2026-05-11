@@ -99,7 +99,13 @@ function handleBack(): void {
           >
             <div>
               <p class="font-medium">{{ session.title }}</p>
-              <p class="text-xs text-surface-400">{{ session.createdAt }}</p>
+              <p class="text-xs text-surface-400">
+                {{ session.createdAt }}
+                <span
+                  class="ml-2 font-mono bg-surface-100 dark:bg-surface-800 px-1.5 py-0.5 rounded"
+                  data-testid="session-provider-badge"
+                >{{ session.llmProvider }}</span>
+              </p>
             </div>
             <Button
               :label="t('notebooklmChat.openSession')"

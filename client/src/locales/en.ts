@@ -259,5 +259,10 @@ export default {
     deletedError: 'Failed to delete session',
     createdSuccess: 'Session created successfully',
     updatedSuccess: 'Session updated successfully',
+    llmProvider: 'LLM Provider',
+    llmProviderOllama: 'Ollama (Local)',
+    llmProviderMock: 'Mock Server',
+    llmProviderGemini: 'Gemini (Google)',
+    provider: 'Provider',
   },
 } as const;

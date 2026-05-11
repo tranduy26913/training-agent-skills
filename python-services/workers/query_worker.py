@@ -7,6 +7,8 @@ import urllib.request
 from typing import Any
 
 from workers.retry_policy import apply_retry_policy
+# [CR-NBLM-LLM-001] プロバイダー抽象モジュールのインポート / Import provider abstraction
+from workers.llm_provider import LLMProvider, create_llm_provider
 
 # デフォルト設定 / Default configuration for the internal LLM API (Ollama)
 _DEFAULT_LLM_API_URL = "http://localhost:11434"
@@ -64,13 +66,28 @@ class QueryWorker:
         self,
         connection: Any,
         default_max_retries: int = 3,
-        llm_client: OllamaClient | None = None,
+        llm_client: OllamaClient | LLMProvider | None = None,
     ) -> None:
         # DB接続と最大リトライ数を保持 / Store DB connection and max retries
         self.connection = connection
         self.default_max_retries = default_max_retries
         # LLMクライアントのDIをサポート (テスト用) / Support DI of LLM client (for tests)
-        self._llm = llm_client if llm_client is not None else OllamaClient()
+        # None の場合はrun_once内でペイロードのllm_providerから決定する
+        # / If None, will be resolved per-job from payload llm_provider in run_once
+        self._llm: OllamaClient | LLMProvider | None = llm_client
+
+    def _resolve_llm(self, payload: dict[str, Any]) -> OllamaClient | LLMProvider:
+        """
+        Resolve the LLM client for a job.
+        / ジョブのLLMクライアントを決定する。
+
+        If an explicit client was injected (e.g., in tests), use it.
+        Otherwise read llm_provider from the payload (defaults to 'ollama').
+        """
+        if self._llm is not None:
+            return self._llm
+        provider_name = str(payload.get("llm_provider") or "ollama")
+        return create_llm_provider(provider_name)
 
     def run_once(self) -> bool:
         self._begin_transaction()
@@ -85,15 +102,25 @@ class QueryWorker:
                 return False
 
             query_payload = self._extract_payload(job.get("payload"))
+            # [CR-NBLM-LLM-001] ペイロードのllm_providerからLLMクライアントを決定する
+            # / Resolve LLM provider from job payload before processing steps
+            resolved_llm = self._resolve_llm(query_payload)
+            # Temporarily bind the resolved provider for this job's lifecycle
+            original_llm = self._llm
+            self._llm = resolved_llm
+            step_name = "prepare"
+            try:
+                for step_name in QUERY_STEPS:
+                    self._mark_step_running(job["id"], step_name)
+                    self._touch_heartbeat(job["id"])
+                    self._run_step(step_name, query_payload, job)
+                    self._mark_step_completed(job["id"], step_name)
 
-            for step_name in QUERY_STEPS:
-                self._mark_step_running(job["id"], step_name)
-                self._touch_heartbeat(job["id"])
-                self._run_step(step_name, query_payload, job)
-                self._mark_step_completed(job["id"], step_name)
-
-            self._mark_job_completed(job["id"])
-            self.connection.commit()
+                self._mark_job_completed(job["id"])
+                self.connection.commit()
+            finally:
+                # LLMクライアントを必ず元の状態に戻す / Always restore original LLM client
+                self._llm = original_llm
             return True
         except Exception as error:
             if "job" in locals() and job:

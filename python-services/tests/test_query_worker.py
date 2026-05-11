@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from workers.query_worker import OllamaClient, QueryWorker
+from workers.llm_provider import LLMProvider, OllamaProvider
 
 
 # ---------------------------------------------------------------------------
@@ -376,6 +377,73 @@ def test_store_result_skips_chat_message_insert_when_no_session_id():
     sql_log = [entry[0] for entry in conn.executed]
     assert not any("INSERT INTO chat_messages" in sql for sql in sql_log)
     assert any("UPDATE jobs SET payload" in sql for sql in sql_log)
+
+
+# ---------------------------------------------------------------------------
+# [CR-NBLM-LLM-001] Provider routing tests
+# プロバイダールーティングテスト
+# ---------------------------------------------------------------------------
+
+
+def test_run_once_uses_ollama_provider_by_default():
+    """When llm_provider is absent in payload, QueryWorker should use an OllamaProvider."""
+    job = _make_job(job_id=10)  # no llm_provider in payload
+    conn = FakeConnection(jobs=[job])
+
+    with patch("workers.query_worker.create_llm_provider") as mock_factory:
+        mock_provider = MagicMock(spec=LLMProvider)
+        mock_provider.generate.return_value = "Answer"
+        mock_factory.return_value = mock_provider
+
+        worker = QueryWorker(conn)
+        worker.run_once()
+
+    # フォールバックとしてollamaが選択されること / Fallback provider should be ollama
+    mock_factory.assert_called_once_with("ollama")
+
+
+def test_run_once_uses_provider_from_job_payload():
+    """When llm_provider='gemini' is in the payload, QueryWorker should use GeminiProvider."""
+    job = {
+        "id": 11,
+        "type": "QUERY",
+        "payload": {"query_text": "what is AI", "workspace_id": 10, "llm_provider": "gemini"},
+        "retry_count": 0,
+        "max_retries": 3,
+    }
+    conn = FakeConnection(jobs=[job])
+
+    with patch("workers.query_worker.create_llm_provider") as mock_factory:
+        mock_provider = MagicMock(spec=LLMProvider)
+        mock_provider.generate.return_value = "Gemini Answer"
+        mock_factory.return_value = mock_provider
+
+        worker = QueryWorker(conn)
+        worker.run_once()
+
+    mock_factory.assert_called_once_with("gemini")
+
+
+def test_run_once_uses_mock_provider_from_job_payload():
+    """When llm_provider='mock' is in the payload, QueryWorker should use mock (OllamaProvider)."""
+    job = {
+        "id": 12,
+        "type": "QUERY",
+        "payload": {"query_text": "test", "workspace_id": 10, "llm_provider": "mock"},
+        "retry_count": 0,
+        "max_retries": 3,
+    }
+    conn = FakeConnection(jobs=[job])
+
+    with patch("workers.query_worker.create_llm_provider") as mock_factory:
+        mock_provider = MagicMock(spec=LLMProvider)
+        mock_provider.generate.return_value = "Mock Answer"
+        mock_factory.return_value = mock_provider
+
+        worker = QueryWorker(conn)
+        worker.run_once()
+
+    mock_factory.assert_called_once_with("mock")
 
 
 def test_store_result_strips_internal_keys_from_payload():

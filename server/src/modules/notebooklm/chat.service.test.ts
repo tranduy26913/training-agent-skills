@@ -86,6 +86,32 @@ describe('ChatService', () => {
         new ServiceError('Workspace not found', 404),
       );
     });
+
+    // [CR-NBLM-LLM-001] プロバイダー選択テスト / Provider selection tests
+    it('persists llmProvider when specified', async () => {
+      repository.findWorkspaceMember.mockResolvedValueOnce({ user_id: 1, role: 'editor', workspace_id: 10 });
+      repository.createSession.mockResolvedValueOnce({ insertId: 57 });
+      repository.findSessionById.mockResolvedValueOnce({ id: 57, title: 'Gemini Session', workspace_id: 10, llm_provider: 'gemini' });
+
+      const result = await service.createSession(10, { title: 'Gemini Session', llmProvider: 'gemini' }, 1);
+
+      expect(result.id).toBe(57);
+      expect(repository.createSession).toHaveBeenCalledWith(
+        expect.objectContaining({ llm_provider: 'gemini' }),
+      );
+    });
+
+    it('defaults llmProvider to ollama when not specified', async () => {
+      repository.findWorkspaceMember.mockResolvedValueOnce({ user_id: 1, role: 'editor', workspace_id: 10 });
+      repository.createSession.mockResolvedValueOnce({ insertId: 58 });
+      repository.findSessionById.mockResolvedValueOnce({ id: 58, title: 'Default Session', workspace_id: 10, llm_provider: 'ollama' });
+
+      await service.createSession(10, { title: 'Default Session' }, 1);
+
+      expect(repository.createSession).toHaveBeenCalledWith(
+        expect.objectContaining({ llm_provider: 'ollama' }),
+      );
+    });
   });
 
   // セッション更新テスト / Update session tests
@@ -118,6 +144,22 @@ describe('ChatService', () => {
         new ServiceError('Workspace not found', 404),
       );
     });
+
+    // [CR-NBLM-LLM-001] プロバイダー更新テスト / Provider update tests
+    it('updates session llmProvider when provided', async () => {
+      repository.findSessionById.mockResolvedValueOnce({ id: 1, workspace_id: 10, user_id: 1 });
+      repository.findWorkspaceMember.mockResolvedValueOnce({ user_id: 1, role: 'owner', workspace_id: 10 });
+      repository.updateSession.mockResolvedValueOnce(undefined);
+      repository.findSessionById.mockResolvedValueOnce({ id: 1, title: 'Session', workspace_id: 10, llm_provider: 'mock' });
+
+      const result = await service.updateSession(1, { title: 'Session', llmProvider: 'mock' }, 1);
+
+      expect(result.id).toBe(1);
+      expect(repository.updateSession).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({ llm_provider: 'mock' }),
+      );
+    });
   });
 
   // メッセージ送信テスト / Send message tests
@@ -134,6 +176,23 @@ describe('ChatService', () => {
       expect(result.jobId).toBe(9001);
       expect(repository.createMessage).toHaveBeenCalledWith(expect.objectContaining({ role: 'user', session_id: 1 }));
       expect(repository.createJob).toHaveBeenCalledWith(expect.objectContaining({ type: 'QUERY' }));
+    });
+
+    // [CR-NBLM-LLM-001] ジョブペイロードにllm_providerが含まれることをテスト / Test that llm_provider is included in job payload
+    it('includes session llm_provider snapshot in QUERY job payload', async () => {
+      repository.findSessionById.mockResolvedValueOnce({ id: 1, workspace_id: 10, user_id: 1, llm_provider: 'gemini' });
+      repository.findWorkspaceMember.mockResolvedValueOnce({ user_id: 1, role: 'viewer', workspace_id: 10 });
+      repository.createMessage.mockResolvedValueOnce({ insertId: 201 });
+      repository.createJob.mockResolvedValueOnce({ insertId: 9002 });
+      repository.createJobStep.mockResolvedValueOnce({ insertId: 2 });
+
+      await service.sendMessage(1, { content: 'Test with gemini' }, 1);
+
+      expect(repository.createJob).toHaveBeenCalledWith(
+        expect.objectContaining({
+          payload: expect.objectContaining({ llm_provider: 'gemini' }),
+        }),
+      );
     });
 
     it('throws 404 when session not found', async () => {

@@ -22,6 +22,8 @@ interface ChatSessionApiModel {
   workspace_id: number;
   user_id: number;
   title: string;
+  // [CR-NBLM-LLM-001] LLMプロバイダーのAPI側フィールド / LLM provider field from API
+  llm_provider: 'ollama' | 'mock' | 'gemini';
   created_at: string;
   updated_at: string;
 }
@@ -49,6 +51,8 @@ function mapChatSession(item: ChatSessionApiModel): ChatSession {
     workspaceId: item.workspace_id,
     userId: item.user_id,
     title: item.title,
+    // [CR-NBLM-LLM-001] プロバイダーをマッピング / Map llm_provider to camelCase
+    llmProvider: item.llm_provider ?? 'ollama',
     createdAt: item.created_at,
     updatedAt: item.updated_at,
   };

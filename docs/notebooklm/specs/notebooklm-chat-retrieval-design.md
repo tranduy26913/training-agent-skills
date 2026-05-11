@@ -1,8 +1,8 @@
 ---
 title: NotebookLM Chat and Retrieval Design
-version: 1.0
+version: 1.2
 author: Admin Team
-date: 2026-05-07
+date: 2026-05-11
 status: Draft
 ---
 
@@ -10,7 +10,7 @@ status: Draft
 
 ## Executive Summary
 
-Tài liệu này mô tả nhóm chức năng chat hỏi đáp dựa trên tri thức đã ingest. Mọi truy vấn chat đều được đưa vào queue để Python worker xử lý nền: tạo embedding câu hỏi, truy hồi vector theo workspace, tạo câu trả lời qua Ollama nội bộ, và trả về kèm nguồn trích dẫn.
+Tài liệu này mô tả nhóm chức năng chat hỏi đáp dựa trên tri thức đã ingest. Mọi truy vấn chat đều được đưa vào queue để Python worker xử lý nền: tạo embedding câu hỏi, truy hồi vector theo workspace, chọn provider LLM theo session giữa Ollama, mock server, hoặc Gemini (google-genai), rồi trả về câu trả lời kèm nguồn trích dẫn.
 
 ## Changelog
 
@@ -18,6 +18,13 @@ Tài liệu này mô tả nhóm chức năng chat hỏi đáp dựa trên tri th
 |---------|------|--------|---------|
 | 1.0 | 2026-05-07 | Admin Team | Initial design |
 | 1.1 | 2026-05-11 | Admin Team | Add ChatPanel user-message display, optimistic update, Ollama model config, mock server |
+| 1.2 | 2026-05-11 | Admin Team | [UPDATE - CR-NBLM-LLM-001] Add per-session LLM provider dropdown, Gemini provider support, and provider routing |
+
+### Summary of Changes
+
+- What changed: Thêm dropdown chọn LLM provider theo từng chat session, hỗ trợ 3 backend là Ollama, mock server, và Gemini.
+- Why it changed: Cho phép chuyển nhanh giữa môi trường local, test, và production mà không đổi luồng chat hoặc cấu trúc session.
+- How it affects users/data: Session giờ lưu provider đã chọn, job QUERY mang theo snapshot provider, và cấu hình Gemini vẫn được giữ ở phía server bằng environment variables.
 
 ---
 
@@ -31,7 +38,8 @@ Cung cấp trải nghiệm chat theo workspace cho người dùng cá nhân và 
 
 - Quản lý chat session theo workspace.
 - Gửi câu hỏi tạo job `QUERY` vào MySQL queue.
-- Python worker xử lý retrieval và generation bằng Ollama nội bộ.
+- Python worker xử lý retrieval và generation bằng provider adapter, bao gồm Ollama, mock server, và Gemini.
+- Cho phép chọn provider theo chat session và lưu lựa chọn đó cùng session.
 - Trả câu trả lời kèm danh sách nguồn trích dẫn.
 - Hỗ trợ multi-language prompt/context (VN/EN/JP).
 - Lưu lịch sử chat để truy xuất lại.
@@ -40,7 +48,7 @@ Cung cấp trải nghiệm chat theo workspace cho người dùng cá nhân và 
 
 - Streaming token theo từng chữ từ model.
 - Agentic tool-calling hoặc workflow đa bước phức tạp.
-- Tùy chọn nhiều model theo workspace.
+- Tùy chỉnh model name hoặc key per session/workspace từ UI; provider và credential config được giữ ở phía server.
 
 ---
 
@@ -51,24 +59,30 @@ Cung cấp trải nghiệm chat theo workspace cho người dùng cá nhân và 
 ```text
 [Frontend Chat UI]
   - Sessions list
+  - Provider dropdown
   - Messages thread
   - Source citations
       |
    HTTP/REST + SSE
       |
 [Express API Gateway]
-  - Create session/message
-  - Enqueue QUERY job
+  - Create/update session/message
+  - Enqueue QUERY job with session provider snapshot
   - Expose job stream
       |
-     MySQL jobs
+     MySQL sessions + jobs
       |
 [Python Worker]
   1) Embed question
   2) Retrieve top-k vectors by workspace filter
   3) Build grounded prompt
-  4) Generate answer by Ollama
-  5) Persist assistant message + sources
+ 4) Resolve provider from session/job payload
+ 5) Generate answer by selected provider adapter
+ 6) Persist assistant message + sources
+      |
+[LLM Provider Adapter]
+  - Ollama / mock server
+  - Gemini (google-genai)
       |
 [Vector DB] + [MySQL chunks/messages]
 ```
@@ -98,6 +112,7 @@ chat_sessions {
   id: INT (PRIMARY KEY)
   workspace_id: INT
   user_id: INT
+  llm_provider: ENUM('ollama','mock','gemini')
   title: VARCHAR(255)
   created_at: TIMESTAMP
   updated_at: TIMESTAMP
@@ -117,7 +132,7 @@ jobs {
   id: INT (PRIMARY KEY)
   type: ENUM('QUERY')
   status: ENUM('pending','processing','retrying','done','failed','dead_letter')
-  payload: JSON
+  payload: JSON  // includes workspace_id, session_id, query_text, llm_provider snapshot
   result: JSON
   retry_count: INT
   max_retries: INT
@@ -144,7 +159,7 @@ job_steps {
 #### Display
 
 - Sidebar hiển thị danh sách session theo workspace.
-- Mỗi session gồm tiêu đề, thời gian cập nhật cuối, số tin nhắn.
+- Mỗi session gồm tiêu đề, provider badge, thời gian cập nhật cuối, số tin nhắn.
 - Session hiện tại được highlight rõ.
 
 #### Filtering & Search
@@ -170,6 +185,7 @@ job_steps {
 #### Form Fields
 
 - **title** (optional): Tối đa 255 ký tự.
+- **llmProvider** (required): `ollama`, `mock`, hoặc `gemini`; mặc định là `ollama`.
 - Nếu bỏ trống, backend sinh tiêu đề mặc định theo timestamp.
 
 #### Form Actions
@@ -180,13 +196,14 @@ job_steps {
 #### Validation
 
 - Client-side: max length.
-- Server-side: workspace access + sanitize text.
+- Server-side: workspace access + sanitize text + validate provider enum + verify Gemini config khi provider là `gemini`.
 
 ### 3.3 Edit Session Page (`/notebooklm/:workspaceId/chat/:sessionId/edit`)
 
 #### Form Fields
 
 - **title** (required): 1-255 ký tự.
+- **llmProvider** (required): `ollama`, `mock`, hoặc `gemini`.
 - Thông tin owner session hiển thị read-only.
 
 #### Form Actions
@@ -203,6 +220,7 @@ job_steps {
 
 - User chỉ được chỉnh session thuộc workspace có quyền truy cập.
 - Session đã bị archive thì không cho sửa (nếu có cờ archive).
+- Provider phải nằm trong whitelist và tương thích với cấu hình server hiện tại.
 
 ---
 
@@ -244,7 +262,8 @@ Errors:
 Request Body:
 ```json
 {
-  "title": "Phân tích tài liệu dự án A"
+  "title": "Phân tích tài liệu dự án A",
+  "llmProvider": "gemini"
 }
 ```
 
@@ -259,7 +278,38 @@ Response (201 Created):
 ```json
 {
   "data": {
-    "id": 701
+    "id": 701,
+    "llmProvider": "gemini"
+  }
+}
+```
+
+---
+
+#### NBC-002A - PATCH /api/notebooklm/sessions/:id
+**Cập nhật tiêu đề và provider của chat session**
+
+Request Body:
+```json
+{
+  "title": "Phân tích tài liệu dự án A",
+  "llmProvider": "ollama"
+}
+```
+
+Flow:
+1. Verify JWT token
+2. Check session/workspace access
+3. Validate title and provider enum
+4. Persist updated session row
+5. Return updated session
+
+Response (200 OK):
+```json
+{
+  "data": {
+    "id": 701,
+    "llmProvider": "ollama"
   }
 }
 ```
@@ -280,7 +330,7 @@ Flow:
 1. Verify JWT token
 2. Check session/workspace access
 3. Insert user message
-4. Insert job type `QUERY`
+4. Insert job type `QUERY` with the session's provider snapshot in payload
 5. Return job id
 
 Response (202 Accepted):
@@ -402,6 +452,7 @@ Component relationships:
 
 - Áp dụng cho `ChatSessionListPage.vue`.
 - Hiển thị session list và thao tác mở session.
+- Hiển thị provider badge để người dùng nhận biết backend đang dùng cho từng session.
 
 **Flow - onMounted:**
 1. Load sessions
@@ -438,22 +489,25 @@ Component relationships:
 - `cancel`
 
 **Flow - handleSubmit():**
-1. Validate title
+1. Validate title và provider
 2. Emit submit if valid
 
 #### [CreatePage].vue
 
 - Tạo session mới trước khi vào màn hội thoại.
+- Cho phép chọn provider mặc định ngay khi tạo session; nếu không chọn thì dùng `ollama`.
 
 #### [EditPage].vue
 
 - Quản lý message thread, gửi câu hỏi, theo dõi tiến độ job.
+- Hiển thị form chỉnh sửa title/provider ở phần đầu trang để người dùng đổi backend của session hiện tại.
 
 #### [ChatPanel].vue
 
 - Áp dụng cho `ChatPanel.vue`.
 - Hiển thị toàn bộ lịch sử message của session hiện tại.
 - Chứa textarea nhập câu hỏi và nút Send.
+- Không chọn provider ở đây; provider của session được lưu trong form/session header để tránh lệch giữa nội dung chat và backend đang dùng.
 - **Tin nhắn người dùng hiển thị bên phải** (via `ChatMessageBubble` với class `justify-end`).
 - **Tin nhắn assistant hiển thị bên trái** (class `justify-start`).
 - Spinner loading hiển thị khi đang chờ phản hồi từ worker.
@@ -517,7 +571,7 @@ Use this state/getter/action pattern:
 ```typescript
 interface ChatRetrievalState {
   sessions: ChatSession[]
-  currentSession: ChatSession | null
+  currentSession: ChatSession | null   // includes llmProvider for the active session
   messages: ChatMessage[]          // messages của session hiện tại
   currentWorkspaceId: number | null
   pagination: PaginationInfo
@@ -534,6 +588,8 @@ fetchMessages(sessionId: number): Promise<void>
 sendMessage(sessionId: number, dto: SendMessageDto): Promise<void>
 clearCurrentSession(): void
 ```
+
+`sendMessage(sessionId, dto)` luôn dùng provider đã lưu trên session hiện tại; backend snapshot provider đó vào job payload để worker không phụ thuộc vào trạng thái UI sau khi request được gửi.
 
 #### sendMessage — Optimistic Update Pattern
 
@@ -569,7 +625,7 @@ Store dependencies:
 ### 6.1 Send Message Flow (với Optimistic Update)
 
 ```text
-Actor        Frontend (UI)    Frontend (Store)   Backend       Queue/DB      Worker       Ollama
+Actor        Frontend (UI)    Frontend (Store)   Backend       Queue/DB      Worker       Provider
   |               |                 |               |             |             |            |
   |-- Type Q ---->|                 |               |             |             |            |
   |-- Send ------->handleSend()     |               |             |             |            |
@@ -581,10 +637,10 @@ Actor        Frontend (UI)    Frontend (Store)   Backend       Queue/DB      Wor
   |               |  ]              |               |             |             |            |
   |<-- Show Q RIGHT (instant) ------+               |             |             |            |
   |               |                 |--POST-------->|--INSERT msg->|            |            |
-  |               |                 |               |--job QUERY-->|            |            |
+  |               |                 |               |--job QUERY, provider snapshot->|       |
   |               |                 |<--- 202 jobId-|             |            |            |
   |               |                 |  poll status  |             |            |            |
-  |               |                 |  (1.5s×60)    |             |-- consume-->|-- infer -->|
+  |               |                 |  (1.5s×60)    |             |-- consume-->|-- route -->|
   |               |                 |               |             |<-- result--|<-- text ---|
   |               |                 |               |<-- job done-|            |            |
   |               |                 |--GET messages->             |            |            |
@@ -593,7 +649,7 @@ Actor        Frontend (UI)    Frontend (Store)   Backend       Queue/DB      Wor
 
 **Optimistic Update:**
 - Bước `[OPTIMISTIC]`: tin nhắn người dùng được thêm vào `messages` **ngay lập tức** với `id` âm tạm thời.
-- Sau khi polling xong, toàn bộ `messages` được thay thế bằng dữ liệu từ DB.
+- Sau khi polling xong, toàn bộ `messages` được thay thế bằng dữ liệu từ DB, và assistant reply được sinh bởi provider đã lưu trong session/job payload.
 - Nếu API call lỗi: `filter` loại bỏ message optimistic (rollback).
 
 ### 6.2 Delete Flow
@@ -615,6 +671,8 @@ Actor        Frontend      Backend       Database
 - Input Validation: Giới hạn độ dài câu hỏi, chống prompt injection cơ bản bằng policy layer.
 - SQL Injection Prevention: Parameterized queries.
 - Sensitive Data Protection: Không trả chunks ngoài phạm vi workspace.
+- API key Gemini phải nằm ở server env và không bao giờ được trả xuống frontend.
+- Chỉ cho phép provider nằm trong whitelist `ollama`, `mock`, `gemini`.
 - Audit Trail: Ghi nhận truy vấn chat và nguồn dữ liệu sử dụng.
 
 ---
@@ -626,6 +684,7 @@ Actor        Frontend      Backend       Database
 | Not authenticated | 401 | "Not authenticated" |
 | Forbidden | 403 | "Forbidden" |
 | Validation failed | 400 | "Validation error" |
+| Unsupported provider | 400 | "Unsupported LLM provider" |
 | Conflict | 409 | "Already exists" |
 | Not found | 404 | "Not found" |
 | Database error | 500 | "Internal server error" |
@@ -636,13 +695,14 @@ Actor        Frontend      Backend       Database
 
 ### Backend Tests
 - Unit: Prompt builder, source ranking, citation formatting.
+- Unit: Provider validation/routing for Ollama, mock server, and Gemini.
 - Integration: QUERY job end-to-end từ enqueue tới lưu assistant message.
 - Authorization: Session/workspace access boundary.
 
 ### Frontend Tests
-- Component: Chat panel, message bubble, source viewer.
-- Integration: Send message -> job progress -> render answer.
-- E2E: Hỏi đáp trong workspace có tài liệu indexed.
+- Component: Chat panel, message bubble, source viewer, provider dropdown.
+- Integration: Create/edit session với provider selection, send message -> job progress -> render answer.
+- E2E: Hỏi đáp trong workspace có tài liệu indexed và đổi provider giữa Ollama, mock server, Gemini.
 
 ---
 
@@ -655,20 +715,28 @@ Actor        Frontend      Backend       Database
 
 ---
 
-## 11. LLM Integration — Ollama Model
+## 11. LLM Integration — Provider Routing
 
 ### 11.1 Overview
 
-Python Query Worker gọi Ollama HTTP API để sinh câu trả lời dựa trên context đã retrieval.
+Python Query Worker chọn provider theo session/job payload để sinh câu trả lời dựa trên context đã retrieval. Ollama và mock server dùng cùng HTTP shape, còn Gemini dùng `google-genai` ở phía worker.
 
 ### 11.2 Configuration
 
 | Biến môi trường | Mặc định | Mô tả |
 |-----------------|----------|-------|
-| `LLM_API_URL` | `http://localhost:11434` | Base URL của Ollama server |
-| `LLM_MODEL` | `llama3` | Tên model sử dụng để generate |
+| `LLM_API_URL` | `http://localhost:11434` | Base URL của các provider tương thích Ollama, gồm Ollama thật và mock server |
+| `LLM_MODEL` | `llama3` | Tên model sử dụng khi gọi provider tương thích Ollama |
+| `GEMINI_API_KEY` | `—` | API key của Google Gemini, bắt buộc khi provider là `gemini` |
+| `GEMINI_MODEL` | `—` | Tên model Gemini do deployment cấu hình |
 
-### 11.3 API Call
+### 11.3 Provider Dispatch
+
+- `ollama`: gọi `POST {LLM_API_URL}/api/generate`.
+- `mock`: gọi `POST {LLM_API_URL}/api/generate` vào mock server cho development và E2E.
+- `gemini`: dùng `google-genai` để gửi prompt grounded theo cùng context retrieval.
+
+### 11.4 API Call
 
 ```http
 POST {LLM_API_URL}/api/generate
@@ -690,7 +758,9 @@ Response:
 }
 ```
 
-### 11.4 Prompt Structure
+Gemini nhận cùng nội dung prompt logic, nhưng request được map qua SDK thay vì HTTP `generate` endpoint.
+
+### 11.5 Prompt Structure
 
 ```text
 Context:
@@ -706,11 +776,12 @@ Answer:
 - Chunks được lọc theo `workspace_id` để đảm bảo data isolation.
 - Nếu không có chunks phù hợp, worker vẫn gọi LLM với context rỗng.
 
-### 11.5 Retry & Error Handling
+### 11.6 Retry & Error Handling
 
-- `OllamaClient` sử dụng `urllib` (không cần dependency ngoài).
+- Provider adapter cho Ollama/mock có thể dùng HTTP client nhẹ; Gemini provider dùng `google-genai`.
 - Timeout: 30s per request.
-- Nếu Ollama không khả dụng: job `failed`, assistant message không được tạo.
+- Nếu provider không khả dụng hoặc Gemini không có API key hợp lệ: job `failed`, assistant message không được tạo.
+- Nếu provider không hợp lệ khi lưu session hoặc enqueue job: backend trả lỗi validation.
 - Error được ghi vào `jobs.error_message` và `job_steps`.
 
 ---
@@ -719,7 +790,7 @@ Answer:
 
 ### 12.1 Mục đích
 
-Server giả lập Ollama để phát triển và kiểm thử mà không cần cài model LLM thực.
+Server giả lập Ollama để phát triển và kiểm thử mà không cần cài model LLM thực. Đây là một provider được chọn từ dropdown của chat session trong môi trường local/test.
 
 ### 12.2 Vị trí file
 
@@ -787,5 +858,6 @@ E2E spec tại `client/e2e/notebooklm-chat-retrieval.spec.ts` (Section 6) tự �
 1. Kiểm tra mock server có đang chạy qua `GET /api/tags`.
 2. Bỏ qua (`test.skip`) nếu không tìm thấy mock server.
 3. Kiểm tra phản hồi chứa `"mock ollama"` để xác nhận tích hợp đúng.
+4. Chọn provider `mock` trong UI để xác nhận dropdown và session persistence hoạt động đúng.
 
 ---

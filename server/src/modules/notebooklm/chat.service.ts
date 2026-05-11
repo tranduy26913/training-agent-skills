@@ -68,18 +68,22 @@ export class ChatService {
     await this.getMemberOrThrow(workspaceId, userId);
 
     const title = dto.title?.trim() || `Chat Session ${Date.now()}`;
+    // [CR-NBLM-LLM-001] プロバイダーを決定 / Resolve provider (defaults to 'ollama')
+    const llm_provider = dto.llmProvider ?? 'ollama';
 
-    const result = await this.repository.createSession({ workspace_id: workspaceId, user_id: userId, title });
+    const result = await this.repository.createSession({ workspace_id: workspaceId, user_id: userId, title, llm_provider });
     const session = await this.repository.findSessionById(result.insertId);
     return session!;
   }
 
-  // セッション更新 / Update the title of an existing chat session
+  // セッション更新 / Update the title and provider of an existing chat session
   async updateSession(sessionId: number, dto: UpdateSessionInput, userId: number) {
     const session = await this.getSessionOrThrow(sessionId);
     await this.getMemberOrThrow(session.workspace_id, userId);
 
-    await this.repository.updateSession(sessionId, { title: dto.title });
+    // [CR-NBLM-LLM-001] プロバイダーも保存 / Persist provider along with title
+    const llm_provider = dto.llmProvider ?? 'ollama';
+    await this.repository.updateSession(sessionId, { title: dto.title, llm_provider });
     const updated = await this.repository.findSessionById(sessionId);
     return updated!;
   }
@@ -105,6 +109,8 @@ export class ChatService {
         session_id: sessionId,
         message_id: messageResult.insertId,
         query_text: dto.content,
+        // [CR-NBLM-LLM-001] セッションのプロバイダースナップショットをペイロードに含める / Snapshot session provider into job payload
+        llm_provider: session.llm_provider ?? 'ollama',
       },
     });
 

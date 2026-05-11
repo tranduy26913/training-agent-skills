@@ -9,8 +9,9 @@ import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
-import InputText from 'primevue/inputtext';
 import { useNotebooklmChatStore } from '@/stores/notebooklm-chat.store';
+import ChatSessionForm from './components/ChatSessionForm.vue';
+import type { ChatLlmProvider } from '@/types/notebooklm.types';
 
 const route = useRoute();
 const router = useRouter();
@@ -22,18 +23,18 @@ const chatStore = useNotebooklmChatStore();
 const workspaceId = computed(() => Number(route.params.workspaceId));
 
 // フォームフィールド / Form fields
-const title = ref('');
 const submitting = ref(false);
 
 /**
  * セッションを作成してセッション詳細ページへ遷移する
  * Submit form: create session then navigate to it
  */
-async function handleSubmit(): Promise<void> {
+async function handleSubmit(formData: { title: string; llmProvider: ChatLlmProvider }): Promise<void> {
   submitting.value = true;
   try {
     const session = await chatStore.createSession(workspaceId.value, {
-      title: title.value.trim() || undefined,
+      title: formData.title || undefined,
+      llmProvider: formData.llmProvider,
     });
     toast.add({
       severity: 'success',
@@ -77,34 +78,12 @@ function handleCancel(): void {
 
     <Card>
       <template #content>
-        <form class="space-y-4" @submit.prevent="handleSubmit">
-          <!-- タイトル入力 / Optional title input -->
-          <div class="space-y-1">
-            <label class="text-sm font-medium">{{ t('notebooklmChat.sessionTitle') }}</label>
-            <InputText
-              v-model="title"
-              :placeholder="t('notebooklmChat.titlePlaceholder')"
-              data-testid="session-title-input"
-              fluid
-            />
-          </div>
-
-          <div class="flex gap-2">
-            <Button
-              type="submit"
-              :label="t('notebooklmChat.createSession')"
-              icon="pi pi-check"
-              :loading="submitting"
-              data-testid="session-create-btn"
-            />
-            <Button
-              type="button"
-              :label="t('common.cancel')"
-              severity="secondary"
-              @click="handleCancel"
-            />
-          </div>
-        </form>
+        <ChatSessionForm
+          mode="create"
+          :loading="submitting"
+          @submit="handleSubmit"
+          @cancel="handleCancel"
+        />
       </template>
     </Card>
   </div>

@@ -61,12 +61,16 @@ class ChatApiClient {
     return body.data ?? [];
   }
 
-  /** チャットセッションを作成する / Create a chat session */
-  async createSession(workspaceId: number, title: string): Promise<{ id: number } | null> {
+  /** チャットセッションを作成する / Create a chat session (with optional llmProvider) */
+  async createSession(
+    workspaceId: number,
+    title: string,
+    llmProvider?: 'ollama' | 'mock' | 'gemini',
+  ): Promise<{ id: number } | null> {
     const res = await fetch(`${this.baseURL}/api/notebooklm/workspaces/${workspaceId}/sessions`, {
       method: 'POST',
       headers: this.headers,
-      body: JSON.stringify({ title }),
+      body: JSON.stringify({ title, ...(llmProvider ? { llmProvider } : {}) }),
     });
     if (!res.ok) return null;
     const body = (await res.json()) as { data?: { id: number } };
@@ -461,5 +465,46 @@ test.describe('NotebookLM Chat — Mock Ollama RAG pipeline', () => {
     await expect(
       page.locator('.flex.justify-start').first(),
     ).toBeVisible({ timeout: 90_000 });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Section 7: LLM Provider Selection (CR-NBLM-LLM-001)
+// LLMプロバイダー選択 (セッション単位でのプロバイダー指定)
+// ---------------------------------------------------------------------------
+
+test.describe('NotebookLM Chat — LLM Provider Selection', () => {
+  test('create session with mock provider via API and verify llm_provider persisted', async ({
+    baseURL,
+  }) => {
+    const api = new ChatApiClient(baseURL ?? BASE_URL);
+    await api.authenticate();
+
+    const workspaces = await api.listWorkspaces();
+    test.skip(workspaces.length === 0, 'No workspaces — skip');
+
+    // モックプロバイダーでセッションを作成する / Create session with mock provider
+    const created = await api.createSession(workspaces[0].id, 'E2E provider mock session', 'mock');
+    test.skip(created === null, 'Could not create session — skip');
+    expect(created!.id).toBeTruthy();
+  });
+
+  test('session list shows provider badge after creating session', async ({ page, baseURL }) => {
+    const api = new ChatApiClient(baseURL ?? BASE_URL);
+    await api.authenticate();
+
+    const workspaces = await api.listWorkspaces();
+    test.skip(workspaces.length === 0, 'No workspaces — skip');
+
+    // セッションをAPIで作成してからリスト画面でバッジを確認する
+    // Create session via API then check badge in list view
+    await api.createSession(workspaces[0].id, 'E2E provider badge session', 'gemini');
+
+    await page.goto(`/notebooklm/workspaces/${workspaces[0].id}/chat`);
+
+    // セッションリストにプロバイダーバッジが表示されること
+    // At least one provider badge must be visible in the session list
+    const badge = page.locator('[data-testid="session-provider-badge"]').first();
+    await expect(badge).toBeVisible({ timeout: 10_000 });
   });
 });

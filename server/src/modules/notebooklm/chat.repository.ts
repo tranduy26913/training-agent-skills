@@ -9,6 +9,8 @@ export interface ChatSessionRow extends RowDataPacket {
   workspace_id: number;
   user_id: number;
   title: string;
+  // [CR-NBLM-LLM-001] LLMプロバイダー / LLM provider for this session
+  llm_provider: 'ollama' | 'mock' | 'gemini';
   created_at: Date;
   updated_at: Date;
 }
@@ -77,19 +79,28 @@ export class ChatRepository {
     workspace_id: number;
     user_id: number;
     title: string;
+    // [CR-NBLM-LLM-001] LLMプロバイダー / LLM provider selection
+    llm_provider?: 'ollama' | 'mock' | 'gemini';
   }): Promise<ResultSetHeader> {
     const [result] = await pool.query<ResultSetHeader>(
-      'INSERT INTO `chat_sessions` (`workspace_id`, `user_id`, `title`) VALUES (?, ?, ?)',
-      [data.workspace_id, data.user_id, data.title],
+      'INSERT INTO `chat_sessions` (`workspace_id`, `user_id`, `title`, `llm_provider`) VALUES (?, ?, ?, ?)',
+      [data.workspace_id, data.user_id, data.title, data.llm_provider ?? 'ollama'],
     );
     return result;
   }
 
-  // セッション更新 / Update chat session title
-  async updateSession(sessionId: number, data: { title: string }): Promise<ResultSetHeader> {
+  // セッション更新 / Update chat session title and provider
+  async updateSession(
+    sessionId: number,
+    data: {
+      title: string;
+      // [CR-NBLM-LLM-001] LLMプロバイダー / LLM provider selection
+      llm_provider?: 'ollama' | 'mock' | 'gemini';
+    },
+  ): Promise<ResultSetHeader> {
     const [result] = await pool.query<ResultSetHeader>(
-      'UPDATE `chat_sessions` SET `title` = ? WHERE `id` = ?',
-      [data.title, sessionId],
+      'UPDATE `chat_sessions` SET `title` = ?, `llm_provider` = ? WHERE `id` = ?',
+      [data.title, data.llm_provider ?? 'ollama', sessionId],
     );
     return result;
   }

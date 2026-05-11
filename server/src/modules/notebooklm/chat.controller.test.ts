@@ -79,6 +79,32 @@ describe('ChatController', () => {
     expect(res.body.data.id).toBe(55);
   });
 
+  // [CR-NBLM-LLM-001] セッション作成時のプロバイダー / Provider field on create
+  it('POST /workspaces/:id/sessions passes llmProvider to service', async () => {
+    service.createSession.mockResolvedValueOnce({ id: 60, title: 'Gemini Chat', workspace_id: 10, llm_provider: 'gemini' });
+
+    const res = await request(buildApp(service))
+      .post('/api/notebooklm/workspaces/10/sessions')
+      .set('x-test-user-id', '1')
+      .send({ title: 'Gemini Chat', llmProvider: 'gemini' });
+
+    expect(res.status).toBe(201);
+    expect(service.createSession).toHaveBeenCalledWith(
+      10,
+      expect.objectContaining({ llmProvider: 'gemini' }),
+      1,
+    );
+  });
+
+  it('POST /workspaces/:id/sessions rejects invalid llmProvider', async () => {
+    const res = await request(buildApp(service))
+      .post('/api/notebooklm/workspaces/10/sessions')
+      .set('x-test-user-id', '1')
+      .send({ title: 'Chat', llmProvider: 'invalid-provider' });
+
+    expect(res.status).toBe(400);
+  });
+
   // セッション更新 / Update session
   it('PATCH /sessions/:sessionId returns 200 with updated session', async () => {
     service.updateSession.mockResolvedValueOnce({ id: 1, title: 'Updated Title', workspace_id: 10 });
@@ -90,6 +116,23 @@ describe('ChatController', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.data.title).toBe('Updated Title');
+  });
+
+  // [CR-NBLM-LLM-001] セッション更新時のプロバイダー / Provider field on update
+  it('PATCH /sessions/:sessionId passes llmProvider to service', async () => {
+    service.updateSession.mockResolvedValueOnce({ id: 1, title: 'Session', workspace_id: 10, llm_provider: 'mock' });
+
+    const res = await request(buildApp(service))
+      .patch('/api/notebooklm/sessions/1')
+      .set('x-test-user-id', '1')
+      .send({ title: 'Session', llmProvider: 'mock' });
+
+    expect(res.status).toBe(200);
+    expect(service.updateSession).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({ llmProvider: 'mock' }),
+      1,
+    );
   });
 
   // メッセージ送信 / Send message - enqueue QUERY job

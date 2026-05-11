@@ -6,6 +6,8 @@ export type NotebookLmDocumentStatus = 'pending' | 'processing' | 'indexed' | 'f
 export type NotebookLmJobType = 'INGEST' | 'QUERY' | 'DELETE_DOC' | 'DELETE_WORKSPACE';
 export type NotebookLmJobStatus = 'pending' | 'processing' | 'retrying' | 'done' | 'failed' | 'dead_letter';
 export type NotebookLmJobStepStatus = 'pending' | 'running' | 'done' | 'failed';
+// [CR-NBLM-LLM-001] チャットセッションのLLMプロバイダー型 / LLM provider type for chat sessions
+export type NotebookLmChatLlmProvider = 'ollama' | 'mock' | 'gemini';
 
 export interface NotebookLmWorkspaceRow extends RowDataPacket {
   id: number;

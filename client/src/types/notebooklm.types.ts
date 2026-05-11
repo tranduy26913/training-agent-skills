@@ -164,11 +164,16 @@ export interface WorkspaceDocumentDeleteResult {
 }
 
 // チャットセッション / Chat session entity
+// [CR-NBLM-LLM-001] LLMプロバイダー型 / LLM provider type for chat sessions
+export type ChatLlmProvider = 'ollama' | 'mock' | 'gemini';
+
 export interface ChatSession {
   id: number;
   workspaceId: number;
   userId: number;
   title: string;
+  // [CR-NBLM-LLM-001] セッションのLLMプロバイダー / LLM provider for the session
+  llmProvider: ChatLlmProvider;
   createdAt: string;
   updatedAt: string;
 }
@@ -204,11 +209,15 @@ export interface ChatSessionFilters extends PaginationParams {
 // チャットセッション作成DTO / DTO for creating a chat session
 export interface CreateChatSessionDto {
   title?: string;
+  // [CR-NBLM-LLM-001] 作成時のプロバイダー選択 / Provider selection at creation
+  llmProvider?: ChatLlmProvider;
 }
 
 // チャットセッション更新DTO / DTO for updating a chat session
 export interface UpdateChatSessionDto {
   title: string;
+  // [CR-NBLM-LLM-001] 更新時のプロバイダー変更 / Provider update
+  llmProvider?: ChatLlmProvider;
 }
 
 // メッセージ送信DTO / DTO for sending a chat message
