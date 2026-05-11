@@ -17,6 +17,7 @@ Tài liệu này mô tả nhóm chức năng chat hỏi đáp dựa trên tri th
 | Version | Date | Author | Summary |
 |---------|------|--------|---------|
 | 1.0 | 2026-05-07 | Admin Team | Initial design |
+| 1.1 | 2026-05-11 | Admin Team | Add ChatPanel user-message display, optimistic update, Ollama model config, mock server |
 
 ---
 
@@ -362,8 +363,10 @@ All errors must follow this format:
 client/src/pages/notebooklm/chat/
 ├── ChatSessionListPage.vue
 ├── ChatSessionCreatePage.vue
-├── ChatSessionEditPage.vue
+├── ChatSessionEditPage.vue        ← chứa ChatPanel, xử lý gửi/nhận tin
 ├── components/
+│   ├── ChatPanel.vue               ← khung chat chính (message list + input)
+│   ├── ChatMessageBubble.vue       ← bong bóng tin nhắn (user: phải, assistant: trái)
 │   ├── ChatSessionTable.vue
 │   ├── ChatSessionFilters.vue
 │   ├── ChatSessionForm.vue
@@ -446,6 +449,41 @@ Component relationships:
 
 - Quản lý message thread, gửi câu hỏi, theo dõi tiến độ job.
 
+#### [ChatPanel].vue
+
+- Áp dụng cho `ChatPanel.vue`.
+- Hiển thị toàn bộ lịch sử message của session hiện tại.
+- Chứa textarea nhập câu hỏi và nút Send.
+- **Tin nhắn người dùng hiển thị bên phải** (via `ChatMessageBubble` với class `justify-end`).
+- **Tin nhắn assistant hiển thị bên trái** (class `justify-start`).
+- Spinner loading hiển thị khi đang chờ phản hồi từ worker.
+- Send button bị disabled khi input rỗng hoặc đang loading.
+- Phím `Enter` gửi tin; `Shift+Enter` xuống dòng.
+
+**Props:**
+- `messages: ChatMessage[]` — danh sách tin nhắn hiện tại.
+- `loading: boolean` — trạng thái chờ phản hồi.
+
+**Emits:**
+- `send(content: string)` — khi người dùng bấm Send hoặc nhấn Enter.
+
+**data-testid:**
+- `chat-panel` — wrapper Card.
+- `chat-message-input` — Textarea nhập câu hỏi.
+- `chat-send-btn` — Button gửi.
+
+#### [ChatMessageBubble].vue
+
+- Áp dụng cho `ChatMessageBubble.vue`.
+- Nhận một `message: ChatMessage` và render bong bóng chat.
+- `role === 'user'` → `justify-end` (phải), nền `bg-primary text-white`.
+- `role === 'assistant'` → `justify-start` (trái), nền `bg-surface-100`.
+- Nếu assistant có `sources`, render `RetrievalSourceViewer` bên dưới nội dung.
+- `isUser` được tính bằng `computed(() => props.message.role === 'user')` để đảm bảo reactivity.
+
+**Props:**
+- `message: ChatMessage`.
+
 #### [OptionalViewer].vue
 
 - Áp dụng cho `RetrievalSourceViewer.vue`.
@@ -478,23 +516,43 @@ Use this state/getter/action pattern:
 
 ```typescript
 interface ChatRetrievalState {
-  items: ChatSession[]
-  currentItem: ChatSession | null
-  activityLogs: QueryJobLog[]
+  sessions: ChatSession[]
+  currentSession: ChatSession | null
+  messages: ChatMessage[]          // messages của session hiện tại
+  currentWorkspaceId: number | null
   pagination: PaginationInfo
-  filters: ChatSessionFilters
-  loading: boolean
+  loading: boolean                 // loading danh sách session
+  loadingMessages: boolean         // loading khi gửi/nhận tin
   error: string | null
 }
 
 // Actions
-fetchItems(filters?: ChatSessionFilters): Promise<void>
-fetchItem(id: number): Promise<void>
-createItem(data: CreateSessionDto): Promise<ChatSession>
-updateItem(id: number, data: UpdateSessionDto): Promise<void>
-deleteItem(id: number): Promise<void>
-fetchItemActivity(id: number): Promise<void>
+fetchSessions(workspaceId: number, filters?: ChatSessionFilters): Promise<void>
+createSession(workspaceId: number, dto: CreateChatSessionDto): Promise<ChatSession>
+updateSession(sessionId: number, dto: UpdateChatSessionDto): Promise<void>
+fetchMessages(sessionId: number): Promise<void>
+sendMessage(sessionId: number, dto: SendMessageDto): Promise<void>
+clearCurrentSession(): void
 ```
+
+#### sendMessage — Optimistic Update Pattern
+
+Để tin nhắn người dùng hiển thị ngay lập tức (không đợi polling):
+
+```text
+1. loadingMessages = true
+2. Tạo optimisticMessage { id: -(Date.now()), role: 'user', ... }
+3. messages = [...messages, optimisticMessage]   ← UI cập nhật ngay!
+4. Gọi API POST /sessions/:id/messages  → nhận { jobId }
+5. Poll getJobProgress(jobId) tối đa 60 lần (mỗi 1.5s)
+6. Sau khi job done/failed: messages = await getMessages(sessionId)
+   ↑ dữ liệu thực từ DB thay thế bản optimistic
+7. Nếu lỗi: lọc bỏ optimisticMessage khỏi messages (rollback)
+```
+
+Kết quả:
+- Tin nhắn người dùng xuất hiện **ngay** khi nhấn Send (không đợi ~90s polling).
+- Sau khi worker xử lý xong, cả user message + assistant reply đều thay thế từ DB.
 
 Store dependencies:
 
@@ -508,19 +566,35 @@ Store dependencies:
 
 ## 6. Sequence Diagrams
 
-### 6.1 Create Flow
+### 6.1 Send Message Flow (với Optimistic Update)
 
 ```text
-Actor        Frontend      Backend       Queue/DB      Worker       Ollama
-  |             |             |             |             |            |
-  |-- Ask Q --->|             |             |             |            |
-  |             |-- POST ---->|-- INSERT -->|             |            |
-  |             |             |-- job QUERY->|            |            |
-  |             |<-- 202 -----|             |             |            |
-  |             |                             |-- consume->|-- infer -->|
-  |             |                             |<-- result--|<-- text ---|
-  |             |<-- SSE done------------------------------------------|
+Actor        Frontend (UI)    Frontend (Store)   Backend       Queue/DB      Worker       Ollama
+  |               |                 |               |             |             |            |
+  |-- Type Q ---->|                 |               |             |             |            |
+  |-- Send ------->handleSend()     |               |             |             |            |
+  |               |--sendMessage()-->               |             |             |            |
+  |               |                 |               |             |             |            |
+  |               |  [OPTIMISTIC]   |               |             |             |            |
+  |               |  messages=[     |               |             |             |            |
+  |               |   {role:user}   |               |             |             |            |
+  |               |  ]              |               |             |             |            |
+  |<-- Show Q RIGHT (instant) ------+               |             |             |            |
+  |               |                 |--POST-------->|--INSERT msg->|            |            |
+  |               |                 |               |--job QUERY-->|            |            |
+  |               |                 |<--- 202 jobId-|             |            |            |
+  |               |                 |  poll status  |             |            |            |
+  |               |                 |  (1.5s×60)    |             |-- consume-->|-- infer -->|
+  |               |                 |               |             |<-- result--|<-- text ---|
+  |               |                 |               |<-- job done-|            |            |
+  |               |                 |--GET messages->             |            |            |
+  |<-- Show A LEFT (from DB) --------+               |            |            |            |
 ```
+
+**Optimistic Update:**
+- Bước `[OPTIMISTIC]`: tin nhắn người dùng được thêm vào `messages` **ngay lập tức** với `id` âm tạm thời.
+- Sau khi polling xong, toàn bộ `messages` được thay thế bằng dữ liệu từ DB.
+- Nếu API call lỗi: `filter` loại bỏ message optimistic (rollback).
 
 ### 6.2 Delete Flow
 
@@ -578,5 +652,140 @@ Actor        Frontend      Backend       Database
 - Search: Full-text search session title nếu cần.
 - Caching: Cache ngắn hạn top-k retrieval metadata.
 - Lazy Loading: Chỉ tải messages khi mở session cụ thể.
+
+---
+
+## 11. LLM Integration — Ollama Model
+
+### 11.1 Overview
+
+Python Query Worker gọi Ollama HTTP API để sinh câu trả lời dựa trên context đã retrieval.
+
+### 11.2 Configuration
+
+| Biến môi trường | Mặc định | Mô tả |
+|-----------------|----------|-------|
+| `LLM_API_URL` | `http://localhost:11434` | Base URL của Ollama server |
+| `LLM_MODEL` | `llama3` | Tên model sử dụng để generate |
+
+### 11.3 API Call
+
+```http
+POST {LLM_API_URL}/api/generate
+Content-Type: application/json
+
+{
+  "model": "{LLM_MODEL}",
+  "prompt": "Context:\n{retrieved_chunks}\n---\nQuestion: {user_question}\nAnswer:",
+  "stream": false
+}
+```
+
+Response:
+```json
+{
+  "model": "llama3",
+  "response": "Câu trả lời được sinh...",
+  "done": true
+}
+```
+
+### 11.4 Prompt Structure
+
+```text
+Context:
+{chunk_1_text}
+{chunk_2_text}
+...
+---
+Question: {user_question}
+Answer:
+```
+
+- Tối đa `top_k=5` chunks được đưa vào context.
+- Chunks được lọc theo `workspace_id` để đảm bảo data isolation.
+- Nếu không có chunks phù hợp, worker vẫn gọi LLM với context rỗng.
+
+### 11.5 Retry & Error Handling
+
+- `OllamaClient` sử dụng `urllib` (không cần dependency ngoài).
+- Timeout: 30s per request.
+- Nếu Ollama không khả dụng: job `failed`, assistant message không được tạo.
+- Error được ghi vào `jobs.error_message` và `job_steps`.
+
+---
+
+## 12. Mock Ollama Server (Dev & Test)
+
+### 12.1 Mục đích
+
+Server giả lập Ollama để phát triển và kiểm thử mà không cần cài model LLM thực.
+
+### 12.2 Vị trí file
+
+```text
+python-services/mock_ollama_server.py
+```
+
+### 12.3 Khởi động
+
+```bash
+# Mặc định port 11434
+python python-services/mock_ollama_server.py
+
+# Tùy chỉnh port và delay
+python python-services/mock_ollama_server.py --port 11434 --delay 0.2
+```
+
+Hoặc qua biến môi trường:
+```bash
+MOCK_OLLAMA_PORT=11434 MOCK_OLLAMA_DELAY=0.5 python python-services/mock_ollama_server.py
+```
+
+### 12.4 Endpoints
+
+#### GET /api/tags
+Trả về danh sách model giả:
+```json
+{
+  "models": [
+    { "name": "llama3:latest", "size": 4200000000 }
+  ]
+}
+```
+
+#### POST /api/generate
+Trích xuất dòng `Question:` từ prompt và trả về câu trả lời mock:
+```json
+{
+  "model": "llama3",
+  "response": "[Mock Ollama] This is a mock response for question: {extracted_question}.",
+  "done": true,
+  "total_duration": 123456789
+}
+```
+
+### 12.5 Cấu hình chạy toàn bộ pipeline với Mock
+
+```bash
+# Terminal 1 — Start mock Ollama
+python python-services/mock_ollama_server.py --port 11434
+
+# Terminal 2 — Start query worker trỏ tới mock
+LLM_API_URL=http://localhost:11434 python python-services/run_worker.py
+
+# Terminal 3 — Start API server
+npm run dev:debug --prefix server
+
+# Terminal 4 — Start frontend
+npm run dev --prefix client
+```
+
+### 12.6 Sử dụng trong E2E Tests
+
+E2E spec tại `client/e2e/notebooklm-chat-retrieval.spec.ts` (Section 6) tự động:
+1. Kiểm tra mock server có đang chạy qua `GET /api/tags`.
+2. Bỏ qua (`test.skip`) nếu không tìm thấy mock server.
+3. Kiểm tra phản hồi chứa `"mock ollama"` để xác nhận tích hợp đúng.
 
 ---

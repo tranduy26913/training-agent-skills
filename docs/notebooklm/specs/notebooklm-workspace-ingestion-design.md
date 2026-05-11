@@ -517,10 +517,11 @@ client/src/pages/notebooklm/workspace/
 ├── WorkspaceEditPage.vue
 ├── components/
 │   ├── WorkspaceTable.vue
+│   ├── WorkspaceFilters.vue
 │   ├── WorkspaceForm.vue
 │   └── DocumentIngestionViewer.vue
 ├── composables/
-│   └── Not applicable (logic currently nằm trong store)
+│   └── useWorkspaceIngestion.ts
 └── workspace.routes.ts
 ```
 

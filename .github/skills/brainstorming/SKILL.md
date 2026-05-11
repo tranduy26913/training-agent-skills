@@ -32,7 +32,7 @@ You MUST create a task for each of these items and complete them in order:
 
 1. **Define type of the requirement** — Determine if the requirement is to create a new specification or to request a change. If the user already has a source, there's no need to ask again. If it's a change request, it must be added according to rule **Change Request**.
 1. **Explore project context** — check files, docs, recent commits
-2. **Ask clarifying questions, Combine all the questions and ask them all at once** — Understand purpose/constraints/success criteria
+2. **Ask clarifying questions, Combine all the questions and ask them all at once, use tool vscode_askQuestions to gather answers** — Understand purpose/constraints/success criteria
 3. **Propose 2-3 approaches** — with trade-offs and your recommendation
 4. **Present design** — in sections scaled to their complexity, get user approval after each section
 5. **Write design doc** — save to `docs/<topic>/specs/<topic>-design.md`, use Vietnamese for the content, while keeping the headers/section titles in English. Follow the template in [spec-document-template](reference/spec-document-template.md) with 100% structural compliance (all required sections/subsections preserved in order).
@@ -172,8 +172,6 @@ Wait for the user's response. If they request changes, make them and re-run the 
 - Do NOT invoke any other skill. writing-plans is the next step. -->
 
 ## Key Principles
-
-- **One question at a time** - Don't overwhelm with multiple questions
 - **Multiple choice preferred** - Easier to answer than open-ended when possible
 - **YAGNI ruthlessly** - Remove unnecessary features from all designs
 - **Explore alternatives** - Always propose 2-3 approaches before settling

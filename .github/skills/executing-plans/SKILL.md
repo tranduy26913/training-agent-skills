@@ -6,8 +6,8 @@ description: Use when you have a written implementation plan to execute in a sep
 # Executing Plans
 
 ## Overview
-
 Load plan, review critically, execute all tasks, report when complete.
+Coordination and execute tasks in parallel with subagents for the different tasks.
 
 **Announce at start:** "I'm using the executing-plans skill to implement this plan."
 
@@ -20,11 +20,6 @@ Load plan, review critically, execute all tasks, report when complete.
 - **vue-testing-best-practices** - REQUIRED: Use for all Vue.js testing tasks
 - **vue-router-best-practices** - REQUIRED: Use for any Vue Router implementation tasks
 
-## Use subagent for implementation
-- Analyze plan and spatially separate tasks into different subagents (e.g. frontend vs backend, etc...)
-- Allways use parallel subagents when possible to execute multiple tasks at the same time. If impossible to execute in parallel, execute sequentially in the same agent.
-- If using multiple agents: coordinate and execute parallel subagents, then integrate and verify together at the end
-
 ## The Process
 
 ### Step 1: Load and Review Plan
@@ -34,7 +29,7 @@ Load plan, review critically, execute all tasks, report when complete.
 4. If no concerns: Create TodoWrite and proceed
 
 ### Step 2: Execute Tasks
-
+**Use parallel subagents for implementation tasks**
 For each task:
 1. Mark as in_progress
 2. Follow each step exactly (plan has bite-sized steps)
