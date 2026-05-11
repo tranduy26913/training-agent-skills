@@ -120,7 +120,7 @@ def test_delete_worker_dead_letter_inserts_payload_snapshot():
     def crash(*args, **kwargs):
         raise RuntimeError("document delete failed")
 
-    worker.mark_document_deleted = crash
+    worker.delete_document = crash
 
     processed = worker.run_once()
 
