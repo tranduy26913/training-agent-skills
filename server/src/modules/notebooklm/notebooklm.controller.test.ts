@@ -8,6 +8,7 @@ import type { NotebookLmService } from './notebooklm.service';
 function createMockService() {
   return {
     listWorkspaces: vi.fn(),
+    searchUsers: vi.fn(),
     createWorkspace: vi.fn(),
     getWorkspace: vi.fn(),
     updateWorkspace: vi.fn(),
@@ -37,6 +38,7 @@ function buildApp(service: MockService) {
   const router = express.Router();
 
   router.get('/workspaces', controller.listWorkspaces.bind(controller));
+  router.get('/users/search', controller.searchUsers.bind(controller));
   router.post('/workspaces', controller.createWorkspace.bind(controller));
   router.get('/workspaces/:id', controller.getWorkspace.bind(controller));
   router.put('/workspaces/:id', controller.updateWorkspace.bind(controller));
@@ -73,6 +75,32 @@ describe('NotebookLmController', () => {
 
     expect(res.status).toBe(201);
     expect(res.body.id).toBe(10);
+  });
+
+  it('returns paginated search result for users', async () => {
+    service.searchUsers.mockResolvedValueOnce({
+      data: [{ id: 201, name: 'An Nguyen', email: 'an.nguyen@example.com' }],
+      pagination: { page: 1, limit: 10, total: 1, pages: 1 },
+    });
+
+    const res = await request(buildApp(service)).get('/api/notebooklm/users/search?q=an&page=1&limit=10');
+
+    expect(res.status).toBe(200);
+    expect(res.body.pagination).toEqual({ page: 1, limit: 10, total: 1, pages: 1 });
+    expect(service.searchUsers).toHaveBeenCalledWith({ q: 'an', page: 1, limit: 10 }, 100);
+  });
+
+  it('returns 200 on workspace member add upsert', async () => {
+    service.addMember.mockResolvedValueOnce([
+      { id: 1, workspace_id: 10, user_id: 100, role: 'owner' },
+      { id: 2, workspace_id: 10, user_id: 201, role: 'editor' },
+    ]);
+
+    const res = await request(buildApp(service))
+      .post('/api/notebooklm/workspaces/10/members')
+      .send({ userId: 201, role: 'editor' });
+
+    expect(res.status).toBe(200);
   });
 
   it('returns 202 and job id on document upload enqueue', async () => {

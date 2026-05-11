@@ -6,6 +6,8 @@ import type {
   NotebookLmJobDetails,
   NotebookLmJobRow,
   NotebookLmJobStepRow,
+  NotebookLmUserSearchFilters,
+  NotebookLmUserSearchRow,
   NotebookLmWorkspaceFilters,
   NotebookLmWorkspaceMemberRow,
   NotebookLmWorkspaceRow,
@@ -13,6 +15,33 @@ import type {
 } from '../../models/notebooklm.model';
 
 export class NotebookLmRepository {
+  async searchUsers(
+    filters: NotebookLmUserSearchFilters,
+  ): Promise<{ data: NotebookLmUserSearchRow[]; total: number }> {
+    const page = filters.page ?? 1;
+    const limit = filters.limit ?? 10;
+    const offset = (page - 1) * limit;
+    const keyword = `%${filters.q}%`;
+
+    const [rows] = await pool.query<NotebookLmUserSearchRow[]>(
+      `SELECT u.id, u.name, u.email
+       FROM \`users\` u
+       WHERE u.status = 'active' AND (u.name LIKE ? OR u.email LIKE ?)
+       ORDER BY u.name ASC, u.id ASC
+       LIMIT ? OFFSET ?`,
+      [keyword, keyword, limit, offset],
+    );
+
+    const [[{ total }]] = await pool.query<any[]>(
+      `SELECT COUNT(*) AS total
+       FROM \`users\` u
+       WHERE u.status = 'active' AND (u.name LIKE ? OR u.email LIKE ?)`,
+      [keyword, keyword],
+    );
+
+    return { data: rows, total: Number(total ?? 0) };
+  }
+
   async listWorkspacesForUser(
     userId: number,
     filters: NotebookLmWorkspaceFilters,

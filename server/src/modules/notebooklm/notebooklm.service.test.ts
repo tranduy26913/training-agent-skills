@@ -21,6 +21,7 @@ function createMockRepository() {
     createJobStep: vi.fn(),
     findMemberByWorkspaceAndUser: vi.fn(),
     listMembersByWorkspace: vi.fn(),
+    searchUsers: vi.fn(),
     updateMemberRole: vi.fn(),
     removeMember: vi.fn(),
     createDocument: vi.fn(),
@@ -153,6 +154,23 @@ describe('NotebookLmService', () => {
     expect(result).toHaveLength(2);
   });
 
+  it('upserts role when target user is already a member', async () => {
+    repository.findMemberByWorkspaceAndUser
+      .mockResolvedValueOnce(mockMember({ user_id: 100, role: 'owner' }))
+      .mockResolvedValueOnce(mockMember({ user_id: 201, role: 'viewer' }));
+    repository.updateMemberRole.mockResolvedValueOnce({ affectedRows: 1 });
+    repository.listMembersByWorkspace.mockResolvedValueOnce([
+      mockMember({ user_id: 100, role: 'owner' }),
+      mockMember({ user_id: 201, role: 'editor' }),
+    ]);
+
+    const result = await service.addMember(10, { userId: 201, role: 'editor' }, 100);
+
+    expect(repository.updateMemberRole).toHaveBeenCalledWith(10, 201, 'editor');
+    expect(repository.createWorkspaceMember).not.toHaveBeenCalled();
+    expect(result.find((item) => item.user_id === 201)?.role).toBe('editor');
+  });
+
   it('rejects add member when actor is not owner', async () => {
     repository.findMemberByWorkspaceAndUser.mockResolvedValueOnce(
       mockMember({ user_id: 101, role: 'editor' }),
@@ -161,6 +179,26 @@ describe('NotebookLmService', () => {
     await expect(
       service.addMember(10, { userId: 202, role: 'viewer' }, 101),
     ).rejects.toEqual(new ServiceError('Only workspace owner can manage members', 403));
+  });
+
+  it('searches users with pagination', async () => {
+    repository.searchUsers.mockResolvedValueOnce({
+      data: [{ id: 201, name: 'An Nguyen', email: 'an.nguyen@example.com' }],
+      total: 1,
+    });
+
+    const result = await service.searchUsers({ q: 'an', page: 1, limit: 10 }, 100);
+
+    expect(repository.searchUsers).toHaveBeenCalledWith({ q: 'an', page: 1, limit: 10 });
+    expect(result).toEqual({
+      data: [{ id: 201, name: 'An Nguyen', email: 'an.nguyen@example.com' }],
+      pagination: {
+        page: 1,
+        limit: 10,
+        total: 1,
+        pages: 1,
+      },
+    });
   });
 
   it('enqueues INGEST job on upload for editor', async () => {

@@ -41,6 +41,12 @@ export const addMemberSchema = z.object({
   role: z.enum(['owner', 'editor', 'viewer']),
 });
 
+export const searchUsersQuerySchema = z.object({
+  q: z.string().trim().min(1, 'q is required').max(255),
+  page: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+});
+
 export const updateMemberRoleSchema = z.object({
   role: z.enum(['owner', 'editor', 'viewer']),
 });
@@ -56,5 +62,6 @@ export type ListWorkspacesQuery = z.infer<typeof listWorkspacesQuerySchema>;
 export type CreateWorkspaceInput = z.infer<typeof createWorkspaceSchema>;
 export type UpdateWorkspaceInput = z.infer<typeof updateWorkspaceSchema>;
 export type AddMemberInput = z.infer<typeof addMemberSchema>;
+export type SearchUsersQueryInput = z.infer<typeof searchUsersQuerySchema>;
 export type UpdateMemberRoleInput = z.infer<typeof updateMemberRoleSchema>;
 export type UploadDocumentInput = z.infer<typeof uploadDocumentSchema>;

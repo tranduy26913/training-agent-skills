@@ -3,6 +3,8 @@ import type {
   AddNotebookLmMemberInput,
   NotebookLmJobDetails,
   NotebookLmMemberRole,
+  NotebookLmUserSearchFilters,
+  NotebookLmUserSearchRow,
   NotebookLmWorkspaceFilters,
   NotebookLmWorkspaceMemberRow,
   NotebookLmWorkspaceRow,
@@ -100,6 +102,33 @@ export class NotebookLmService {
     return created;
   }
 
+  async searchUsers(
+    filters: NotebookLmUserSearchFilters,
+    userId: number,
+  ): Promise<{
+    data: NotebookLmUserSearchRow[];
+    pagination: { page: number; limit: number; total: number; pages: number };
+  }> {
+    // Search endpoint requires authenticated user; membership is not required.
+    if (!userId) {
+      throw new ServiceError('Unauthorized', 401);
+    }
+
+    const page = filters.page ?? 1;
+    const limit = filters.limit ?? 10;
+    const { data, total } = await this.repository.searchUsers(filters);
+
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    };
+  }
+
   async getWorkspace(workspaceId: number, userId: number): Promise<NotebookLmWorkspaceRow> {
     const workspace = await this.repository.findWorkspaceByIdForUser(workspaceId, userId);
     if (!workspace) {
@@ -157,7 +186,11 @@ export class NotebookLmService {
 
     const existing = await this.repository.findMemberByWorkspaceAndUser(workspaceId, input.userId);
     if (existing) {
-      throw new ServiceError('User is already a workspace member', 409);
+      if (existing.role === 'owner' && input.role !== 'owner') {
+        throw new ServiceError('Owner role cannot be changed', 400);
+      }
+      await this.repository.updateMemberRole(workspaceId, input.userId, input.role);
+      return this.repository.listMembersByWorkspace(workspaceId);
     }
 
     await this.repository.createWorkspaceMember({

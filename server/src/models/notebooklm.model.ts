@@ -88,6 +88,16 @@ export interface AddNotebookLmMemberInput {
   role: NotebookLmMemberRole;
 }
 
+export interface NotebookLmUserSearchRow extends RowDataPacket {
+  id: number;
+  name: string;
+  email: string;
+}
+
+export interface NotebookLmUserSearchFilters extends PaginationParams {
+  q: string;
+}
+
 export interface UploadNotebookLmDocumentInput {
   filename: string;
   mimeType: string;

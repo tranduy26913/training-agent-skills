@@ -33,6 +33,22 @@ export class NotebookLmController {
     }
   }
 
+  async searchUsers(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const result = await this.service.searchUsers(
+        {
+          q: String(req.query.q ?? ''),
+          page: req.query.page ? Number(req.query.page) : undefined,
+          limit: req.query.limit ? Number(req.query.limit) : undefined,
+        },
+        req.user!.userId,
+      );
+      sendSuccess(res, result);
+    } catch (error) {
+      handleError(res, error);
+    }
+  }
+
   async getWorkspace(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const workspace = await this.service.getWorkspace(Number(req.params.id), req.user!.userId);
@@ -72,7 +88,7 @@ export class NotebookLmController {
   async addMember(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const members = await this.service.addMember(Number(req.params.id), req.body, req.user!.userId);
-      sendSuccess(res, members, 201);
+      sendSuccess(res, members);
     } catch (error) {
       handleError(res, error);
     }
