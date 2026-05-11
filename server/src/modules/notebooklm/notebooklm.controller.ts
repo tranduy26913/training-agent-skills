@@ -54,7 +54,7 @@ export class NotebookLmController {
   async deleteWorkspace(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const result = await this.service.deleteWorkspace(Number(req.params.id), req.user!.userId);
-      sendSuccess(res, result, 202);
+      sendSuccess(res, result);
     } catch (error) {
       handleError(res, error);
     }

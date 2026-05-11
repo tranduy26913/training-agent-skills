@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import Card from 'primevue/card';
 import WorkspaceForm from './components/WorkspaceForm.vue';
 import DocumentIngestionViewer from './components/DocumentIngestionViewer.vue';
 import { useNotebooklmWorkspaceStore } from '@/stores/notebooklm-workspace.store';
@@ -49,7 +50,14 @@ async function handleRefreshProgress(jobId: number): Promise<void> {
 
 <template>
   <div class="space-y-6">
-    <h2 class="text-2xl font-semibold">Edit Workspace</h2>
+    <Card>
+      <template #content>
+        <div>
+          <h2 class="text-2xl font-semibold">Edit Workspace</h2>
+          <p class="text-sm text-surface-500">Update workspace details and manage document ingestion jobs.</p>
+        </div>
+      </template>
+    </Card>
 
     <WorkspaceForm
       mode="edit"

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { mount } from '@vue/test-utils';
+import PrimeVue from 'primevue/config';
 import WorkspaceTable from '../WorkspaceTable.vue';
+import AppDataTable from '@/components/AppDataTable.vue';
 import type { Workspace } from '@/types/notebooklm.types';
 
 const rows: Workspace[] = [
@@ -33,7 +35,16 @@ describe('WorkspaceTable', () => {
         workspaces: rows,
         loading: false,
       },
+      global: {
+        plugins: [PrimeVue],
+        directives: {
+          tooltip: () => undefined,
+        },
+      },
     });
+
+    expect(wrapper.find('.p-datatable').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="workspace-open-11"]').classes()).toContain('p-button');
 
     expect(wrapper.text()).toContain('Project A');
     expect(wrapper.text()).toContain('Project B');
@@ -46,5 +57,30 @@ describe('WorkspaceTable', () => {
 
     await wrapper.find('[data-testid="workspace-open-11"]').trigger('click');
     expect(wrapper.emitted('open')?.[0]).toEqual([11]);
+  });
+
+  it('forwards page change event', async () => {
+    const wrapper = mount(WorkspaceTable, {
+      props: {
+        workspaces: rows,
+        loading: false,
+        pagination: {
+          page: 1,
+          limit: 10,
+          total: 100,
+        },
+      },
+      global: {
+        plugins: [PrimeVue],
+        directives: {
+          tooltip: () => undefined,
+        },
+      },
+    });
+
+    wrapper.findComponent(AppDataTable).vm.$emit('pageChange', 2);
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.emitted('pageChange')?.[0]).toEqual([2]);
   });
 });

@@ -20,6 +20,11 @@ Load plan, review critically, execute all tasks, report when complete.
 - **vue-testing-best-practices** - REQUIRED: Use for all Vue.js testing tasks
 - **vue-router-best-practices** - REQUIRED: Use for any Vue Router implementation tasks
 
+## Use subagent for implementation
+- Analyze plan and spatially separate tasks into different subagents (e.g. frontend vs backend, etc...)
+- Allways use parallel subagents when possible to execute multiple tasks at the same time. If impossible to execute in parallel, execute sequentially in the same agent.
+- If using multiple agents: coordinate and execute parallel subagents, then integrate and verify together at the end
+
 ## The Process
 
 ### Step 1: Load and Review Plan
@@ -36,12 +41,7 @@ For each task:
 3. Run verifications as specified
 4. Mark as completed
 
-<!-- ### Step 3: Complete Development
 
-After all tasks complete and verified:
-- Announce: "I'm using the finishing-a-development-branch skill to complete this work."
-- **REQUIRED SUB-SKILL:** Use `finishing-a-development-branch` skill to complete the work (merge, PR, or keep branch)
-- Follow that skill to verify tests, present options, execute choice -->
 ## When use tool [vscode_askQuestions]
 - Always present next-step suggestions as a short list of selectable options using the VS Code vscode_askQuestions tool.
 - Provide 3–6 concise options. Do not accept freeform text unless the user explicitly requests it.
@@ -50,7 +50,6 @@ After all tasks complete and verified:
 - allowFreeformInput: true, allow the user to provide freeform text input if they select an "Other" option or if the question requires it. Handle the freeform input appropriately based on the context of the question.
 
 ## When to Stop and Ask for Help
-
 **STOP executing immediately when:**
 - Hit a blocker (missing dependency, test fails, instruction unclear)
 - Plan has critical gaps preventing starting
@@ -58,7 +57,7 @@ After all tasks complete and verified:
 - Verification fails repeatedly
 
 **Ask for clarification rather than guessing.**
-- Allways use tool vscode_askQuestion to ask for help.
+- Always use tool vscode_askQuestions to ask for help.
 
 ## When have next-step suggestions
 **If you have a next-step suggestion for the user, use tool vscode_askQuestions:**

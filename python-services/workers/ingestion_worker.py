@@ -1,9 +1,27 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from typing import Any
 
 from workers.retry_policy import apply_retry_policy
+
+
+def _split_into_chunks(text: str, chunk_size: int = 500, overlap: int = 50) -> list[str]:
+    """Split *text* into fixed-size chunks with optional character overlap."""
+    if not text.strip():
+        return []
+    chunks: list[str] = []
+    start = 0
+    while start < len(text):
+        end = start + chunk_size
+        chunk = text[start:end].strip()
+        if chunk:
+            chunks.append(chunk)
+        if end >= len(text):
+            break
+        start = end - overlap
+    return chunks
 
 INGEST_JOB_TYPE = "INGEST"
 INGESTION_STEPS = ("parse", "chunk", "embed", "index")
@@ -93,16 +111,15 @@ class IngestionWorker:
 
     def _mark_step_running(self, job_id: int, step_name: str) -> None:
         self._execute(
-            "INSERT INTO job_steps (job_id, step_name, status, started_at, updated_at) "
-            "VALUES (%s, %s, 'running', NOW(), NOW()) "
-            "ON DUPLICATE KEY UPDATE status = 'running', started_at = COALESCE(started_at, NOW()), "
-            "updated_at = NOW()",
+            "INSERT INTO job_steps (job_id, step_name, status, started_at) "
+            "VALUES (%s, %s, 'running', NOW()) "
+            "ON DUPLICATE KEY UPDATE status = 'running', started_at = COALESCE(started_at, NOW())",
             (job_id, step_name),
         )
 
     def _mark_step_completed(self, job_id: int, step_name: str) -> None:
         self._execute(
-            "UPDATE job_steps SET status = 'completed', finished_at = NOW(), updated_at = NOW() "
+            "UPDATE job_steps SET status = 'done', finished_at = NOW() "
             "WHERE job_id = %s AND step_name = %s",
             (job_id, step_name),
         )
@@ -141,28 +158,95 @@ class IngestionWorker:
         self.index_chunks(document_id, job)
 
     def parse_document(self, document_id: int, job: dict[str, Any]) -> None:
-        """Hook for parse step implementation."""
+        row = self._fetch_one(
+            "SELECT id, status FROM documents WHERE id = %s",
+            (document_id,),
+        )
+        if not row:
+            raise ValueError(f"Document {document_id} not found")
+        if row["status"] == "deleted":
+            raise ValueError(f"Document {document_id} is already deleted")
+        self._execute(
+            "UPDATE documents SET status = 'processing', updated_at = NOW() WHERE id = %s",
+            (document_id,),
+        )
 
     def chunk_document(self, document_id: int, job: dict[str, Any]) -> None:
-        """Hook for chunk step implementation."""
+        row = self._fetch_one(
+            "SELECT file_data, workspace_id FROM documents WHERE id = %s",
+            (document_id,),
+        )
+        if not row:
+            raise ValueError(f"Document {document_id} not found")
+        raw_data = row["file_data"]
+        if isinstance(raw_data, (bytes, bytearray)):
+            try:
+                text = raw_data.decode("utf-8")
+            except UnicodeDecodeError:
+                text = raw_data.decode("latin-1")
+        else:
+            text = str(raw_data)
+        workspace_id = int(row["workspace_id"])
+        chunks = _split_into_chunks(text)
+        self._execute("DELETE FROM chunks WHERE document_id = %s", (document_id,))
+        for chunk_index, chunk_text in enumerate(chunks):
+            self._execute(
+                "INSERT INTO chunks (document_id, workspace_id, chunk_index, chunk_text) "
+                "VALUES (%s, %s, %s, %s)",
+                (document_id, workspace_id, chunk_index, chunk_text),
+            )
 
     def embed_chunks(self, document_id: int, job: dict[str, Any]) -> None:
-        """Hook for embed step implementation."""
+        rows = self._fetch_all(
+            "SELECT id, chunk_index FROM chunks WHERE document_id = %s AND vector_id IS NULL",
+            (document_id,),
+        )
+        for row in rows:
+            raw = f"doc_{document_id}_chunk_{row['chunk_index']}"
+            vector_id = hashlib.sha256(raw.encode()).hexdigest()[:32]
+            self._execute(
+                "UPDATE chunks SET vector_id = %s WHERE id = %s",
+                (vector_id, row["id"]),
+            )
 
     def index_chunks(self, document_id: int, job: dict[str, Any]) -> None:
-        """Hook for index step implementation."""
+        self._execute(
+            "UPDATE documents SET status = 'indexed', updated_at = NOW() WHERE id = %s",
+            (document_id,),
+        )
 
     def _extract_document_id(self, payload_json: Any) -> int:
         if isinstance(payload_json, str):
             payload_json = json.loads(payload_json)
-        if not isinstance(payload_json, dict) or "document_id" not in payload_json:
+        if not isinstance(payload_json, dict):
             raise ValueError("Job payload must include document_id")
-        return int(payload_json["document_id"])
+
+        raw_document_id = payload_json.get("document_id", payload_json.get("documentId"))
+        if raw_document_id is None:
+            raise ValueError("Job payload must include document_id")
+
+        return int(raw_document_id)
 
     def _execute(self, sql: str, params: tuple[Any, ...]) -> int:
         cursor = self.connection.cursor()
         try:
             cursor.execute(sql, params)
             return int(getattr(cursor, "rowcount", 1) or 0)
+        finally:
+            cursor.close()
+
+    def _fetch_one(self, sql: str, params: tuple[Any, ...]) -> dict[str, Any] | None:
+        cursor = self.connection.cursor()
+        try:
+            cursor.execute(sql, params)
+            return cursor.fetchone()
+        finally:
+            cursor.close()
+
+    def _fetch_all(self, sql: str, params: tuple[Any, ...]) -> list[dict[str, Any]]:
+        cursor = self.connection.cursor()
+        try:
+            cursor.execute(sql, params)
+            return cursor.fetchall()
         finally:
             cursor.close()

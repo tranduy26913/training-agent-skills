@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
+import PrimeVue from 'primevue/config';
 import WorkspaceForm from '../WorkspaceForm.vue';
 
 describe('WorkspaceForm', () => {
@@ -12,7 +13,14 @@ describe('WorkspaceForm', () => {
       props: {
         mode: 'create',
       },
+      global: {
+        plugins: [PrimeVue],
+      },
     });
+
+    expect(wrapper.find('.p-inputtext').exists()).toBe(true);
+    expect(wrapper.find('.p-textarea').exists()).toBe(true);
+    expect(wrapper.find('.p-button').exists()).toBe(true);
 
     await wrapper.find('[data-testid="workspace-name"]').setValue('  Workspace A  ');
     await wrapper.find('[data-testid="workspace-description"]').setValue('  Shared notes  ');
@@ -30,6 +38,9 @@ describe('WorkspaceForm', () => {
     const wrapper = mount(WorkspaceForm, {
       props: {
         mode: 'create',
+      },
+      global: {
+        plugins: [PrimeVue],
       },
     });
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { mount } from '@vue/test-utils';
+import PrimeVue from 'primevue/config';
 import DocumentIngestionViewer from '../DocumentIngestionViewer.vue';
 import type { WorkspaceDocument, WorkspaceJobProgress } from '@/types/notebooklm.types';
 
@@ -36,7 +37,13 @@ describe('DocumentIngestionViewer', () => {
         jobProgressById: { 9001: progress },
         canUpload: true,
       },
+      global: {
+        plugins: [PrimeVue],
+      },
     });
+
+    expect(wrapper.find('.p-card').exists()).toBe(true);
+    expect(wrapper.find('.p-button').exists()).toBe(true);
 
     expect(wrapper.text()).toContain('parse');
     expect(wrapper.text()).toContain('chunk');
@@ -59,6 +66,9 @@ describe('DocumentIngestionViewer', () => {
         documents: docs,
         jobProgressById: {},
         canUpload: true,
+      },
+      global: {
+        plugins: [PrimeVue],
       },
     });
 

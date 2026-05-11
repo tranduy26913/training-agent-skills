@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import Card from 'primevue/card';
+import Button from 'primevue/button';
+import Tag from 'primevue/tag';
+import Message from 'primevue/message';
 import {
   NOTEBOOKLM_ALLOWED_MIME_TYPES,
   NOTEBOOKLM_MAX_FILE_SIZE_BYTES,
@@ -21,6 +25,11 @@ const emit = defineEmits<{
 }>();
 
 const uploadError = ref<string>('');
+const fileInputRef = ref<HTMLInputElement | null>(null);
+
+function openFilePicker(): void {
+  fileInputRef.value?.click();
+}
 
 function onFileChange(event: Event): void {
   uploadError.value = '';
@@ -50,73 +59,82 @@ function formatSize(bytes: number): string {
 </script>
 
 <template>
-  <section class="space-y-3 rounded border border-surface-200 p-4">
-    <div class="flex items-center justify-between">
-      <h3 class="text-base font-semibold">Documents</h3>
-      <input
-        v-if="canUpload"
-        data-testid="document-upload-input"
-        type="file"
-        class="text-sm"
-        @change="onFileChange"
-      />
-    </div>
-
-    <p v-if="uploadError" class="text-sm text-red-600">{{ uploadError }}</p>
-    <p v-if="loading" class="text-sm text-surface-500">Loading documents...</p>
-
-    <div v-if="documents.length === 0 && !loading" class="text-sm text-surface-500">
-      No documents uploaded yet.
-    </div>
-
-    <ul v-else class="space-y-3">
-      <li
-        v-for="doc in documents"
-        :key="doc.id"
-        class="rounded border border-surface-200 p-3"
-      >
-        <div class="flex items-center justify-between gap-2">
-          <div>
-            <p class="font-medium">{{ doc.filename }}</p>
-            <p class="text-xs text-surface-500">
-              {{ doc.status }} • {{ formatSize(doc.size) }}
-            </p>
-          </div>
-
-          <div class="flex gap-2">
-            <button
-              v-if="doc.latestJobId"
-              type="button"
-              class="rounded border border-surface-300 px-2 py-1 text-xs"
-              @click="emit('refreshProgress', doc.latestJobId)"
-            >
-              Refresh
-            </button>
-            <button
-              v-if="canDelete"
-              type="button"
-              class="rounded border border-red-400 px-2 py-1 text-xs text-red-600"
-              @click="emit('delete', doc.id)"
-            >
-              Delete
-            </button>
-          </div>
+  <Card>
+    <template #title>Documents</template>
+    <template #content>
+      <section class="space-y-3">
+        <div class="flex items-center justify-end" v-if="canUpload">
+          <input
+            ref="fileInputRef"
+            data-testid="document-upload-input"
+            type="file"
+            class="hidden"
+            @change="onFileChange"
+          />
+          <Button class="w-full sm:w-auto" label="Upload document" icon="pi pi-upload" @click="openFilePicker" />
         </div>
 
-        <div v-if="doc.latestJobId && jobProgressById[doc.latestJobId]" class="mt-2 rounded bg-surface-50 p-2 text-xs">
-          <p class="font-medium uppercase">
-            {{ jobProgressById[doc.latestJobId].status }}
-          </p>
-          <ul class="mt-1 space-y-1">
-            <li
-              v-for="step in jobProgressById[doc.latestJobId].steps"
-              :key="step.name"
-            >
-              {{ step.name }}: {{ step.status }}
-            </li>
-          </ul>
+        <Message v-if="uploadError" severity="error" size="small" variant="simple">{{ uploadError }}</Message>
+        <p v-if="loading" class="text-sm text-surface-500">Loading documents...</p>
+
+        <div v-if="documents.length === 0 && !loading" class="text-sm text-surface-500">
+          No documents uploaded yet.
         </div>
-      </li>
-    </ul>
-  </section>
+
+        <ul v-else class="space-y-3">
+          <li
+            v-for="doc in documents"
+            :key="doc.id"
+            class="rounded border border-surface-200 p-3"
+          >
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div class="min-w-0">
+                <p class="font-medium">{{ doc.filename }}</p>
+                <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-surface-500">
+                  <Tag :value="doc.status" severity="info" />
+                  <span>{{ formatSize(doc.size) }}</span>
+                </div>
+              </div>
+
+              <div class="flex w-full flex-wrap justify-end gap-1 sm:w-auto">
+                <Button
+                  v-if="doc.latestJobId"
+                  type="button"
+                  label="Refresh"
+                  icon="pi pi-refresh"
+                  text
+                  size="small"
+                  @click="emit('refreshProgress', doc.latestJobId)"
+                />
+                <Button
+                  v-if="canDelete"
+                  type="button"
+                  label="Delete"
+                  icon="pi pi-trash"
+                  text
+                  size="small"
+                  severity="danger"
+                  @click="emit('delete', doc.id)"
+                />
+              </div>
+            </div>
+
+            <div v-if="doc.latestJobId && jobProgressById[doc.latestJobId]" class="mt-2 rounded bg-surface-50 p-2 text-xs">
+              <p class="font-medium uppercase">
+                {{ jobProgressById[doc.latestJobId].status }}
+              </p>
+              <ul class="mt-1 space-y-1">
+                <li
+                  v-for="step in jobProgressById[doc.latestJobId].steps"
+                  :key="step.name"
+                >
+                  {{ step.name }}: {{ step.status }}
+                </li>
+              </ul>
+            </div>
+          </li>
+        </ul>
+      </section>
+    </template>
+  </Card>
 </template>

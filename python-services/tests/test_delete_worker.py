@@ -50,7 +50,7 @@ class FakeConnection:
         return self.jobs.pop(0)
 
 
-def test_run_once_delete_happy_path_removes_vectors_chunks_and_marks_document_deleted():
+def test_run_once_delete_happy_path_removes_vectors_chunks_and_deletes_document():
     conn = FakeConnection(
         jobs=[
             {
@@ -71,7 +71,7 @@ def test_run_once_delete_happy_path_removes_vectors_chunks_and_marks_document_de
     sql_log = [entry[0] for entry in conn.executed]
     assert any("UPDATE chunks SET vector_id = NULL" in sql for sql in sql_log)
     assert any("DELETE FROM chunks" in sql for sql in sql_log)
-    assert any("UPDATE documents" in sql and "status = 'deleted'" in sql and "file_data = NULL" in sql for sql in sql_log)
+    assert any("DELETE FROM documents" in sql for sql in sql_log)
     assert any("UPDATE jobs SET status = 'done'" in sql for sql in sql_log)
 
 
@@ -127,3 +127,24 @@ def test_run_once_delete_failure_moves_to_dead_letter_at_max_retry():
     sql_log = [entry[0] for entry in conn.executed]
     assert any("status = 'dead_letter'" in sql for sql in sql_log)
     assert any("UPDATE jobs SET status = 'dead_letter'" in sql for sql in sql_log)
+
+
+def test_run_once_delete_accepts_document_id_from_express_payload():
+    conn = FakeConnection(
+        jobs=[
+            {
+                "id": 93,
+                "type": "DELETE_DOC",
+                "payload": {"documentId": 1004, "workspaceId": 20},
+                "retry_count": 0,
+                "max_retries": 3,
+            }
+        ]
+    )
+    worker = DeleteWorker(conn)
+
+    processed = worker.run_once()
+
+    assert processed is True
+    sql_log = [entry[0] for entry in conn.executed]
+    assert any("UPDATE jobs SET status = 'done'" in sql for sql in sql_log)

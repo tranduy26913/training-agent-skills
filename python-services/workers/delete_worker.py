@@ -93,16 +93,15 @@ class DeleteWorker:
 
     def _mark_step_running(self, job_id: int, step_name: str) -> None:
         self._execute(
-            "INSERT INTO job_steps (job_id, step_name, status, started_at, updated_at) "
-            "VALUES (%s, %s, 'running', NOW(), NOW()) "
-            "ON DUPLICATE KEY UPDATE status = 'running', started_at = COALESCE(started_at, NOW()), "
-            "updated_at = NOW()",
+            "INSERT INTO job_steps (job_id, step_name, status, started_at) "
+            "VALUES (%s, %s, 'running', NOW()) "
+            "ON DUPLICATE KEY UPDATE status = 'running', started_at = COALESCE(started_at, NOW())",
             (job_id, step_name),
         )
 
     def _mark_step_completed(self, job_id: int, step_name: str) -> None:
         self._execute(
-            "UPDATE job_steps SET status = 'completed', finished_at = NOW(), updated_at = NOW() "
+            "UPDATE job_steps SET status = 'done', finished_at = NOW() "
             "WHERE job_id = %s AND step_name = %s",
             (job_id, step_name),
         )
@@ -135,7 +134,7 @@ class DeleteWorker:
         if step_name == "chunks_delete":
             self.delete_chunks(document_id, job)
             return
-        self.mark_document_deleted(document_id, job)
+        self.delete_document(document_id, job)
 
     def delete_chunk_vectors(self, document_id: int, job: dict[str, Any]) -> None:
         self._execute(
@@ -146,19 +145,20 @@ class DeleteWorker:
     def delete_chunks(self, document_id: int, job: dict[str, Any]) -> None:
         self._execute("DELETE FROM chunks WHERE document_id = %s", (document_id,))
 
-    def mark_document_deleted(self, document_id: int, job: dict[str, Any]) -> None:
-        self._execute(
-            "UPDATE documents SET status = 'deleted', file_data = NULL, updated_at = NOW() "
-            "WHERE id = %s",
-            (document_id,),
-        )
+    def delete_document(self, document_id: int, job: dict[str, Any]) -> None:
+        self._execute("DELETE FROM documents WHERE id = %s", (document_id,))
 
     def _extract_document_id(self, payload_json: Any) -> int:
         if isinstance(payload_json, str):
             payload_json = json.loads(payload_json)
-        if not isinstance(payload_json, dict) or "document_id" not in payload_json:
+        if not isinstance(payload_json, dict):
             raise ValueError("Job payload must include document_id")
-        return int(payload_json["document_id"])
+
+        raw_document_id = payload_json.get("document_id", payload_json.get("documentId"))
+        if raw_document_id is None:
+            raise ValueError("Job payload must include document_id")
+
+        return int(raw_document_id)
 
     def _execute(self, sql: str, params: tuple[Any, ...]) -> int:
         cursor = self.connection.cursor()

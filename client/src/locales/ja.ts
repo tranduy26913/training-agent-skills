@@ -214,4 +214,15 @@ export default {
     dlqSaved: 'DLQメモを更新しました',
     purgeConfirm: '選択したDLQ項目を完全削除しますか？',
   },
+  notebooklmWorkspace: {
+    role: 'ロール',
+    allRoles: 'すべてのロール',
+    rowsPerPage: '1ページの表示件数',
+    searchPlaceholder: 'ワークスペース名で検索...',
+    clearFilters: 'フィルターをクリア',
+    deleteConfirm: 'このワークスペースを削除してもよろしいですか？この操作は元に戻せません。',
+    deleteHeader: 'ワークスペース削除の確認',
+    deletedSuccess: 'ワークスペースを削除しました',
+    deletedError: 'ワークスペースの削除に失敗しました',
+  },
 } as const;

@@ -11,14 +11,31 @@ import type {
 } from '../../models/notebooklm.model';
 import { NotebookLmRepository } from './notebooklm.repository';
 import type { CreateWorkspaceInput } from './notebooklm.validation';
+import { dispatchNotebookLmWorker, type NotebookLmDispatchableJobType } from './worker-dispatcher';
 
 export { ServiceError };
 
 export class NotebookLmService {
   private repository: NotebookLmRepository;
+  private workerDispatcher: (jobType: NotebookLmDispatchableJobType) => Promise<void>;
 
-  constructor(repository?: NotebookLmRepository) {
+  constructor(
+    repository?: NotebookLmRepository,
+    workerDispatcher?: (jobType: NotebookLmDispatchableJobType) => Promise<void> | void,
+  ) {
     this.repository = repository ?? new NotebookLmRepository();
+    this.workerDispatcher = async (jobType: NotebookLmDispatchableJobType) => {
+      await Promise.resolve((workerDispatcher ?? dispatchNotebookLmWorker)(jobType));
+    };
+  }
+
+  private async triggerWorker(jobType: NotebookLmDispatchableJobType): Promise<void> {
+    try {
+      await this.workerDispatcher(jobType);
+    } catch (error) {
+      // Keep API response successful even when background worker trigger fails.
+      console.error('[NotebookLmService] Failed to trigger python worker', { jobType, error });
+    }
   }
 
   private async getMemberOrThrow(workspaceId: number, userId: number): Promise<NotebookLmWorkspaceMemberRow> {
@@ -112,7 +129,7 @@ export class NotebookLmService {
     return this.getWorkspace(workspaceId, userId);
   }
 
-  async deleteWorkspace(workspaceId: number, userId: number): Promise<{ jobId: number }> {
+  async deleteWorkspace(workspaceId: number, userId: number): Promise<{ deleted: boolean }> {
     const member = await this.getMemberOrThrow(workspaceId, userId);
     this.ensureOwner(member.role);
 
@@ -121,23 +138,8 @@ export class NotebookLmService {
       throw new ServiceError('Workspace not found', 404);
     }
 
-    const job = await this.repository.createJob({
-      type: 'DELETE_WORKSPACE',
-      status: 'pending',
-      payload: {
-        workspaceId,
-        requestedBy: userId,
-      },
-    });
-
-    await this.repository.createJobStep({
-      job_id: job.insertId,
-      step_name: 'delete_workspace',
-      status: 'pending',
-      progress_pct: 0,
-    });
-
-    return { jobId: job.insertId };
+    await this.repository.deleteWorkspace(workspaceId);
+    return { deleted: true };
   }
 
   async listMembers(workspaceId: number, userId: number): Promise<NotebookLmWorkspaceMemberRow[]> {
@@ -225,6 +227,10 @@ export class NotebookLmService {
       type: 'INGEST',
       status: 'pending',
       payload: {
+        workspace_id: workspaceId,
+        document_id: documentId,
+        requested_by: userId,
+        mime_type: input.mimeType,
         workspaceId,
         documentId,
         requestedBy: userId,
@@ -242,6 +248,8 @@ export class NotebookLmService {
       });
     }
 
+    await this.triggerWorker('INGEST');
+
     return {
       documentId,
       jobId: jobResult.insertId,
@@ -257,7 +265,7 @@ export class NotebookLmService {
     this.ensureEditorOrOwner(member.role);
 
     const document = await this.repository.findDocumentByIdForWorkspace(documentId, workspaceId);
-    if (!document || document.status === 'deleted') {
+    if (!document) {
       throw new ServiceError('Document not found', 404);
     }
 
@@ -265,6 +273,9 @@ export class NotebookLmService {
       type: 'DELETE_DOC',
       status: 'pending',
       payload: {
+        workspace_id: workspaceId,
+        document_id: documentId,
+        requested_by: userId,
         workspaceId,
         documentId,
         requestedBy: userId,
@@ -277,6 +288,8 @@ export class NotebookLmService {
       status: 'pending',
       progress_pct: 0,
     });
+
+    await this.triggerWorker('DELETE_DOC');
 
     return { jobId: jobResult.insertId };
   }

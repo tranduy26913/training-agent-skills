@@ -214,4 +214,15 @@ export default {
     dlqSaved: 'Đã cập nhật ghi chú DLQ',
     purgeConfirm: 'Xóa vĩnh viễn DLQ item đã chọn?',
   },
+  notebooklmWorkspace: {
+    role: 'Vai trò',
+    allRoles: 'Tất cả vai trò',
+    rowsPerPage: 'Số dòng mỗi trang',
+    searchPlaceholder: 'Tìm workspace theo tên...',
+    clearFilters: 'Xóa bộ lọc',
+    deleteConfirm: 'Bạn có chắc muốn xóa workspace này không? Hành động này không thể hoàn tác.',
+    deleteHeader: 'Xác nhận xóa Workspace',
+    deletedSuccess: 'Xóa workspace thành công',
+    deletedError: 'Xóa workspace thất bại',
+  },
 } as const;

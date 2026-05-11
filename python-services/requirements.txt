@@ -1,0 +1,5 @@
+# Python workers – production runtime dependencies
+mysql-connector-python>=9.0.0
+
+# Development / testing
+pytest>=9.0.0

@@ -214,4 +214,15 @@ export default {
     dlqSaved: 'DLQ note updated',
     purgeConfirm: 'Purge selected dead-letter item permanently?',
   },
+  notebooklmWorkspace: {
+    role: 'Role',
+    allRoles: 'All Roles',
+    rowsPerPage: 'Rows per page',
+    searchPlaceholder: 'Search workspace by name...',
+    clearFilters: 'Clear Filters',
+    deleteConfirm: 'Are you sure you want to delete this workspace? This action cannot be undone.',
+    deleteHeader: 'Confirm Workspace Deletion',
+    deletedSuccess: 'Workspace deleted successfully',
+    deletedError: 'Failed to delete workspace',
+  },
 } as const;

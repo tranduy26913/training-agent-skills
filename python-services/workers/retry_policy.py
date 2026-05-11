@@ -91,17 +91,30 @@ def apply_retry_policy(
             source_worker=source_worker,
             next_retry_count=transition.next_retry_count,
         )
-        execute(
-            "INSERT INTO dead_letter_jobs "
-            "(original_job_id, job_type, payload, failure_reason, moved_at) "
-            "VALUES (%s, %s, %s, %s, NOW())",
-            (
-                job_id,
-                str(job.get("type") or ""),
-                json.dumps(job.get("payload"), sort_keys=True) if job.get("payload") is not None else "null",
-                dead_letter_payload,
-            ),
-        )
+        try:
+            execute(
+                "INSERT INTO dead_letter_jobs "
+                "(original_job_id, job_type, payload, failure_reason, moved_at) "
+                "VALUES (%s, %s, %s, %s, NOW())",
+                (
+                    job_id,
+                    str(job.get("type") or ""),
+                    json.dumps(job.get("payload"), sort_keys=True) if job.get("payload") is not None else "null",
+                    dead_letter_payload,
+                ),
+            )
+        except Exception:
+            execute(
+                "INSERT INTO dead_letter_jobs "
+                "(job_id, payload, error_message, retry_attempts, failed_at) "
+                "VALUES (%s, %s, %s, %s, NOW())",
+                (
+                    job_id,
+                    json.dumps(job.get("payload"), sort_keys=True) if job.get("payload") is not None else "null",
+                    error_message,
+                    transition.next_retry_count,
+                ),
+            )
         return transition
 
     execute(

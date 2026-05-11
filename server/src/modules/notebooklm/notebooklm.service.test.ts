@@ -16,6 +16,7 @@ function createMockRepository() {
     createWorkspace: vi.fn(),
     createWorkspaceMember: vi.fn(),
     updateWorkspace: vi.fn(),
+    deleteWorkspace: vi.fn(),
     createJob: vi.fn(),
     createJobStep: vi.fn(),
     findMemberByWorkspaceAndUser: vi.fn(),
@@ -81,10 +82,12 @@ function mockMember(overrides: MemberOverride = {}): NotebookLmWorkspaceMemberRo
 describe('NotebookLmService', () => {
   let repository: MockRepository;
   let service: NotebookLmService;
+  let dispatchWorker: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     repository = createMockRepository();
-    service = new NotebookLmService(repository as any);
+    dispatchWorker = vi.fn().mockResolvedValue(undefined);
+    service = new NotebookLmService(repository as any, dispatchWorker);
   });
 
   it('creates workspace and owner membership', async () => {
@@ -183,6 +186,39 @@ describe('NotebookLmService', () => {
     expect(repository.createJob).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'INGEST', status: 'pending' }),
     );
+    expect(dispatchWorker).toHaveBeenCalledWith('INGEST');
+  });
+
+  it('enqueues INGEST payload with worker-compatible snake_case keys', async () => {
+    repository.findMemberByWorkspaceAndUser.mockResolvedValueOnce(
+      mockMember({ user_id: 101, role: 'editor' }),
+    );
+    repository.createDocument.mockResolvedValueOnce({ insertId: 502 });
+    repository.createJob.mockResolvedValueOnce({ insertId: 9003 });
+    repository.createJobStep.mockResolvedValue({ insertId: 1 });
+
+    await service.enqueueDocumentIngestion(
+      10,
+      {
+        filename: 'doc.txt',
+        mimeType: 'text/plain',
+        fileSize: 10,
+        fileData: Buffer.from('content'),
+      },
+      101,
+    );
+
+    expect(repository.createJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'INGEST',
+        payload: expect.objectContaining({
+          document_id: 502,
+          workspace_id: 10,
+          requested_by: 101,
+          mime_type: 'text/plain',
+        }),
+      }),
+    );
   });
 
   it('forbids upload for viewer role', async () => {
@@ -217,6 +253,29 @@ describe('NotebookLmService', () => {
     expect(result).toEqual({ jobId: 9002 });
     expect(repository.createJob).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'DELETE_DOC', status: 'pending' }),
+    );
+    expect(dispatchWorker).toHaveBeenCalledWith('DELETE_DOC');
+  });
+
+  it('enqueues DELETE_DOC payload with worker-compatible snake_case keys', async () => {
+    repository.findMemberByWorkspaceAndUser.mockResolvedValueOnce(
+      mockMember({ user_id: 103, role: 'editor' }),
+    );
+    repository.findDocumentByIdForWorkspace.mockResolvedValueOnce({ id: 78, workspace_id: 10 });
+    repository.createJob.mockResolvedValueOnce({ insertId: 9004 });
+    repository.createJobStep.mockResolvedValueOnce({ insertId: 2 });
+
+    await service.enqueueDocumentDeletion(10, 78, 103);
+
+    expect(repository.createJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'DELETE_DOC',
+        payload: expect.objectContaining({
+          document_id: 78,
+          workspace_id: 10,
+          requested_by: 103,
+        }),
+      }),
     );
   });
 
@@ -282,19 +341,16 @@ describe('NotebookLmService', () => {
     expect(members.find((m) => m.user_id === 201)?.role).toBe('editor');
   });
 
-  it('deletes workspace by enqueueing DELETE_WORKSPACE job for owner', async () => {
+  it('deletes workspace immediately for owner', async () => {
     repository.findMemberByWorkspaceAndUser.mockResolvedValueOnce(
       mockMember({ user_id: 100, role: 'owner' }),
     );
     repository.findWorkspaceById.mockResolvedValueOnce(mockWorkspace({ id: 10 }));
-    repository.createJob.mockResolvedValueOnce({ insertId: 9010 });
-    repository.createJobStep.mockResolvedValueOnce({ insertId: 3 });
+    repository.deleteWorkspace.mockResolvedValueOnce({ affectedRows: 1 });
 
     const result = await service.deleteWorkspace(10, 100);
 
-    expect(result).toEqual({ jobId: 9010 });
-    expect(repository.createJob).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'DELETE_WORKSPACE', status: 'pending' }),
-    );
+    expect(result).toEqual({ deleted: true });
+    expect(repository.deleteWorkspace).toHaveBeenCalledWith(10);
   });
 });

@@ -1,5 +1,10 @@
 <script setup lang="ts">
 import { reactive, watch } from 'vue';
+import Card from 'primevue/card';
+import Button from 'primevue/button';
+import InputText from 'primevue/inputtext';
+import Textarea from 'primevue/textarea';
+import Message from 'primevue/message';
 import type { CreateWorkspaceDto, Workspace } from '@/types/notebooklm.types';
 
 const props = defineProps<{
@@ -65,45 +70,52 @@ function handleSubmit(): void {
 </script>
 
 <template>
-  <form class="space-y-4" @submit.prevent="handleSubmit">
-    <div class="space-y-1">
-      <label class="block text-sm font-medium text-surface-700">Workspace name</label>
-      <input
-        data-testid="workspace-name"
-        v-model="form.name"
-        type="text"
-        class="w-full rounded border border-surface-300 px-3 py-2"
-        placeholder="Project A Knowledge"
-      />
-      <p v-if="errors.name" class="text-sm text-red-600">{{ errors.name }}</p>
-    </div>
+  <Card>
+    <template #content>
+      <form class="space-y-4" @submit.prevent="handleSubmit">
+        <div class="space-y-1">
+          <label for="workspace-name" class="block text-sm font-medium">Workspace name</label>
+          <InputText
+            id="workspace-name"
+            data-testid="workspace-name"
+            v-model="form.name"
+            fluid
+            placeholder="Project A Knowledge"
+          />
+          <Message v-if="errors.name" severity="error" size="small" variant="simple">{{ errors.name }}</Message>
+        </div>
 
-    <div class="space-y-1">
-      <label class="block text-sm font-medium text-surface-700">Description</label>
-      <textarea
-        data-testid="workspace-description"
-        v-model="form.description"
-        rows="4"
-        class="w-full rounded border border-surface-300 px-3 py-2"
-        placeholder="Optional context for this workspace"
-      />
-    </div>
+        <div class="space-y-1">
+          <label for="workspace-description" class="block text-sm font-medium">Description</label>
+          <Textarea
+            id="workspace-description"
+            data-testid="workspace-description"
+            v-model="form.description"
+            rows="4"
+            fluid
+            auto-resize
+            placeholder="Optional context for this workspace"
+          />
+        </div>
 
-    <div class="flex gap-2">
-      <button
-        type="submit"
-        class="rounded bg-primary px-4 py-2 text-white"
-        :disabled="loading"
-      >
-        {{ mode === 'create' ? 'Create workspace' : 'Save changes' }}
-      </button>
-      <button
-        type="button"
-        class="rounded border border-surface-300 px-4 py-2"
-        @click="emit('cancel')"
-      >
-        Cancel
-      </button>
-    </div>
-  </form>
+        <div class="flex flex-col gap-2 sm:flex-row">
+          <Button
+            type="submit"
+            :label="mode === 'create' ? 'Create workspace' : 'Save changes'"
+            icon="pi pi-save"
+            :loading="loading"
+            class="w-full sm:w-auto"
+          />
+          <Button
+            type="button"
+            label="Cancel"
+            severity="secondary"
+            outlined
+            class="w-full sm:w-auto"
+            @click="emit('cancel')"
+          />
+        </div>
+      </form>
+    </template>
+  </Card>
 </template>

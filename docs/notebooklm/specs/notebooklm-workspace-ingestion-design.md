@@ -1,8 +1,8 @@
 ---
 title: NotebookLM Workspace and Ingestion Design
-version: 1.0
+version: 1.1
 author: Admin Team
-date: 2026-05-07
+date: 2026-05-11
 status: Draft
 ---
 
@@ -16,6 +16,7 @@ Tài liệu này mô tả nhóm chức năng quản lý workspace tri thức và
 
 | Version | Date | Author | Summary |
 |---------|------|--------|---------|
+| 1.1 | 2026-05-11 | Admin Team | Sync implementation: workspace list filter/pagination, delete confirmation, hard delete workspace/document metadata |
 | 1.0 | 2026-05-07 | Admin Team | Initial design |
 
 ---
@@ -160,6 +161,8 @@ job_steps {
 }
 ```
 
+Ghi chu: `DELETE_WORKSPACE` la gia tri legacy trong schema queue, khong con duoc su dung trong luong xoa workspace hien tai (backend xoa truc tiep).
+
 ---
 
 ## 3. Feature Specifications
@@ -174,21 +177,23 @@ job_steps {
 
 #### Filtering & Search
 
-- Tìm kiếm theo tên workspace.
+- Tìm kiếm theo tên workspace (debounce client input, query server-side).
 - Lọc theo vai trò (`owner`, `editor`, `viewer`).
-- Lọc theo trạng thái hoạt động workspace (active/deleted logic mềm nếu có).
+- Có nút `Clear Filters` để reset bộ lọc nhanh.
 
 #### Pagination
 
 - Server-side pagination.
 - Mặc định 10 bản ghi/trang.
 - Tùy chọn 10/25/50.
+- Chuyển trang qua DataTable paginator, frontend gửi lại `page` và `limit` vào API.
 
 #### UX Interactions
 
 - Nút tạo workspace mở form tạo nhanh.
 - Chọn workspace điều hướng sang trang chi tiết.
-- Xóa workspace tạo job nền `DELETE_WORKSPACE`.
+- Xóa workspace yêu cầu confirm dialog trước khi thực thi.
+- Sau khi xác nhận, backend thực hiện hard-delete workspace trực tiếp và trả kết quả đồng bộ.
 
 ### 3.2 Create Workspace Page (`/notebooklm/create`)
 
@@ -330,7 +335,8 @@ Flow:
 1. Verify JWT token
 2. Check role (`editor` hoặc `owner`)
 3. Insert job type `DELETE_DOC`
-4. Return job id
+4. Worker xóa vectors/chunks, sau đó hard-delete bản ghi document khỏi DB
+5. Return job id
 
 Response (202 Accepted):
 ```json
@@ -343,6 +349,31 @@ Response (202 Accepted):
 
 Errors:
 - 404: Document not found
+
+---
+
+#### NBW-006 - DELETE /api/notebooklm/workspaces/:id
+**Xóa workspace trực tiếp (hard-delete)**
+
+Flow:
+1. Verify JWT token
+2. Check role (`owner`)
+3. Frontend hiển thị confirm dialog và chỉ gọi API khi user chấp nhận
+4. Backend delete trực tiếp workspace trong DB
+5. Return trạng thái đã xóa
+
+Response (200 OK):
+```json
+{
+  "data": {
+    "deleted": true
+  }
+}
+```
+
+Errors:
+- 403: Forbidden
+- 404: Workspace not found
 
 ---
 
@@ -425,8 +456,8 @@ Component relationships:
 
 ```text
 [WorkspaceListPage]
-  |- [WorkspaceFilters] emits: filter-change
-  |- [WorkspaceTable] emits: edit, delete, open
+  |- [Inline filter controls] emits: search-change, role-change, clear-filters
+  |- [WorkspaceTable] emits: edit, delete, open, page-change
 ```
 
 #### [ListPage].vue
@@ -439,8 +470,12 @@ Component relationships:
 2. Render table/cards
 
 **Flow - handleFilterChange(filters):**
-1. Update query params
-2. Reload list
+1. Update local filter state (`search`, `role`, `limit`)
+2. Gọi lại API với `page = 1`
+
+**Flow - handlePageChange(page):**
+1. Cập nhật page hiện tại
+2. Gọi API server-side pagination
 
 #### [Table].vue
 
@@ -449,12 +484,12 @@ Component relationships:
 
 #### [Filters].vue
 
-- Áp dụng cho `WorkspaceFilters.vue`.
-- Điều khiển search và role filter.
+- Hiện tại được triển khai inline trong `WorkspaceListPage.vue` bằng PrimeVue `InputText` và `Select`.
+- Điều khiển search, role filter, rows per page và clear filters.
 
 **Flow - handleSearchInput(value):**
 1. Debounce input
-2. Emit filter-change
+2. Reload list với `page = 1`
 
 #### [Form].vue
 
@@ -560,7 +595,11 @@ Actor        Frontend      Backend       Database      Worker
 ```text
 Actor        Frontend      Backend       Database      Worker
   |             |             |              |           |
-  |-- Delete -->|             |              |           |
+  |-- Delete Workspace ------>|              |           |
+  |             |-- DELETE -->|-- DELETE ---->|           |
+  |             |<-- 200 -----|              |           |
+  |             |             |              |           |
+  |-- Delete Document ------->|              |           |
   |             |-- DELETE -->|-- INSERT job->|          |
   |             |<-- 202 -----|              |           |
   |             |                             |-- poll -->|
@@ -598,10 +637,12 @@ Actor        Frontend      Backend       Database      Worker
 ### Backend Tests
 - Unit: Validate workspace/member/document rules.
 - Integration: Upload endpoint lưu BLOB + tạo job queue.
+- Integration: Workspace delete endpoint trả `200` với `{ deleted: true }` và dữ liệu bị xóa khỏi DB.
 - Authorization: Kiểm tra quyền owner/editor/viewer.
 
 ### Frontend Tests
 - Component: WorkspaceForm, WorkspaceTable, DocumentIngestionViewer.
+- Component: WorkspaceList filter/search/rows-per-page + delete confirmation.
 - Integration: Upload flow + job progress polling/SSE.
 - E2E: Tạo workspace -> upload tài liệu -> thấy trạng thái indexed.
 

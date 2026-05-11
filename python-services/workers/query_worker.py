@@ -94,16 +94,15 @@ class QueryWorker:
 
     def _mark_step_running(self, job_id: int, step_name: str) -> None:
         self._execute(
-            "INSERT INTO job_steps (job_id, step_name, status, started_at, updated_at) "
-            "VALUES (%s, %s, 'running', NOW(), NOW()) "
-            "ON DUPLICATE KEY UPDATE status = 'running', started_at = COALESCE(started_at, NOW()), "
-            "updated_at = NOW()",
+            "INSERT INTO job_steps (job_id, step_name, status, started_at) "
+            "VALUES (%s, %s, 'running', NOW()) "
+            "ON DUPLICATE KEY UPDATE status = 'running', started_at = COALESCE(started_at, NOW())",
             (job_id, step_name),
         )
 
     def _mark_step_completed(self, job_id: int, step_name: str) -> None:
         self._execute(
-            "UPDATE job_steps SET status = 'completed', finished_at = NOW(), updated_at = NOW() "
+            "UPDATE job_steps SET status = 'done', finished_at = NOW() "
             "WHERE job_id = %s AND step_name = %s",
             (job_id, step_name),
         )
@@ -140,16 +139,50 @@ class QueryWorker:
         self.store_result(payload, job)
 
     def prepare_query(self, payload: dict[str, Any], job: dict[str, Any]) -> None:
-        """Hook for prepare step implementation."""
+        query_text = str(payload.get("query_text") or "").strip()
+        workspace_id = payload.get("workspace_id")
+        if not query_text:
+            raise ValueError("query_text is required and must not be empty")
+        if not workspace_id:
+            raise ValueError("workspace_id is required")
+        payload["_query"] = query_text
+        payload["_workspace_id"] = int(workspace_id)
 
     def retrieve_context(self, payload: dict[str, Any], job: dict[str, Any]) -> None:
-        """Hook for retrieval step implementation."""
+        workspace_id = int(payload.get("_workspace_id") or payload.get("workspace_id", 0))
+        query_text = str(payload.get("_query") or payload.get("query_text") or "").strip()
+        keywords = [w for w in query_text.split() if w][:5]
+        if not keywords:
+            payload["_chunks"] = []
+            return
+        conditions = " OR ".join(["chunk_text LIKE %s"] * len(keywords))
+        kw_params = tuple(f"%{kw}%" for kw in keywords)
+        sql = (
+            f"SELECT chunk_text FROM chunks "
+            f"WHERE ({conditions}) AND workspace_id = %s "
+            f"LIMIT 10"
+        )
+        rows = self._fetch_all(sql, kw_params + (workspace_id,))
+        payload["_chunks"] = [r["chunk_text"] for r in rows]
 
     def synthesize_answer(self, payload: dict[str, Any], job: dict[str, Any]) -> None:
-        """Hook for synthesis step implementation."""
+        chunks = payload.get("_chunks") or []
+        query_text = str(payload.get("_query") or payload.get("query_text") or "")
+        if not chunks:
+            answer = f"No relevant context found for query: {query_text}"
+        else:
+            context_text = "\n---\n".join(chunks[:5])
+            answer = f"Based on the documents:\n\n{context_text}"
+        payload["_answer"] = answer
 
     def store_result(self, payload: dict[str, Any], job: dict[str, Any]) -> None:
-        """Hook for final persistence step implementation."""
+        answer = str(payload.get("_answer") or "")
+        result_payload = {k: v for k, v in payload.items() if not k.startswith("_")}
+        result_payload["answer"] = answer
+        self._execute(
+            "UPDATE jobs SET payload = %s, updated_at = NOW() WHERE id = %s",
+            (json.dumps(result_payload, ensure_ascii=False), int(job["id"])),
+        )
 
     def _extract_payload(self, payload_json: Any) -> dict[str, Any]:
         if isinstance(payload_json, str):
@@ -163,5 +196,13 @@ class QueryWorker:
         try:
             cursor.execute(sql, params)
             return int(getattr(cursor, "rowcount", 1) or 0)
+        finally:
+            cursor.close()
+
+    def _fetch_all(self, sql: str, params: tuple[Any, ...]) -> list[dict[str, Any]]:
+        cursor = self.connection.cursor()
+        try:
+            cursor.execute(sql, params)
+            return cursor.fetchall()
         finally:
             cursor.close()

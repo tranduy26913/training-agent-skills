@@ -112,6 +112,14 @@ export class NotebookLmRepository {
     return result;
   }
 
+  async deleteWorkspace(workspaceId: number): Promise<ResultSetHeader> {
+    const [result] = await pool.query<ResultSetHeader>(
+      'DELETE FROM `workspaces` WHERE `id` = ?',
+      [workspaceId],
+    );
+    return result;
+  }
+
   async createWorkspaceMember(data: {
     workspace_id: number;
     user_id: number;
@@ -203,7 +211,14 @@ export class NotebookLmRepository {
               d.status, d.created_at, d.updated_at, (
          SELECT j.id
          FROM \`jobs\` j
-         WHERE CAST(JSON_UNQUOTE(JSON_EXTRACT(j.payload, '$.documentId')) AS UNSIGNED) = d.id
+         WHERE CAST(
+           JSON_UNQUOTE(
+             COALESCE(
+               JSON_EXTRACT(j.payload, '$.documentId'),
+               JSON_EXTRACT(j.payload, '$.document_id')
+             )
+           ) AS UNSIGNED
+         ) = d.id
          ORDER BY j.id DESC
          LIMIT 1
        ) AS latest_job_id
@@ -249,7 +264,14 @@ export class NotebookLmRepository {
       `SELECT j.*
        FROM \`jobs\` j
        INNER JOIN \`workspace_members\` wm
-         ON wm.workspace_id = CAST(JSON_UNQUOTE(JSON_EXTRACT(j.payload, '$.workspaceId')) AS UNSIGNED)
+         ON wm.workspace_id = CAST(
+           JSON_UNQUOTE(
+             COALESCE(
+               JSON_EXTRACT(j.payload, '$.workspaceId'),
+               JSON_EXTRACT(j.payload, '$.workspace_id')
+             )
+           ) AS UNSIGNED
+         )
        WHERE j.id = ? AND wm.user_id = ?
        LIMIT 1`,
       [jobId, userId],
