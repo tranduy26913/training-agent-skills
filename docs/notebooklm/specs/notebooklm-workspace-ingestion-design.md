@@ -1,6 +1,6 @@
 ---
 title: NotebookLM Workspace and Ingestion Design
-version: 1.1
+version: 1.2
 author: Admin Team
 date: 2026-05-11
 status: Draft
@@ -16,8 +16,15 @@ Tài liệu này mô tả nhóm chức năng quản lý workspace tri thức và
 
 | Version | Date | Author | Summary |
 |---------|------|--------|---------|
+| 1.2 | 2026-05-11 | Admin Team | [UPDATE - CR-NBLM-001] Add member search + add-member upsert role behavior |
 | 1.1 | 2026-05-11 | Admin Team | Sync implementation: workspace list filter/pagination, delete confirmation, hard delete workspace/document metadata |
 | 1.0 | 2026-05-07 | Admin Team | Initial design |
+
+### Summary of Changes
+
+- What changed: Bổ sung luồng thêm user khác vào NotebookLM workspace bằng tìm kiếm theo tên/email và cập nhật role ngay khi user đã tồn tại trong workspace.
+- Why it changed: Giảm thao tác thủ công cho owner, tránh lỗi trùng thành viên, và đơn giản hóa quy trình chia sẻ workspace nội bộ.
+- How it affects users/data: Owner quản lý thành viên nhanh hơn, dữ liệu membership không bị tạo trùng; hệ thống cập nhật role trực tiếp trên bản ghi thành viên hiện có.
 
 ---
 
@@ -31,6 +38,7 @@ Cung cấp luồng quản trị workspace và nhập liệu tài liệu chuẩn 
 
 - Tạo, sửa, xóa workspace NotebookLM.
 - Quản lý thành viên workspace theo vai trò `owner`, `editor`, `viewer`.
+- [UPDATE - CR-NBLM-001] Thêm user vào workspace bằng tìm kiếm `name/email` và bắt buộc chọn role khi thêm.
 - Upload tài liệu định dạng `docx`, `pdf`, `xlsx`, `xls`, `md`, `csv`, `txt`.
 - Giới hạn file tối đa 100MB, bắt buộc xử lý bất đồng bộ.
 - Lưu file gốc vào MySQL (BLOB) và metadata tài liệu.
@@ -226,13 +234,14 @@ Ghi chu: `DELETE_WORKSPACE` la gia tri legacy trong schema queue, khong con duoc
 
 #### Additional Panel (Optional)
 
-- Panel thành viên workspace để thêm/xóa/chỉnh vai trò.
+- [UPDATE - CR-NBLM-001] Panel thành viên workspace: tìm user theo `name/email`, thêm mới với role bắt buộc, và upsert role nếu user đã là thành viên.
 - Panel tài liệu để xem trạng thái ingest gần nhất.
 
 #### Validations
 
 - Chỉ `owner` hoặc `editor` được sửa metadata.
 - Chỉ `owner` được thay đổi membership.
+- [UPDATE - CR-NBLM-001] Khi thêm member trùng `user_id` trong cùng `workspace_id`, hệ thống cập nhật role thay vì trả lỗi conflict.
 
 ---
 
@@ -396,6 +405,83 @@ Response (200 OK):
 }
 ```
 
+---
+
+#### NBW-007 - GET /api/notebooklm/users/search
+**[UPDATE - CR-NBLM-001] Tìm user để thêm vào workspace theo name/email**
+
+Request:
+```http
+GET /api/notebooklm/users/search?q=an&page=1&limit=10
+```
+
+Flow:
+1. Verify JWT token
+2. Validate query (`q`, `page`, `limit`)
+3. Query users theo `name`/`email` và loại trừ tài khoản bị khóa
+4. Return paginated result
+
+Response (200 OK):
+```json
+{
+  "data": [
+    {
+      "id": 201,
+      "name": "An Nguyen",
+      "email": "an.nguyen@example.com"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 1,
+    "pages": 1
+  }
+}
+```
+
+Errors:
+- 400: Validation error
+- 401: Not authenticated
+
+---
+
+#### NBW-008 - POST /api/notebooklm/workspaces/:id/members
+**[UPDATE - CR-NBLM-001] Thêm member mới hoặc cập nhật role nếu member đã tồn tại (upsert role)**
+
+Request Body:
+```json
+{
+  "userId": 201,
+  "role": "editor"
+}
+```
+
+Flow:
+1. Verify JWT token
+2. Check role (`owner` only)
+3. Validate request body
+4. Nếu member chưa tồn tại: insert `workspace_members`
+5. Nếu member đã tồn tại: update role theo payload
+6. Return member list mới nhất
+
+Response (200 OK):
+```json
+{
+  "data": [
+    {
+      "user_id": 201,
+      "role": "editor"
+    }
+  ]
+}
+```
+
+Errors:
+- 400: Validation error
+- 403: Forbidden
+- 404: Workspace not found
+
 ### 4.2 Authorization
 
 All endpoints require:
@@ -405,6 +491,7 @@ All endpoints require:
 Special cases:
 - `viewer` chỉ có quyền xem danh sách tài liệu, không upload/xóa.
 - Chỉ `owner` được xóa workspace.
+- [UPDATE - CR-NBLM-001] Chỉ `owner` được thêm/xóa/cập nhật role thành viên workspace.
 
 ### 4.3 Error Handling
 
@@ -430,11 +517,10 @@ client/src/pages/notebooklm/workspace/
 ├── WorkspaceEditPage.vue
 ├── components/
 │   ├── WorkspaceTable.vue
-│   ├── WorkspaceFilters.vue
 │   ├── WorkspaceForm.vue
 │   └── DocumentIngestionViewer.vue
 ├── composables/
-│   └── useWorkspaceIngestion.ts
+│   └── Not applicable (logic currently nằm trong store)
 └── workspace.routes.ts
 ```
 
@@ -460,7 +546,7 @@ Component relationships:
   |- [WorkspaceTable] emits: edit, delete, open, page-change
 ```
 
-#### [ListPage].vue
+#### WorkspaceListPage.vue
 
 - Áp dụng cho `WorkspaceListPage.vue`.
 - Tải danh sách workspace và bind filter.
@@ -477,12 +563,12 @@ Component relationships:
 1. Cập nhật page hiện tại
 2. Gọi API server-side pagination
 
-#### [Table].vue
+#### WorkspaceTable.vue
 
 - Áp dụng cho `WorkspaceTable.vue`.
 - Hiển thị dữ liệu và phát actions theo quyền.
 
-#### [Filters].vue
+#### Inline Filters (WorkspaceListPage.vue)
 
 - Hiện tại được triển khai inline trong `WorkspaceListPage.vue` bằng PrimeVue `InputText` và `Select`.
 - Điều khiển search, role filter, rows per page và clear filters.
@@ -491,7 +577,7 @@ Component relationships:
 1. Debounce input
 2. Reload list với `page = 1`
 
-#### [Form].vue
+#### WorkspaceForm.vue
 
 - Áp dụng cho `WorkspaceForm.vue`.
 
@@ -507,36 +593,25 @@ Component relationships:
 1. Validate fields
 2. Emit submit if valid
 
-#### [CreatePage].vue
+#### WorkspaceCreatePage.vue
 
 - Bọc `WorkspaceForm` với mode create.
 
-#### [EditPage].vue
+#### WorkspaceEditPage.vue
 
 - Bọc `WorkspaceForm` với mode edit + member panel.
 
-#### [OptionalViewer].vue
+#### DocumentIngestionViewer.vue
 
 - Áp dụng cho `DocumentIngestionViewer.vue`.
 - Hiển thị trạng thái ingest, tiến độ step, retry action.
 
 ### 5.3 Composable
 
-#### use[Feature].ts
+#### Not applicable
 ```typescript
-// API calls
-getItems(filters)
-createItem(data)
-getItem(id)
-updateItem(id, data)
-deleteItem(id)
-getItemActivity(id)
-
-// State management
-items: Ref<Item[]>
-loading: Ref<boolean>
-error: Ref<string>
-pagination: Ref<PaginationInfo>
+// Lý do: phạm vi workspace ingestion hiện không dùng composable riêng.
+// API calls và state được quản lý bởi store notebooklm workspace.
 ```
 
 ### 5.4 Store Management
@@ -549,10 +624,13 @@ Use this state/getter/action pattern:
 interface WorkspaceIngestionState {
   items: Workspace[]
   currentItem: Workspace | null
-  activityLogs: JobLog[]
+  documents: WorkspaceDocument[]
+  jobProgressById: Record<number, WorkspaceJobProgress>
   pagination: PaginationInfo
   filters: WorkspaceFilters
   loading: boolean
+  loadingCurrent: boolean
+  loadingDocuments: boolean
   error: string | null
 }
 
@@ -562,7 +640,10 @@ fetchItem(id: number): Promise<void>
 createItem(data: CreateWorkspaceDto): Promise<Workspace>
 updateItem(id: number, data: UpdateWorkspaceDto): Promise<void>
 deleteItem(id: number): Promise<void>
-fetchItemActivity(id: number): Promise<void>
+fetchDocuments(workspaceId: number): Promise<void>
+uploadDocument(workspaceId: number, file: File): Promise<{ documentId: number; jobId: number }>
+deleteDocument(workspaceId: number, documentId: number): Promise<{ jobId: number }>
+pollJobUntilSettled(jobId: number): Promise<WorkspaceJobProgress>
 ```
 
 Store dependencies:
@@ -604,6 +685,33 @@ Actor        Frontend      Backend       Database      Worker
   |             |<-- 202 -----|              |           |
   |             |                             |-- poll -->|
   |             |                             |<-- done --|
+```
+
+### 6.3 Add Member Flow [UPDATE - CR-NBLM-001]
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor Owner
+  participant Frontend as WorkspaceEditPage
+  participant API as NotebookLM API
+  participant DB as MySQL
+
+  Owner->>Frontend: Search user theo name/email
+  Frontend->>API: GET /api/notebooklm/users/search?q=...
+  API->>DB: SELECT users by keyword
+  DB-->>API: matched users
+  API-->>Frontend: user list
+
+  Owner->>Frontend: Chọn user + role + Add
+  Frontend->>API: POST /workspaces/:id/members
+  API->>DB: SELECT existing membership
+  alt Member chưa tồn tại
+    API->>DB: INSERT workspace_members
+  else Member đã tồn tại
+    API->>DB: UPDATE workspace_members.role
+  end
+  API-->>Frontend: 200 + updated members
 ```
 
 ---
