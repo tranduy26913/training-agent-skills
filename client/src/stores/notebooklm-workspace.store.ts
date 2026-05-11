@@ -9,6 +9,9 @@ import type {
   WorkspaceDocument,
   WorkspaceFilters,
   WorkspaceJobProgress,
+  WorkspaceMember,
+  WorkspaceMemberCandidate,
+  NotebooklmWorkspaceRole,
 } from '@/types/notebooklm.types';
 import {
   NOTEBOOKLM_ALLOWED_MIME_TYPES,
@@ -37,6 +40,8 @@ export const useNotebooklmWorkspaceStore = defineStore('notebooklmWorkspace', ()
   const items = ref<Workspace[]>([]);
   const currentItem = ref<Workspace | null>(null);
   const documents = ref<WorkspaceDocument[]>([]);
+  const members = ref<WorkspaceMember[]>([]);
+  const memberCandidates = ref<WorkspaceMemberCandidate[]>([]);
   const pagination = ref<PaginationInfo>({ ...DEFAULT_PAGINATION });
   const filters = ref<WorkspaceFilters>({});
   const jobProgressById = ref<Record<number, WorkspaceJobProgress>>({});
@@ -44,12 +49,15 @@ export const useNotebooklmWorkspaceStore = defineStore('notebooklmWorkspace', ()
   const loading = shallowRef(false);
   const loadingCurrent = shallowRef(false);
   const loadingDocuments = shallowRef(false);
+  const loadingMembers = shallowRef(false);
+  const searchingMembers = shallowRef(false);
   const error = shallowRef<string | null>(null);
 
   const hasItems = computed(() => items.value.length > 0);
   const canEditCurrentWorkspace = computed(
     () => currentItem.value?.role === 'owner' || currentItem.value?.role === 'editor',
   );
+  const canManageCurrentWorkspaceMembers = computed(() => currentItem.value?.role === 'owner');
 
   async function fetchItems(newFilters?: WorkspaceFilters): Promise<void> {
     if (newFilters) {
@@ -121,6 +129,64 @@ export const useNotebooklmWorkspaceStore = defineStore('notebooklmWorkspace', ()
     }
   }
 
+  async function fetchMembers(workspaceId: number): Promise<void> {
+    loadingMembers.value = true;
+    error.value = null;
+    try {
+      members.value = await notebooklmWorkspaceService.getWorkspaceMembers(workspaceId);
+    } catch (err: any) {
+      error.value = err.response?.data?.message || 'Failed to fetch workspace members';
+      throw err;
+    } finally {
+      loadingMembers.value = false;
+    }
+  }
+
+  async function searchCandidateUsers(
+    workspaceId: number,
+    query: string,
+    page = 1,
+    limit = 10,
+  ): Promise<void> {
+    const normalizedQuery = query.trim();
+    if (!normalizedQuery) {
+      memberCandidates.value = [];
+      return;
+    }
+
+    searchingMembers.value = true;
+    error.value = null;
+    try {
+      memberCandidates.value = await notebooklmWorkspaceService.searchWorkspaceCandidateUsers(
+        workspaceId,
+        normalizedQuery,
+        page,
+        limit,
+      );
+    } catch (err: any) {
+      error.value = err.response?.data?.message || 'Failed to search workspace users';
+      throw err;
+    } finally {
+      searchingMembers.value = false;
+    }
+  }
+
+  async function addOrUpdateMember(
+    workspaceId: number,
+    userId: number,
+    role: NotebooklmWorkspaceRole,
+  ): Promise<WorkspaceMember> {
+    error.value = null;
+    const member = await notebooklmWorkspaceService.addOrUpdateWorkspaceMember(workspaceId, userId, role);
+    const index = members.value.findIndex((currentMember) => currentMember.userId === member.userId);
+    if (index >= 0) {
+      members.value[index] = member;
+    } else {
+      members.value = [...members.value, member];
+    }
+    return member;
+  }
+
   function validateUpload(file: File): void {
     if (!NOTEBOOKLM_ALLOWED_MIME_TYPES.includes(file.type as (typeof NOTEBOOKLM_ALLOWED_MIME_TYPES)[number])) {
       throw new Error('Unsupported file type');
@@ -179,27 +245,37 @@ export const useNotebooklmWorkspaceStore = defineStore('notebooklmWorkspace', ()
   function clearCurrentItem(): void {
     currentItem.value = null;
     documents.value = [];
+    members.value = [];
+    memberCandidates.value = [];
   }
 
   return {
     items,
     currentItem,
     documents,
+    members,
+    memberCandidates,
     pagination,
     filters,
     jobProgressById,
     loading,
     loadingCurrent,
     loadingDocuments,
+    loadingMembers,
+    searchingMembers,
     error,
     hasItems,
     canEditCurrentWorkspace,
+    canManageCurrentWorkspaceMembers,
     fetchItems,
     fetchItem,
     createItem,
     updateItem,
     deleteItem,
     fetchDocuments,
+    fetchMembers,
+    searchCandidateUsers,
+    addOrUpdateMember,
     uploadDocument,
     deleteDocument,
     pollJobUntilSettled,

@@ -57,6 +57,9 @@ describe('WorkspaceTable', () => {
 
     await wrapper.find('[data-testid="workspace-open-11"]').trigger('click');
     expect(wrapper.emitted('open')?.[0]).toEqual([11]);
+
+    await wrapper.find('[data-testid="workspace-chat-11"]').trigger('click');
+    expect(wrapper.emitted('chat')?.[0]).toEqual([11]);
   });
 
   it('forwards page change event', async () => {

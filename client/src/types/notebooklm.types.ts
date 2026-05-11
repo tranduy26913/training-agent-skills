@@ -38,6 +38,17 @@ export interface WorkspaceMember {
   email?: string;
 }
 
+export interface WorkspaceMemberCandidate {
+  id: number;
+  name: string;
+  email: string;
+}
+
+export interface AddOrUpdateWorkspaceMemberDto {
+  userId: number;
+  role: NotebooklmWorkspaceRole;
+}
+
 export interface WorkspaceDocument {
   id: number;
   workspaceId: number;
@@ -150,4 +161,57 @@ export interface WorkspaceDocumentUploadResult {
 
 export interface WorkspaceDocumentDeleteResult {
   jobId: number;
+}
+
+// チャットセッション / Chat session entity
+export interface ChatSession {
+  id: number;
+  workspaceId: number;
+  userId: number;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// チャット引用ソース / Source cited in a chat answer
+export interface ChatSource {
+  document_id: number;
+  filename: string;
+  snippet: string;
+}
+
+// チャットメッセージ / Chat message entity
+export interface ChatMessage {
+  id: number;
+  sessionId: number;
+  role: 'user' | 'assistant';
+  content: string;
+  sources: ChatSource[] | null;
+  jobId: number | null;
+  createdAt: string;
+}
+
+// メッセージ送信結果 / Result after sending a message
+export interface SendMessageResult {
+  jobId: number;
+}
+
+// チャットセッションフィルター / Filters for listing chat sessions
+export interface ChatSessionFilters extends PaginationParams {
+  // no extra fields needed
+}
+
+// チャットセッション作成DTO / DTO for creating a chat session
+export interface CreateChatSessionDto {
+  title?: string;
+}
+
+// チャットセッション更新DTO / DTO for updating a chat session
+export interface UpdateChatSessionDto {
+  title: string;
+}
+
+// メッセージ送信DTO / DTO for sending a chat message
+export interface SendMessageDto {
+  content: string;
 }

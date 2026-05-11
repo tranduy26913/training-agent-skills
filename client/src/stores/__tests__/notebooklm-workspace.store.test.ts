@@ -6,6 +6,8 @@ import type {
   Workspace,
   WorkspaceDocument,
   WorkspaceJobProgress,
+  WorkspaceMember,
+  WorkspaceMemberCandidate,
 } from '@/types/notebooklm.types';
 
 const serviceMocks = vi.hoisted(() => ({
@@ -18,6 +20,8 @@ const serviceMocks = vi.hoisted(() => ({
   uploadDocument: vi.fn(),
   deleteDocument: vi.fn(),
   getJobProgress: vi.fn(),
+  searchWorkspaceCandidateUsers: vi.fn(),
+  addOrUpdateWorkspaceMember: vi.fn(),
 }));
 
 vi.mock('@/services/notebooklm-workspace.service', () => ({
@@ -116,5 +120,67 @@ describe('useNotebooklmWorkspaceStore', () => {
     expect(finalProgress.status).toBe('done');
     expect(store.jobProgressById[9001]?.status).toBe('done');
     expect(serviceMocks.getJobProgress).toHaveBeenCalledTimes(2);
+  });
+
+  it('searches candidate users by keyword and stores results', async () => {
+    const store = useNotebooklmWorkspaceStore();
+    const candidates: WorkspaceMemberCandidate[] = [
+      {
+        id: 99,
+        name: 'Jane Doe',
+        email: 'jane@example.com',
+      },
+    ];
+    serviceMocks.searchWorkspaceCandidateUsers.mockResolvedValue(candidates);
+
+    await store.searchCandidateUsers(15, 'jane');
+
+    expect(serviceMocks.searchWorkspaceCandidateUsers).toHaveBeenCalledWith(15, 'jane', 1, 10);
+    expect(store.memberCandidates).toEqual(candidates);
+  });
+
+  it('adds a new member to state when user is not in member list', async () => {
+    const store = useNotebooklmWorkspaceStore();
+    const createdMember: WorkspaceMember = {
+      id: 501,
+      userId: 44,
+      role: 'editor',
+      name: 'Editor User',
+      email: 'editor@example.com',
+    };
+    serviceMocks.addOrUpdateWorkspaceMember.mockResolvedValue(createdMember);
+
+    const result = await store.addOrUpdateMember(15, 44, 'editor');
+
+    expect(serviceMocks.addOrUpdateWorkspaceMember).toHaveBeenCalledWith(15, 44, 'editor');
+    expect(result).toEqual(createdMember);
+    expect(store.members).toEqual([createdMember]);
+  });
+
+  it('upserts role in state when member already exists', async () => {
+    const store = useNotebooklmWorkspaceStore();
+    store.members = [
+      {
+        id: 777,
+        userId: 44,
+        role: 'viewer',
+        name: 'Member User',
+        email: 'member@example.com',
+      },
+    ];
+
+    const updatedMember: WorkspaceMember = {
+      id: 777,
+      userId: 44,
+      role: 'editor',
+      name: 'Member User',
+      email: 'member@example.com',
+    };
+    serviceMocks.addOrUpdateWorkspaceMember.mockResolvedValue(updatedMember);
+
+    await store.addOrUpdateMember(15, 44, 'editor');
+
+    expect(store.members).toHaveLength(1);
+    expect(store.members[0].role).toBe('editor');
   });
 });

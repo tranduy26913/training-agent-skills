@@ -56,6 +56,10 @@ function handleOpen(id: number): void {
   router.push({ name: 'NotebooklmWorkspaceEdit', params: { id } });
 }
 
+function handleChat(id: number): void {
+  router.push({ name: 'NotebooklmChatSessionList', params: { workspaceId: id } });
+}
+
 function handleEdit(id: number): void {
   router.push({ name: 'NotebooklmWorkspaceEdit', params: { id } });
 }
@@ -189,6 +193,7 @@ function clearFilters(): void {
       :loading="workspaceStore.loading"
       :pagination="workspaceStore.pagination"
       @open="handleOpen"
+      @chat="handleChat"
       @edit="handleEdit"
       @delete="handleDelete"
       @page-change="handlePageChange"

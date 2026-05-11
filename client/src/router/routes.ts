@@ -6,6 +6,7 @@ import { settingsRoutes } from '@/pages/settings/settings.routes';
 import { profileRoutes } from '@/pages/profile/profile.routes';
 import { notebooklmWorkspaceRoutes } from '@/pages/notebooklm/workspace/workspace.routes';
 import { notebooklmOperationsRoutes } from '@/pages/notebooklm/operations/operations.routes';
+import { notebooklmChatRoutes } from '@/pages/notebooklm/chat/chat.routes';
 import type { RouteRecordRaw } from 'vue-router';
 
 export const routes: RouteRecordRaw[] = [
@@ -19,6 +20,7 @@ export const routes: RouteRecordRaw[] = [
   ...employeeRoutes,
   ...notebooklmWorkspaceRoutes,
   ...notebooklmOperationsRoutes,
+  ...notebooklmChatRoutes,
   ...settingsRoutes,
   ...profileRoutes,
   {

@@ -10,6 +10,9 @@ import type {
   WorkspaceJobProgress,
   WorkspaceDocumentUploadResult,
   WorkspaceDocumentDeleteResult,
+  WorkspaceMember,
+  WorkspaceMemberCandidate,
+  AddOrUpdateWorkspaceMemberDto,
 } from '@/types/notebooklm.types';
 
 interface ApiEnvelope<T> {
@@ -52,6 +55,20 @@ interface JobProgressApiModel {
   updated_at: string;
 }
 
+interface WorkspaceMemberApiModel {
+  id: number;
+  user_id: number;
+  role: WorkspaceMember['role'];
+  name?: string;
+  email?: string;
+}
+
+interface WorkspaceMemberCandidateApiModel {
+  id: number;
+  name: string;
+  email: string;
+}
+
 function mapWorkspace(item: WorkspaceApiModel): Workspace {
   return {
     id: item.id,
@@ -90,6 +107,24 @@ function mapJobProgress(item: JobProgressApiModel): WorkspaceJobProgress {
       status: step.status,
       error: step.detail ?? undefined,
     })),
+  };
+}
+
+function mapWorkspaceMember(item: WorkspaceMemberApiModel): WorkspaceMember {
+  return {
+    id: item.id,
+    userId: item.user_id,
+    role: item.role,
+    name: item.name,
+    email: item.email,
+  };
+}
+
+function mapWorkspaceMemberCandidate(item: WorkspaceMemberCandidateApiModel): WorkspaceMemberCandidate {
+  return {
+    id: item.id,
+    name: item.name,
+    email: item.email,
   };
 }
 
@@ -159,6 +194,41 @@ class NotebooklmWorkspaceService {
       `${this.basePath}/${workspaceId}/documents/${documentId}`,
     );
     return response.data;
+  }
+
+  async getWorkspaceMembers(workspaceId: number): Promise<WorkspaceMember[]> {
+    const response: AxiosResponse<WorkspaceMemberApiModel[]> = await apiClient.get(`${this.basePath}/${workspaceId}/members`);
+    return response.data.map(mapWorkspaceMember);
+  }
+
+  async searchWorkspaceCandidateUsers(
+    workspaceId: number,
+    q: string,
+    page = 1,
+    limit = 10,
+  ): Promise<WorkspaceMemberCandidate[]> {
+    const response: AxiosResponse<WorkspaceMemberCandidateApiModel[] | ApiEnvelope<WorkspaceMemberCandidateApiModel[]>> = await apiClient.get(
+      '/notebooklm/users/search',
+      {
+        params: { workspaceId, q, page, limit },
+      },
+    );
+
+    const rawItems = Array.isArray(response.data) ? response.data : response.data.data;
+    return rawItems.map(mapWorkspaceMemberCandidate);
+  }
+
+  async addOrUpdateWorkspaceMember(
+    workspaceId: number,
+    userId: number,
+    role: WorkspaceMember['role'],
+  ): Promise<WorkspaceMember> {
+    const payload: AddOrUpdateWorkspaceMemberDto = { userId, role };
+    const response: AxiosResponse<WorkspaceMemberApiModel> = await apiClient.post(
+      `${this.basePath}/${workspaceId}/members`,
+      payload,
+    );
+    return mapWorkspaceMember(response.data);
   }
 
   async getJobProgress(jobId: number): Promise<WorkspaceJobProgress> {

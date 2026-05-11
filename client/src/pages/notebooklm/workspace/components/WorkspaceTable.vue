@@ -15,6 +15,7 @@ defineProps<{
 
 const emit = defineEmits<{
   open: [id: number];
+  chat: [id: number];
   edit: [id: number];
   delete: [id: number];
   pageChange: [page: number];
@@ -34,7 +35,7 @@ const columns = computed<AppTableColumn<Workspace>[]>(() => [
   { field: 'name', header: 'Workspace', width: '360px' },
   { field: 'role', header: 'Role', width: '120px', hideBelow: 768 },
   { field: 'documentCount', header: 'Documents', width: '120px', columnAlign: 'right', hideBelow: 992 },
-  { field: 'actions', header: 'Actions', width: '240px', headerAlign: 'right', columnAlign: 'right', frozen: true, alignFrozen: 'right' },
+  { field: 'actions', header: 'Actions', width: '310px', headerAlign: 'right', columnAlign: 'right', frozen: true, alignFrozen: 'right' },
 ]);
 </script>
 
@@ -72,6 +73,15 @@ const columns = computed<AppTableColumn<Workspace>[]>(() => [
           text
           size="small"
           @click="emit('open', data.id)"
+        />
+        <Button
+          type="button"
+          :data-testid="`workspace-chat-${data.id}`"
+          label="Chat"
+          icon="pi pi-comments"
+          text
+          size="small"
+          @click="emit('chat', data.id)"
         />
         <Button
           v-if="canMutate(data)"
