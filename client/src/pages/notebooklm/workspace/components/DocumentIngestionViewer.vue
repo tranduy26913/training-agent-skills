@@ -22,6 +22,7 @@ const emit = defineEmits<{
   upload: [file: File];
   delete: [documentId: number];
   refreshProgress: [jobId: number];
+  download: [documentId: number, filename: string];
 }>();
 
 const uploadError = ref<string>('');
@@ -55,6 +56,13 @@ function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/**
+ * ジョブが完了済みかどうかを返す / Returns true when job is fully settled (done or failed)
+ */
+function isJobSettled(progress: WorkspaceJobProgress | undefined): boolean {
+  return progress?.status === 'done' || progress?.status === 'failed' || progress?.status === 'dead_letter';
 }
 </script>
 
@@ -91,14 +99,25 @@ function formatSize(bytes: number): string {
               <div class="min-w-0">
                 <p class="font-medium">{{ doc.filename }}</p>
                 <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-surface-500">
-                  <Tag :value="doc.status" severity="info" />
+                  <!-- ステータスが完了でない場合のみタグ表示 / Show status tag only when not done -->
+                  <Tag v-if="doc.status !== 'done'" :value="doc.status" severity="info" />
                   <span>{{ formatSize(doc.size) }}</span>
                 </div>
               </div>
 
               <div class="flex w-full flex-wrap justify-end gap-1 sm:w-auto">
+                <!-- ダウンロードボタン / Download button -->
                 <Button
-                  v-if="doc.latestJobId"
+                  type="button"
+                  icon="pi pi-download"
+                  title="Download"
+                  text
+                  size="small"
+                  data-testid="document-download-btn"
+                  @click="emit('download', doc.id, doc.filename)"
+                />
+                <Button
+                  v-if="doc.latestJobId && !isJobSettled(jobProgressById[doc.latestJobId])"
                   type="button"
                   label="Refresh"
                   icon="pi pi-refresh"
@@ -119,7 +138,11 @@ function formatSize(bytes: number): string {
               </div>
             </div>
 
-            <div v-if="doc.latestJobId && jobProgressById[doc.latestJobId]" class="mt-2 rounded bg-surface-50 p-2 text-xs">
+            <!-- 処理中のステップのみ表示 / Show job steps only when still processing -->
+            <div
+              v-if="doc.latestJobId && jobProgressById[doc.latestJobId] && !isJobSettled(jobProgressById[doc.latestJobId])"
+              class="mt-2 rounded bg-surface-50 p-2 text-xs"
+            >
               <p class="font-medium uppercase">
                 {{ jobProgressById[doc.latestJobId].status }}
               </p>

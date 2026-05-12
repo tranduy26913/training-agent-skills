@@ -264,5 +264,6 @@ export default {
     llmProviderMock: 'Mock Server',
     llmProviderGemini: 'Gemini (Google)',
     provider: 'Provider',
+    thinking: 'Thinking...',
   },
 } as const;

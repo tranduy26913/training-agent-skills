@@ -158,6 +158,24 @@ export class NotebookLmController {
     }
   }
 
+  /**
+   * ドキュメントをダウンロードする / Download a document file
+   */
+  async downloadDocument(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { filename, mimeType, fileData } = await this.service.downloadDocument(
+        Number(req.params.id),
+        Number(req.params.docId),
+        req.user!.userId,
+      );
+      res.setHeader('Content-Type', mimeType);
+      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
+      res.send(fileData);
+    } catch (error) {
+      handleError(res, error);
+    }
+  }
+
   async getJobStatus(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const job = await this.service.getJobStatus(Number(req.params.jobId), req.user!.userId);

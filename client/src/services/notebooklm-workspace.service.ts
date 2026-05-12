@@ -196,6 +196,20 @@ class NotebooklmWorkspaceService {
     return response.data;
   }
 
+  /**
+   * ドキュメントファイルをダウンロードする / Download a document file as a blob
+   */
+  async downloadDocument(workspaceId: number, documentId: number): Promise<{ blob: Blob; filename: string }> {
+    const response = await apiClient.get(
+      `${this.basePath}/${workspaceId}/documents/${documentId}/download`,
+      { responseType: 'blob' },
+    );
+    const contentDisposition = (response.headers as Record<string, string>)['content-disposition'] ?? '';
+    const match = contentDisposition.match(/filename="([^"]+)"/);
+    const filename = match ? decodeURIComponent(match[1]) : 'download';
+    return { blob: response.data as Blob, filename };
+  }
+
   async getWorkspaceMembers(workspaceId: number): Promise<WorkspaceMember[]> {
     const response: AxiosResponse<WorkspaceMemberApiModel[]> = await apiClient.get(`${this.basePath}/${workspaceId}/members`);
     return response.data.map(mapWorkspaceMember);

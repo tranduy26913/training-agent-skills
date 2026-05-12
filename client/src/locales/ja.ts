@@ -259,5 +259,6 @@ export default {
     deletedError: 'セッションの削除に失敗しました',
     createdSuccess: 'セッションを作成しました',
     updatedSuccess: 'セッションを更新しました',
+    thinking: '考え中...',
   },
 } as const;

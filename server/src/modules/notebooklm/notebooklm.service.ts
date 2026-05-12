@@ -327,6 +327,29 @@ export class NotebookLmService {
     return { jobId: jobResult.insertId };
   }
 
+  /**
+   * ドキュメントのファイルデータを取得する / Retrieve raw file data for a document
+   */
+  async downloadDocument(
+    workspaceId: number,
+    documentId: number,
+    userId: number,
+  ): Promise<{ filename: string; mimeType: string; fileData: Buffer }> {
+    await this.getMemberOrThrow(workspaceId, userId);
+    const document = await this.repository.findDocumentByIdForWorkspace(documentId, workspaceId);
+    if (!document) {
+      throw new ServiceError('Document not found', 404);
+    }
+    if (!document.file_data) {
+      throw new ServiceError('File data not available', 404);
+    }
+    return {
+      filename: document.filename,
+      mimeType: document.mime_type,
+      fileData: document.file_data,
+    };
+  }
+
   async getJobStatus(jobId: number, userId: number): Promise<NotebookLmJobDetails> {
     const job = await this.repository.findJobWithStepsByIdForUser(jobId, userId);
     if (!job) {

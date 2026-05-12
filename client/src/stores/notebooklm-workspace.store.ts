@@ -224,6 +224,19 @@ export const useNotebooklmWorkspaceStore = defineStore('notebooklmWorkspace', ()
     return result;
   }
 
+  /**
+   * ドキュメントファイルをダウンロードする / Trigger browser download for a document file
+   */
+  async function downloadDocument(workspaceId: number, documentId: number, filename: string): Promise<void> {
+    const { blob, filename: serverFilename } = await notebooklmWorkspaceService.downloadDocument(workspaceId, documentId);
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = serverFilename || filename;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function pollJobUntilSettled(jobId: number, options?: PollOptions): Promise<WorkspaceJobProgress> {
     const intervalMs = options?.intervalMs ?? 1500;
     const maxAttempts = options?.maxAttempts ?? 40;
@@ -278,6 +291,7 @@ export const useNotebooklmWorkspaceStore = defineStore('notebooklmWorkspace', ()
     addOrUpdateMember,
     uploadDocument,
     deleteDocument,
+    downloadDocument,
     pollJobUntilSettled,
     clearCurrentItem,
   };

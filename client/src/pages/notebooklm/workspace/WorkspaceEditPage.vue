@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, watch } from 'vue';
 import { useDebounceFn } from '@vueuse/core';
+import { useTitle } from '@vueuse/core';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import Card from 'primevue/card';
@@ -17,6 +18,15 @@ const { t } = useI18n();
 const workspaceStore = useNotebooklmWorkspaceStore();
 
 const workspaceId = computed(() => Number(route.params.id));
+
+// ページタイトルをワークスペース名に合わせて動的に更新 / Dynamic page title based on workspace name
+const pageTitle = useTitle();
+watch(
+  () => workspaceStore.currentItem?.name,
+  (name) => {
+    pageTitle.value = name ? `${name} | App` : 'Edit Workspace | App';
+  },
+);
 
 onMounted(async () => {
   if (!Number.isFinite(workspaceId.value)) return;
@@ -58,6 +68,11 @@ async function handleRefreshProgress(jobId: number): Promise<void> {
   await workspaceStore.pollJobUntilSettled(jobId, { intervalMs: 1000, maxAttempts: 5 });
 }
 
+/** ドキュメントをダウンロードする / Download the selected document */
+async function handleDownloadDocument(documentId: number, filename: string): Promise<void> {
+  await workspaceStore.downloadDocument(workspaceId.value, documentId, filename);
+}
+
 function handleSearchMembers(query: string): void {
   void runCandidateSearch(query);
 }
@@ -88,8 +103,8 @@ function handleOpenChat(): void {
               @click="handleCancel"
             />
             <div>
-              <h2 class="text-2xl font-semibold">Edit Workspace</h2>
-              <p class="text-sm text-surface-500">Update workspace details and manage document ingestion jobs.</p>
+              <h2 class="text-2xl font-semibold">{{ workspaceStore.currentItem?.name ?? 'Edit Workspace' }}</h2>
+              <p class="text-sm text-surface-500">{{ workspaceStore.currentItem?.description ?? 'Update workspace details and manage document ingestion jobs.' }}</p>
             </div>
           </div>
           <!-- チャットボタン / Button to open chat sessions for this workspace -->
@@ -120,6 +135,7 @@ function handleOpenChat(): void {
       @upload="handleUpload"
       @delete="handleDeleteDocument"
       @refresh-progress="handleRefreshProgress"
+      @download="handleDownloadDocument"
     />
 
     <WorkspaceMemberManager

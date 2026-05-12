@@ -31,6 +31,7 @@ router.delete('/workspaces/:id/members/:userId', controller.removeMember.bind(co
 
 router.get('/workspaces/:id/documents', controller.listDocuments.bind(controller));
 router.post('/workspaces/:id/documents', validate(uploadDocumentSchema), controller.uploadDocument.bind(controller));
+router.get('/workspaces/:id/documents/:docId/download', controller.downloadDocument.bind(controller));
 router.delete('/workspaces/:id/documents/:docId', controller.deleteDocument.bind(controller));
 
 router.get('/jobs/:jobId', controller.getJobStatus.bind(controller));

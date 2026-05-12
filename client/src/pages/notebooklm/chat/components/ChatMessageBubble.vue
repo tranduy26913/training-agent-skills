@@ -25,10 +25,10 @@ const isUser = computed(() => props.message.role === 'user');
   >
     <div
       :class="[
-        'max-w-[75%] rounded-2xl px-4 py-2 text-sm',
+        'max-w-[75%] rounded-2xl border px-4 py-2 text-sm',
         isUser
-          ? 'bg-primary'
-          : 'bg-surface-100 text-surface-800 dark:bg-surface-800 dark:text-surface-100',
+          ? 'border-primary-600 bg-primary text-primary-contrast'
+          : 'border-surface-200 bg-white text-surface-800 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-100',
       ]"
     >
       <!-- メッセージ本文 / Message content -->

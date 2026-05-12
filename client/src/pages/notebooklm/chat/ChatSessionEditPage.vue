@@ -3,9 +3,10 @@
  * ChatSessionEditPage — チャットセッション詳細ページ
  * View and interact with a single chat session
  */
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
+import { useTitle } from '@vueuse/core';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import { useNotebooklmChatStore } from '@/stores/notebooklm-chat.store';
@@ -26,9 +27,21 @@ const sessionId = computed(() => Number(route.params.sessionId));
 const showSettings = ref(false);
 const submittingSettings = ref(false);
 
+// ページタイトルをセッション名に合わせて動的更新 / Dynamic page title from session title
+const pageTitle = useTitle();
+watch(
+  () => chatStore.currentSession?.title,
+  (title) => {
+    pageTitle.value = title ? `${title} | App` : 'Chat Session | App';
+  },
+);
+
 onMounted(async () => {
   if (!Number.isFinite(sessionId.value)) return;
-  await chatStore.fetchMessages(sessionId.value);
+  await Promise.all([
+    chatStore.fetchCurrentSession(sessionId.value),
+    chatStore.fetchMessages(sessionId.value),
+  ]);
 });
 
 /**
@@ -36,7 +49,10 @@ onMounted(async () => {
  * Handle sending a chat message
  */
 async function handleSend(content: string): Promise<void> {
-  await chatStore.sendMessage(sessionId.value, { content });
+  await chatStore.sendMessage(sessionId.value, {
+    content,
+    llmProvider: chatStore.currentSession?.llmProvider,
+  });
 }
 
 /**

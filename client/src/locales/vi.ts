@@ -259,5 +259,6 @@ export default {
     deletedError: 'Xóa phiên thất bại',
     createdSuccess: 'Tạo phiên thành công',
     updatedSuccess: 'Cập nhật phiên thành công',
+    thinking: 'Đang suy nghĩ...',
   },
 } as const;
