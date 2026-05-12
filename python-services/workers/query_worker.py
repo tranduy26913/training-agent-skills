@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import json
 import os
 import urllib.error
@@ -13,6 +14,8 @@ from workers.llm_provider import LLMProvider, create_llm_provider
 # デフォルト設定 / Default configuration for the internal LLM API (Ollama)
 _DEFAULT_LLM_API_URL = "http://localhost:11434"
 _DEFAULT_LLM_MODEL = "llama3"
+
+logger = logging.getLogger(__name__)
 
 
 class OllamaClient:
@@ -86,7 +89,7 @@ class QueryWorker:
         """
         if self._llm is not None:
             return self._llm
-        provider_name = str(payload.get("llm_provider") or "ollama")
+        provider_name = str(payload.get("llm_provider") or "ollama").strip().lower()
         return create_llm_provider(provider_name)
 
     def run_once(self) -> bool:
@@ -104,7 +107,17 @@ class QueryWorker:
             query_payload = self._extract_payload(job.get("payload"))
             # [CR-NBLM-LLM-001] ペイロードのllm_providerからLLMクライアントを決定する
             # / Resolve LLM provider from job payload before processing steps
+            logger.debug(
+                "QueryWorker resolving provider for job_id=%s raw_provider=%r",
+                job.get("id"),
+                query_payload.get("llm_provider"),
+            )
             resolved_llm = self._resolve_llm(query_payload)
+            logger.debug(
+                "QueryWorker resolved provider for job_id=%s provider_class=%s",
+                job.get("id"),
+                resolved_llm.__class__.__name__,
+            )
             # Temporarily bind the resolved provider for this job's lifecycle
             original_llm = self._llm
             self._llm = resolved_llm
@@ -243,16 +256,18 @@ class QueryWorker:
             payload["_chunks"] = []
             payload["_sources"] = []
             return
-        conditions = " OR ".join(["c.chunk_text LIKE %s"] * len(keywords))
+        # conditions = " OR ".join(["c.chunk_text LIKE %s"] * len(keywords))
         kw_params = tuple(f"%{kw}%" for kw in keywords)
         sql = (
             f"SELECT c.chunk_text, c.document_id, d.filename "
             f"FROM chunks c "
             f"LEFT JOIN documents d ON d.id = c.document_id "
-            f"WHERE ({conditions}) AND c.workspace_id = %s "
-            f"LIMIT 10"
+            f"WHERE c.workspace_id = %s "
+            # f"WHERE ({conditions}) AND c.workspace_id = %s "
+            # f"LIMIT 10"
         )
-        rows = self._fetch_all(sql, kw_params + (workspace_id,))
+        # rows = self._fetch_all(sql, kw_params + (workspace_id,))
+        rows = self._fetch_all(sql, (workspace_id,))
         payload["_chunks"] = [r["chunk_text"] for r in rows]
         # ソース情報を記録 / Record source document info for citation
         payload["_sources"] = [
@@ -276,14 +291,14 @@ class QueryWorker:
 
         if not chunks:
             # チャンクがない場合はデフォルトメッセージ / No chunks → default message
-            payload["_answer"] = f"No relevant context found for query: {query_text}"
+            payload["_answer"] = "Có lỗi trong quá trình xử lý, vui lòng thử lại."
             return
 
         # プロンプトを構築 / Build RAG prompt with retrieved context
         context_text = "\n---\n".join(chunks[:5])
         prompt = (
             "You are a helpful assistant. Answer the user's question based only on the "
-            "following document excerpts. Be concise and accurate.\n\n"
+            "following document excerpts. Be concise and accurate. Answer in Vietnamese.\n\n"
             f"Context:\n{context_text}\n\n"
             f"Question: {query_text}\n\n"
             "Answer:"
@@ -291,14 +306,18 @@ class QueryWorker:
 
         try:
             # LLM APIを呼び出す / Call the internal LLM API
+            logger.debug(
+                "QueryWorker synthesizing answer job_id=%s using_llm=%s",
+                job.get("id"),
+                self._llm.__class__.__name__ if self._llm is not None else "None",
+            )
             answer = self._llm.generate(prompt)
         except Exception as llm_error:  # noqa: BLE001
             # LLMが利用不可の場合はフォールバック / Fallback when LLM is unavailable
-            import logging
-            logging.getLogger(__name__).warning(
-                "LLM API unavailable, falling back to plain-text answer: %s", llm_error
+            logger.warning(
+                "LLM API unavailable, falling back to error message: %s", llm_error
             )
-            answer = f"Based on the documents:\n\n{context_text}"
+            answer = "Có lỗi trong quá trình xử lý, vui lòng thử lại."
 
         payload["_answer"] = answer
 

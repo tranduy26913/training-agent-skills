@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from workers.query_worker import OllamaClient, QueryWorker
-from workers.llm_provider import LLMProvider, OllamaProvider
+from workers.llm_provider import GeminiProvider, LLMProvider, OllamaProvider, logger as llm_logger
 
 
 # ---------------------------------------------------------------------------
@@ -278,8 +278,7 @@ def test_synthesize_answer_fallback_when_no_chunks():
     worker.synthesize_answer(payload, {})
 
     mock_llm.generate.assert_not_called()
-    assert "No relevant context found" in payload["_answer"]
-    assert "obscure topic" in payload["_answer"]
+    assert payload["_answer"] == "Có lỗi trong quá trình xử lý, vui lòng thử lại."
 
 
 def test_synthesize_answer_falls_back_to_plain_text_when_llm_unavailable():
@@ -297,8 +296,7 @@ def test_synthesize_answer_falls_back_to_plain_text_when_llm_unavailable():
 
     # LLMを呼んだが失敗 → フォールバック / Called LLM but failed → fallback
     mock_llm.generate.assert_called_once()
-    assert "Based on the documents" in payload["_answer"]
-    assert "AI stands for artificial intelligence." in payload["_answer"]
+    assert payload["_answer"] == "Có lỗi trong quá trình xử lý, vui lòng thử lại."
 
 
 # ---------------------------------------------------------------------------
@@ -424,6 +422,28 @@ def test_run_once_uses_provider_from_job_payload():
     mock_factory.assert_called_once_with("gemini")
 
 
+def test_run_once_normalizes_provider_name_from_job_payload():
+    """Provider names with whitespace/casing should still resolve to GeminiProvider."""
+    job = {
+        "id": 13,
+        "type": "QUERY",
+        "payload": {"query_text": "what is AI", "workspace_id": 10, "llm_provider": " Gemini "},
+        "retry_count": 0,
+        "max_retries": 3,
+    }
+    conn = FakeConnection(jobs=[job])
+
+    with patch("workers.query_worker.create_llm_provider") as mock_factory:
+        mock_provider = MagicMock(spec=LLMProvider)
+        mock_provider.generate.return_value = "Gemini Answer"
+        mock_factory.return_value = mock_provider
+
+        worker = QueryWorker(conn)
+        worker.run_once()
+
+    mock_factory.assert_called_once_with("gemini")
+
+
 def test_run_once_uses_mock_provider_from_job_payload():
     """When llm_provider='mock' is in the payload, QueryWorker should use mock (OllamaProvider)."""
     job = {
@@ -524,3 +544,40 @@ def test_ollama_client_generate_sends_correct_request():
     body = json.loads(req.data.decode())
     assert body["stream"] is False
     assert "What is Python?" in body["prompt"]
+
+
+def test_gemini_provider_uses_google_genai_client(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.setenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
+
+    with patch("workers.llm_provider.genai.Client") as mock_client_cls:
+        mock_client = MagicMock()
+        mock_client.models.generate_content.return_value.text = "Gemini says hello"
+        mock_client_cls.return_value = mock_client
+
+        provider = GeminiProvider()
+        result = provider.generate("Hello Gemini")
+
+    mock_client_cls.assert_called_once_with(api_key="test-key")
+    mock_client.models.generate_content.assert_called_once_with(
+        model="gemini-2.5-flash-lite",
+        contents="Hello Gemini",
+    )
+    assert result == "Gemini says hello"
+
+
+def test_gemini_provider_logs_request_and_response(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.setenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
+
+    with patch("workers.llm_provider.genai.Client") as mock_client_cls, patch.object(llm_logger, "debug") as mock_debug:
+        mock_client = MagicMock()
+        mock_client.models.generate_content.return_value.text = "Gemini response"
+        mock_client_cls.return_value = mock_client
+
+        provider = GeminiProvider()
+        result = provider.generate("Hello Gemini")
+
+    assert result == "Gemini response"
+    assert mock_debug.call_args_list[0].args[0] == "Gemini request started: model=%s prompt_chars=%s"
+    assert mock_debug.call_args_list[1].args[0] == "Gemini request completed: model=%s response_chars=%s"
