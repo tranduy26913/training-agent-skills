@@ -54,6 +54,18 @@ export class ChatController {
     }
   }
 
+  // セッション取得 / GET /sessions/:sessionId
+  async getSession(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const sessionId = Number(req.params.sessionId);
+      const userId = req.user!.userId;
+      const session = await this.service.getSession(sessionId, userId);
+      sendSuccess(res, { data: session });
+    } catch (error) {
+      handleError(res, error);
+    }
+  }
+
   // セッション更新 / PATCH /sessions/:sessionId
   async updateSession(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {

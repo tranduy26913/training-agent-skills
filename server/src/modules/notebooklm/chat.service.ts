@@ -3,6 +3,7 @@ import { ServiceError } from '../../models/common.model';
 import { ChatRepository } from './chat.repository';
 import type { CreateSessionInput, UpdateSessionInput, SendMessageInput, ListSessionsQuery } from './chat.validation';
 import { dispatchNotebookLmWorker } from './worker-dispatcher';
+import { logger } from '../../utils/logger.util';
 
 export { ServiceError };
 
@@ -36,8 +37,13 @@ export class ChatService {
   }
 
   // ワーカートリガー / Trigger python worker without failing the request on error
-  private async triggerWorker(): Promise<void> {
+  private async triggerWorker(jobId: number, llmProvider: string): Promise<void> {
     try {
+      logger.info('Dispatching NotebookLM worker', {
+        job_id: jobId,
+        llm_provider: llmProvider,
+        worker: 'QUERY',
+      });
       await dispatchNotebookLmWorker('QUERY');
     } catch (error) {
       console.error('[ChatService] Failed to trigger python worker', { error });
@@ -76,6 +82,13 @@ export class ChatService {
     return session!;
   }
 
+  // セッション取得 / Get a single chat session by ID
+  async getSession(sessionId: number, userId: number) {
+    const session = await this.getSessionOrThrow(sessionId);
+    await this.getMemberOrThrow(session.workspace_id, userId);
+    return session;
+  }
+
   // セッション更新 / Update the title and provider of an existing chat session
   async updateSession(sessionId: number, dto: UpdateSessionInput, userId: number) {
     const session = await this.getSessionOrThrow(sessionId);
@@ -93,6 +106,9 @@ export class ChatService {
     const session = await this.getSessionOrThrow(sessionId);
     await this.getMemberOrThrow(session.workspace_id, userId);
 
+    // 送信時のプロバイダー指定を優先 / Prefer provider passed in sendMessage request
+    const resolvedProvider = dto.llmProvider ?? session.llm_provider ?? 'ollama';
+
     // ユーザーメッセージを保存 / Persist user message
     const messageResult = await this.repository.createMessage({
       session_id: sessionId,
@@ -109,8 +125,8 @@ export class ChatService {
         session_id: sessionId,
         message_id: messageResult.insertId,
         query_text: dto.content,
-        // [CR-NBLM-LLM-001] セッションのプロバイダースナップショットをペイロードに含める / Snapshot session provider into job payload
-        llm_provider: session.llm_provider ?? 'ollama',
+        // [CR-NBLM-LLM-001] ペイロードのプロバイダースナップショット / Snapshot resolved provider into job payload
+        llm_provider: resolvedProvider,
       },
     });
 
@@ -120,7 +136,7 @@ export class ChatService {
     }
 
     // バックグラウンドワーカーを起動 / Trigger background worker (non-blocking)
-    await this.triggerWorker();
+    await this.triggerWorker(jobResult.insertId, resolvedProvider);
 
     return { jobId: jobResult.insertId };
   }

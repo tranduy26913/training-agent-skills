@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ServiceError } from '../../models/common.model';
+import { logger } from '../../utils/logger.util';
 import { ChatService } from './chat.service';
+
+vi.mock('./worker-dispatcher', () => ({
+  dispatchNotebookLmWorker: vi.fn().mockResolvedValue(undefined),
+}));
 
 // モックリポジトリファクトリ / Mock repository factory
 function createMockRepository() {
@@ -195,6 +200,44 @@ describe('ChatService', () => {
       );
     });
 
+    it('prefers llmProvider from sendMessage dto over session provider', async () => {
+      repository.findSessionById.mockResolvedValueOnce({ id: 1, workspace_id: 10, user_id: 1, llm_provider: 'mock' });
+      repository.findWorkspaceMember.mockResolvedValueOnce({ user_id: 1, role: 'viewer', workspace_id: 10 });
+      repository.createMessage.mockResolvedValueOnce({ insertId: 202 });
+      repository.createJob.mockResolvedValueOnce({ insertId: 9003 });
+      repository.createJobStep.mockResolvedValueOnce({ insertId: 3 });
+
+      await service.sendMessage(1, { content: 'Use gemini please', llmProvider: 'gemini' } as any, 1);
+
+      expect(repository.createJob).toHaveBeenCalledWith(
+        expect.objectContaining({
+          payload: expect.objectContaining({ llm_provider: 'gemini' }),
+        }),
+      );
+    });
+
+    it('logs job_id and llm_provider when dispatching worker', async () => {
+      repository.findSessionById.mockResolvedValueOnce({ id: 1, workspace_id: 10, user_id: 1, llm_provider: 'gemini' });
+      repository.findWorkspaceMember.mockResolvedValueOnce({ user_id: 1, role: 'viewer', workspace_id: 10 });
+      repository.createMessage.mockResolvedValueOnce({ insertId: 203 });
+      repository.createJob.mockResolvedValueOnce({ insertId: 9004 });
+      repository.createJobStep.mockResolvedValueOnce({ insertId: 4 });
+
+      const infoSpy = vi.spyOn(logger, 'info').mockImplementation(() => logger);
+
+      await service.sendMessage(1, { content: 'Test logging' }, 1);
+
+      expect(infoSpy).toHaveBeenCalledWith(
+        'Dispatching NotebookLM worker',
+        expect.objectContaining({
+          job_id: 9004,
+          llm_provider: 'gemini',
+          worker: 'QUERY',
+        }),
+      );
+      infoSpy.mockRestore();
+    });
+
     it('throws 404 when session not found', async () => {
       repository.findSessionById.mockResolvedValueOnce(null);
 
@@ -233,6 +276,36 @@ describe('ChatService', () => {
 
       await expect(service.listMessages(999, 1)).rejects.toEqual(
         new ServiceError('Session not found', 404),
+      );
+    });
+  });
+
+  // セッション取得テスト / Get session tests
+  describe('getSession', () => {
+    it('returns the session for workspace member', async () => {
+      repository.findSessionById.mockResolvedValueOnce({ id: 7, workspace_id: 10, user_id: 1, title: 'My Session', llm_provider: 'gemini' });
+      repository.findWorkspaceMember.mockResolvedValueOnce({ user_id: 1, role: 'viewer', workspace_id: 10 });
+
+      const result = await service.getSession(7, 1);
+
+      expect(result.id).toBe(7);
+      expect(result.llm_provider).toBe('gemini');
+    });
+
+    it('throws 404 when session does not exist', async () => {
+      repository.findSessionById.mockResolvedValueOnce(null);
+
+      await expect(service.getSession(999, 1)).rejects.toEqual(
+        new ServiceError('Session not found', 404),
+      );
+    });
+
+    it('throws 404 when user is not a workspace member', async () => {
+      repository.findSessionById.mockResolvedValueOnce({ id: 7, workspace_id: 10, user_id: 1 });
+      repository.findWorkspaceMember.mockResolvedValueOnce(null);
+
+      await expect(service.getSession(7, 99)).rejects.toEqual(
+        new ServiceError('Workspace not found', 404),
       );
     });
   });

@@ -15,8 +15,8 @@ const app = express();
 
 // Global middleware
 app.use(cors(corsConfig));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: appConfig.bodySizeLimit }));
+app.use(express.urlencoded({ extended: true, limit: appConfig.bodySizeLimit }));
 
 // Request logging
 app.use((req, _res, next) => {

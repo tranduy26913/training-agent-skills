@@ -5,26 +5,29 @@ LLM Provider abstraction for NotebookLM query worker.
 Supports three backends:
   - ollama: Calls POST {LLM_API_URL}/api/generate (real Ollama server)
   - mock:   Same HTTP shape as Ollama, routes to mock_ollama_server
-  - gemini: Uses google-generativeai SDK via GEMINI_API_KEY env variable
+    - gemini: Uses google-genai SDK via GEMINI_API_KEY env variable
 
 Factory function: create_llm_provider(provider_name) -> LLMProvider
 """
 from __future__ import annotations
 
 import json
+import logging
 import os
 import urllib.error
 import urllib.request
 from abc import ABC, abstractmethod
 
 try:
-    import google.generativeai as genai  # type: ignore[import]
+    from google import genai  # type: ignore[import]
 except ImportError:  # pragma: no cover
     genai = None  # type: ignore[assignment]
 
 # デフォルト設定 / Default configuration values
 _DEFAULT_LLM_API_URL = "http://localhost:11434"
 _DEFAULT_LLM_MODEL = "llama3"
+
+logger = logging.getLogger(__name__)
 
 
 class LLMProvider(ABC):
@@ -91,8 +94,8 @@ class OllamaProvider(LLMProvider):
 
 class GeminiProvider(LLMProvider):
     """
-    LLM provider that uses Google Gemini via the google-generativeai SDK.
-    / google-generativeai SDKを使用してGoogle Geminiを呼び出すLLMプロバイダー。
+    LLM provider that uses Google Gemini via the google-genai SDK.
+    / google-genai SDKを使用してGoogle Geminiを呼び出すLLMプロバイダー。
 
     Requires environment variables:
       GEMINI_API_KEY  - Google Gemini API key (mandatory)
@@ -110,19 +113,28 @@ class GeminiProvider(LLMProvider):
             raise ValueError("GEMINI_API_KEY is required for GeminiProvider but was not set")
         self._api_key = resolved_key
         self._model_name = model or os.environ.get("GEMINI_MODEL", "gemini-pro")
+        if genai is None:  # pragma: no cover
+            raise ImportError("google-genai package is required for GeminiProvider")
+        self._client = genai.Client(api_key=self._api_key)
 
     def generate(self, prompt: str, timeout: int = 30) -> str:  # noqa: ARG002
         """
-        Send prompt to Gemini via the generativeai SDK and return the response text.
-        / generativeai SDKを通じてGeminiにプロンプトを送信し、応答テキストを返す。
+        Send prompt to Gemini via the google-genai SDK and return the response text.
+        / google-genai SDKを通じてGeminiにプロンプトを送信し、応答テキストを返す。
         """
-        if genai is None:  # pragma: no cover
-            raise ImportError("google-generativeai package is required for GeminiProvider")
-
-        genai.configure(api_key=self._api_key)
-        model = genai.GenerativeModel(self._model_name)
-        response = model.generate_content(prompt)
-        return str(response.text or "").strip()
+        logger.debug(
+            "Gemini request started: model=%s prompt_chars=%s",
+            self._model_name,
+            len(prompt),
+        )
+        response = self._client.models.generate_content(model=self._model_name, contents=prompt)
+        response_text = str(response.text or "").strip()
+        logger.debug(
+            "Gemini request completed: model=%s response_chars=%s",
+            self._model_name,
+            len(response_text),
+        )
+        return response_text
 
 
 def create_llm_provider(provider_name: str) -> LLMProvider:
@@ -133,14 +145,17 @@ def create_llm_provider(provider_name: str) -> LLMProvider:
     Supported provider_name values:
       'ollama' -> OllamaProvider (uses LLM_API_URL / LLM_MODEL env vars)
       'mock'   -> OllamaProvider (same HTTP shape, targets mock server)
-      'gemini' -> GeminiProvider (uses GEMINI_API_KEY / GEMINI_MODEL env vars)
+            'gemini' -> GeminiProvider (uses GEMINI_API_KEY / GEMINI_MODEL env vars)
 
     Raises:
         ValueError: If provider_name is not one of the supported values.
     """
-    if provider_name in ("ollama", "mock"):
+    normalized_name = str(provider_name).strip().lower()
+    logger.debug("Resolving LLM provider: raw=%r normalized=%r", provider_name, normalized_name)
+
+    if normalized_name in ("ollama", "mock"):
         return OllamaProvider()
-    if provider_name == "gemini":
+    if normalized_name == "gemini":
         return GeminiProvider()
     raise ValueError(
         f"Unsupported LLM provider: '{provider_name}'. "

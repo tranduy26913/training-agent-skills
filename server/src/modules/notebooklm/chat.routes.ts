@@ -27,6 +27,7 @@ router.post(
   validate(createSessionSchema),
   controller.createSession.bind(controller),
 );
+router.get('/sessions/:sessionId', controller.getSession.bind(controller));
 router.patch(
   '/sessions/:sessionId',
   validate(updateSessionSchema),

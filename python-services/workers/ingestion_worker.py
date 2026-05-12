@@ -7,7 +7,7 @@ from typing import Any
 from workers.retry_policy import apply_retry_policy
 
 
-def _split_into_chunks(text: str, chunk_size: int = 500, overlap: int = 50) -> list[str]:
+def _split_into_chunks(text: str, chunk_size: int = 10000, overlap: int = 50) -> list[str]:
     """Split *text* into fixed-size chunks with optional character overlap."""
     if not text.strip():
         return []

@@ -117,6 +117,17 @@ class NotebooklmChatService {
   }
 
   /**
+   * チャットセッション1件を取得する
+   * Get a single chat session by ID
+   */
+  async getSession(sessionId: number): Promise<ChatSession> {
+    const response: AxiosResponse<{ data: ChatSessionApiModel }> = await apiClient.get(
+      `${this.basePath}/sessions/${sessionId}`,
+    );
+    return mapChatSession(response.data.data);
+  }
+
+  /**
    * チャットセッションを更新する
    * Update an existing chat session
    */

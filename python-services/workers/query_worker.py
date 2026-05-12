@@ -251,24 +251,28 @@ class QueryWorker:
         """
         workspace_id = int(payload.get("_workspace_id") or payload.get("workspace_id", 0))
         query_text = str(payload.get("_query") or payload.get("query_text") or "").strip()
-        keywords = [w for w in query_text.split() if w][:5]
+        keywords = [w for w in query_text.split() if w]
         if not keywords:
             payload["_chunks"] = []
             payload["_sources"] = []
             return
-        # conditions = " OR ".join(["c.chunk_text LIKE %s"] * len(keywords))
+        conditions = " OR ".join(["c.chunk_text LIKE %s"] * len(keywords))
+        
         kw_params = tuple(f"%{kw}%" for kw in keywords)
         sql = (
             f"SELECT c.chunk_text, c.document_id, d.filename "
             f"FROM chunks c "
             f"LEFT JOIN documents d ON d.id = c.document_id "
-            f"WHERE c.workspace_id = %s "
-            # f"WHERE ({conditions}) AND c.workspace_id = %s "
+            # f"WHERE c.workspace_id = %s "
+            f"WHERE ({conditions}) AND c.workspace_id = %s "
             # f"LIMIT 10"
         )
-        # rows = self._fetch_all(sql, kw_params + (workspace_id,))
-        rows = self._fetch_all(sql, (workspace_id,))
+        rows = self._fetch_all(sql, kw_params + (workspace_id,))
+        # rows = self._fetch_all(sql, (workspace_id,))
         payload["_chunks"] = [r["chunk_text"] for r in rows]
+        logger.debug(
+                "chunks: %s", payload["_chunks"]
+            )
         # ソース情報を記録 / Record source document info for citation
         payload["_sources"] = [
             {
@@ -295,7 +299,7 @@ class QueryWorker:
             return
 
         # プロンプトを構築 / Build RAG prompt with retrieved context
-        context_text = "\n---\n".join(chunks[:5])
+        context_text = "\n---\n".join(chunks[:20])  # 上限20チャンクまで / Limit to top 20 chunks to avoid excessively long prompts
         prompt = (
             "You are a helpful assistant. Answer the user's question based only on the "
             "following document excerpts. Be concise and accurate. Answer in Vietnamese.\n\n"

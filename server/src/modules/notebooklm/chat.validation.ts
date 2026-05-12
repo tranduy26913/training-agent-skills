@@ -22,6 +22,7 @@ export const sendMessageSchema = z.object({
     .string()
     .min(1, 'Content is required')
     .max(10000, 'Content must be at most 10000 characters'),
+  llmProvider: llmProviderEnum.optional(),
 });
 
 // セッション一覧クエリスキーマ / Schema for listing sessions query params
@@ -34,5 +35,5 @@ export const listSessionsQuerySchema = z.object({
 // z.input を使用してフォーム入力型(任意フィールド含む)を取得 / Use z.input for types with optional fields before defaults
 export type CreateSessionInput = z.input<typeof createSessionSchema>;
 export type UpdateSessionInput = z.input<typeof updateSessionSchema>;
-export type SendMessageInput = z.infer<typeof sendMessageSchema>;
+export type SendMessageInput = z.input<typeof sendMessageSchema>;
 export type ListSessionsQuery = z.infer<typeof listSessionsQuerySchema>;

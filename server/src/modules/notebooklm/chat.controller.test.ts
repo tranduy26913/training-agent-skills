@@ -148,6 +148,22 @@ describe('ChatController', () => {
     expect(res.body.data.jobId).toBe(9001);
   });
 
+  it('POST /sessions/:sessionId/messages passes llmProvider to service', async () => {
+    service.sendMessage.mockResolvedValueOnce({ jobId: 9002 });
+
+    const res = await request(buildApp(service))
+      .post('/api/notebooklm/sessions/1/messages')
+      .set('x-test-user-id', '1')
+      .send({ content: 'Use gemini', llmProvider: 'gemini' });
+
+    expect(res.status).toBe(202);
+    expect(service.sendMessage).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({ content: 'Use gemini', llmProvider: 'gemini' }),
+      1,
+    );
+  });
+
   // メッセージ一覧 / List messages
   it('GET /sessions/:sessionId/messages returns 200 with messages', async () => {
     service.listMessages.mockResolvedValueOnce([

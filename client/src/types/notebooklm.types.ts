@@ -223,4 +223,5 @@ export interface UpdateChatSessionDto {
 // メッセージ送信DTO / DTO for sending a chat message
 export interface SendMessageDto {
   content: string;
+  llmProvider?: ChatLlmProvider;
 }

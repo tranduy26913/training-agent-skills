@@ -85,6 +85,20 @@ export const useNotebooklmChatStore = defineStore('notebooklmChat', () => {
   }
 
   /**
+   * セッション1件を取得して currentSession にセットする
+   * Fetch a single session and set it as the current session
+   */
+  async function fetchCurrentSession(sessionId: number): Promise<void> {
+    error.value = null;
+    try {
+      currentSession.value = await notebooklmChatService.getSession(sessionId);
+    } catch (err: any) {
+      error.value = err.response?.data?.message || 'Failed to fetch session';
+      throw err;
+    }
+  }
+
+  /**
    * チャットセッションのタイトルを更新する
    * Update an existing chat session
    */
@@ -193,6 +207,7 @@ export const useNotebooklmChatStore = defineStore('notebooklmChat', () => {
     error,
     fetchSessions,
     createSession,
+    fetchCurrentSession,
     updateSession,
     fetchMessages,
     sendMessage,
