@@ -7,7 +7,8 @@ description: Use when you have a written implementation plan to execute in a sep
 
 ## Overview
 Load plan, review critically, execute all tasks, report when complete.
-Coordination and execute tasks in parallel with subagents for the different tasks.
+When a plan contains 2 or more executable tasks, coordinate execution in parallel with subagents whenever the tasks are independent enough to run concurrently.
+If the plan contains only 1 task, parallel subagents are not required.
 
 **Announce at start:** "I'm using the executing-plans skill to implement this plan."
 
@@ -29,12 +30,21 @@ Coordination and execute tasks in parallel with subagents for the different task
 4. If no concerns: Create TodoWrite and proceed
 
 ### Step 2: Execute Tasks
-**Use parallel subagents for implementation tasks**
-For each task:
+**Parallel subagents are mandatory when the plan has multiple executable tasks.**
+
+Execution rules:
+1. Count the plan tasks before starting implementation.
+2. If the plan has only 1 task, execute it directly without spawning subagents unless the user explicitly asks for subagent execution.
+3. If the plan has 2 or more tasks, you MUST assign the implementation work to subagents in parallel wherever task dependencies allow.
+4. Group only strictly dependent tasks into the same execution lane. Do not serialize unrelated tasks.
+5. Keep the parent agent responsible for coordination, status tracking, integration decisions, and final verification.
+
+For each task or task lane:
 1. Mark as in_progress
-2. Follow each step exactly (plan has bite-sized steps)
-3. Run verifications as specified
-4. Mark as completed
+2. Dispatch the task to a subagent when parallel execution is required
+3. Follow each step exactly (plan has bite-sized steps)
+4. Run verifications as specified
+5. Mark as completed
 
 
 ## When use tool [vscode_askQuestions]
@@ -70,5 +80,7 @@ For each task:
 - Follow plan steps exactly
 - Don't skip verifications
 - Reference skills when plan says to
+- If the plan has multiple tasks, parallel subagent execution is the default and required mode
+- If the plan has only one task, direct execution is acceptable
 - Stop when blocked, don't guess
 - Never start implementation on main/master branch without explicit user consent
