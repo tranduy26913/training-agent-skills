@@ -49,6 +49,7 @@ You MUST create a task for each of these items and complete them in order:
   - `01-backend.md` — DB schema, DTOs, API endpoints, validation rules, error handling
   - `02-frontend.md` — wireframes, component tree, screen item specs, composable/store, TS types
   - `03-behavior.md` — page events & handlers, UI states, confirm dialogs, navigation flows, sequence diagrams
+    > **Optional**: For features with complex user-system interactions (multiple actors, alternative flows, exception handling), invoke `use-case-writer` skill first to generate structured UC specs (13-field format). Save output to `docs/<topic>/specs/UC-XX_name.md` and reference from this file.
   - `04-quality.md` — per-page UT test cases (Arrange/Act/Assert), backend integration tests, performance, security, accessibility, logging
 - Structural compliance is mandatory: section hierarchy, ordering, and package/file ownership from the template are required and cannot be modified.
 - If project-specific content does not apply to a required section, keep that section and explicitly mark it as "Not applicable" with a short reason.

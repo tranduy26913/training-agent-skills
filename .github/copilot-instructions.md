@@ -1,4 +1,5 @@
 # Required Skills: Always reference the following skills when coding:
+- **use-case-writer** - OPTIONAL: Use when writing, splitting, refining, or reviewing Use Case specifications (BA/PO work). Triggers: "viết use case", "đặc tả use case", "split feature into UC list", "write UC for", "review my UC", or when user pastes a BRD/PRD and asks to turn it into UCs.
 - **test-driven-development** - REQUIRED: Use for all implementation tasks that involve writing code (TDD)
 - **coding-guidelines** - REQUIRED: Use for all implementation tasks that involve writing code
 - **vue-best-practices** - REQUIRED: Use for all Vue.js implementation tasks
