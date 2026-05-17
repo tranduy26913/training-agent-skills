@@ -46,6 +46,43 @@ For each task or task lane:
 4. Run verifications as specified
 5. Mark as completed
 
+### Step 3: Post-Completion Review
+
+After **ALL** tasks are marked completed, dispatch **three subagents in parallel**:
+
+**Locate the design spec package first:** `docs/<topic>/specs/<topic>-design/`  
+_(If no spec package exists — e.g., pure refactoring — skip `SPEC_FILES`, `QUALITY_SPEC`, and `E2E_SPEC`. Subagent A runs Technical Review only; Subagent B and C run their respective Phase 1–5 fallback modes.)_
+
+#### Subagent A — Code Review
+Load skill: `code-review` _(context: fork)_
+
+Provide:
+- `WHAT_WAS_IMPLEMENTED`: one-line summary of what was built
+- `SPEC_FILES`: paths to `01-backend.md`, `02-frontend.md`, `03-behavior.md` in the spec package _(omit if no spec)_
+- `BASE_SHA`: first commit of this feature — `git log --oneline origin/main..HEAD | tail -1 | awk '{print $1}'`
+- `HEAD_SHA`: `git rev-parse HEAD`
+
+#### Subagent B — UT Coverage Review
+Load skill: `ut-review` _(context: fork)_
+
+Provide:
+- `QUALITY_SPEC`: path to `04-quality.md` in the spec package _(omit if no spec — ut-review will run Phases 1–5 instead)_
+- Focus: **UT only** — do not add or run E2E tests
+
+#### Subagent C — E2E Tests
+Load skill: `playwright-e2e` _(context: fork)_ → run **Phase 5: Standalone Post-Implementation E2E Writer**
+
+Provide:
+- `FEATURE`: one-line summary of what was built
+- `QUALITY_SPEC`: path to `04-quality.md` in the spec package _(omit if no spec — skip Subagent C entirely)_
+- `E2E_DIR`: `client/e2e/`
+
+#### After all subagents complete:
+1. Fix all **Critical** and **Important** issues from the code review report
+2. Add all missing UT cases identified by the UT coverage review
+3. Re-run `npx vitest run` — all UT tests must pass
+4. Run E2E tests written by Subagent C: `npx playwright test --reporter=list`
+
 
 ## When use tool [vscode_askQuestions]
 - Always present next-step suggestions as a short list of selectable options using the VS Code vscode_askQuestions tool.

@@ -1,6 +1,7 @@
 ---
 name: playwright-e2e
-description: Plan and build comprehensive Playwright E2E test suites with Page Object Model, authentication state persistence, custom fixtures, visual regression, and CI integration. Uses interview-driven planning to clarify critical user flows, auth strategy, test data approach, and parallelization before writing any tests.
+description: Plan and build comprehensive Playwright E2E test suites with Page Object Model, authentication state persistence, custom fixtures, visual regression, and CI integration. Uses interview-driven planning to clarify critical user flows, auth strategy, test data approach, and parallelization before writing any tests. Also runs as a standalone post-implementation E2E writer — reads 04-quality.md to generate a test case file, then writes Playwright tests from that plan.
+context: fork
 ---
 
 # Playwright E2E Test Suite Builder
@@ -114,13 +115,6 @@ Options:
   - "GitLab CI" — Docker-based runners with Playwright image
   - "Local only (no CI yet)" — Just local test runs for now
   - "Other CI (Jenkins, CircleCI)" — Custom CI configuration
-
-Question: "Do you need visual regression testing?"
-Header: "Visual"
-Options:
-  - "No — functional tests only (Recommended)" — Assert behavior, not pixels
-  - "Yes — screenshot comparisons" — Capture and compare page screenshots
-  - "Yes — component screenshots" — Capture specific components, not full pages
 ```
 
 ## Phase 3: Plan (ExitPlanMode)
@@ -133,7 +127,6 @@ Write a concrete implementation plan covering:
 4. **Page objects** — classes for each page with locators and actions
 5. **Test fixtures** — custom fixtures for data seeding, auth, API client
 6. **Test suites** — test files for each critical flow from the interview
-7. **CI config** — workflow file with sharding, artifact upload, reporting
 
 Present via ExitPlanMode for user approval.
 
@@ -480,97 +473,6 @@ test.describe('Resource CRUD', () => {
 });
 ```
 
-### Step 6: Visual regression (if selected)
-
-```typescript
-// e2e/visual.spec.ts
-import { test, expect } from './fixtures';
-
-test.describe('Visual regression', () => {
-  test('dashboard matches snapshot', async ({ dashboardPage, page }) => {
-    await dashboardPage.goto();
-    // Wait for dynamic content to stabilize
-    await page.waitForLoadState('networkidle');
-    await expect(page).toHaveScreenshot('dashboard.png', {
-      maxDiffPixelRatio: 0.01,
-    });
-  });
-
-  test('login page matches snapshot', async ({ loginPage, page }) => {
-    test.use({ storageState: { cookies: [], origins: [] } });
-    await loginPage.goto();
-    await expect(page).toHaveScreenshot('login.png', {
-      maxDiffPixelRatio: 0.01,
-    });
-  });
-
-  // Component-level screenshots
-  test('navigation component matches snapshot', async ({ page }) => {
-    await page.goto('/dashboard');
-    const nav = page.getByRole('navigation');
-    await expect(nav).toHaveScreenshot('navigation.png');
-  });
-});
-```
-
-### Step 7: GitHub Actions CI
-
-```yaml
-# .github/workflows/e2e.yml
-name: E2E Tests
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-jobs:
-  e2e:
-    timeout-minutes: 30
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1/4, 2/4, 3/4, 4/4]
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-
-      - run: npm ci
-
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
-
-      - name: Run E2E tests
-        run: npx playwright test --shard=${{ matrix.shard }}
-        env:
-          BASE_URL: http://localhost:3000
-          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
-          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
-
-      - name: Upload test report
-        uses: actions/upload-artifact@v4
-        if: ${{ !cancelled() }}
-        with:
-          name: playwright-report-${{ strategy.job-index }}
-          path: playwright-report/
-          retention-days: 14
-
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        if: ${{ !cancelled() }}
-        with:
-          name: test-results-${{ strategy.job-index }}
-          path: test-results/
-          retention-days: 7
-```
-
 ## Directory structure reference
 
 ```
@@ -669,7 +571,84 @@ blob-report/
 - [ ] Page objects use role-based locators (`getByRole`, `getByLabel`, `getByText`)
 - [ ] No `waitForTimeout()` calls — only wait for elements, URLs, or responses
 - [ ] Tests create and clean up their own data (no shared mutable state)
-- [ ] CI config has sharding for parallel execution
 - [ ] Trace, screenshot, and video are captured on failure for debugging
 - [ ] `.auth/` directory is in `.gitignore`
 - [ ] `npx playwright test` passes locally before pushing
+
+---
+
+## Phase 5: Standalone Post-Implementation E2E Writer
+
+Use this phase when invoked **independently after implementation tasks are complete** — skip Phases 1–4 (setup wizard) entirely.
+
+### Inputs
+
+| Input | Required | Description |
+|-------|----------|-------------|
+| `FEATURE` | ✅ | What was implemented (feature name / description) |
+| `QUALITY_SPEC` | ✅ | Path to `04-quality.md` for this feature |
+| `E2E_DIR` | optional | E2E test directory (default: `client/e2e/`) |
+
+### Step 1 — Read quality spec
+
+Read `QUALITY_SPEC` (the `04-quality.md` file). Focus on:
+- Section **E2E Tests** or **Integration Tests** — extract all listed test cases
+- Note which flows are already covered by existing E2E test files (check `E2E_DIR` for related spec files)
+
+### Step 2 — Generate test case plan file
+
+Create a test case plan file at:
+```
+docs/<feature>/specs/<feature>-design/05-e2e-testcases.md
+```
+
+The file must list **every E2E test case** to be written. Use this format:
+
+```markdown
+# E2E Test Cases — <Feature Name>
+
+## Source
+- Quality spec: `<QUALITY_SPEC path>`
+- Generated from: Phase 5 of playwright-e2e skill
+
+## Test Cases
+
+### TC-001: <Test case title>
+- **Flow**: <User action sequence>
+- **Preconditions**: <Auth state, seed data needed>
+- **Expected outcome**: <What should be true at the end>
+- **Spec file**: `e2e/<feature>/<file>.spec.ts`
+
+### TC-002: ...
+```
+
+Rules for generating test cases:
+- **No duplication**: Skip any test case already covered in existing `*.spec.ts` files
+- **Full coverage**: Include every scenario from the E2E section of `04-quality.md`
+- **One test case = one user-observable outcome** (not a step)
+- Group related cases under a shared spec file
+
+### Step 3 — Write Playwright tests from test case plan
+
+For each test case in `05-e2e-testcases.md`:
+
+1. **Locate or create the spec file** listed in `TC-xxx → Spec file`
+2. **Write the test** following Playwright best practices (see Best practices section above):
+   - Use role-based locators (`getByRole`, `getByLabel`, `getByText`)
+   - No `waitForTimeout()` — wait for elements, URLs, or API responses
+   - Seed test data via API fixtures in `beforeEach`; clean up in `afterEach`
+   - Re-use existing Page Objects from `e2e/pages/` if they cover the page
+   - Create new Page Object if one doesn't exist for this page
+3. **Authenticate** using `storageState` from `e2e/.auth/user.json` (default)
+4. Check off each `TC-xxx` in `05-e2e-testcases.md` as it is written (mark `✅`)
+
+### Step 4 — Verify
+
+Run the new tests:
+```bash
+npx playwright test <spec-file-path> --reporter=list
+```
+
+- All new tests must pass
+- If a test fails, debug and fix before proceeding to next test case
+- Update `05-e2e-testcases.md` with final status

@@ -16,6 +16,7 @@ Do NOT invoke any implementation skill, write any code, scaffold any project, or
 <TEMPLATE-COMPLIANCE-GATE>
 When writing any spec deliverable, the output MUST follow the multi-file spec package structure 100%.
 - Follow [modular-spec-package-template](reference/modular-spec-package-template.md).
+- Required package files: `00-index.md`, `01-backend.md`, `02-frontend.md`, `03-behavior.md`, `04-quality.md`.
 - Treat the spec package as the required default, not an optional format.
 - Keep every required top-level section, subsection, file ownership rule, and ordering defined by the template.
 - Do not rename, merge, remove, or reorder required sections or required package files.
@@ -43,7 +44,12 @@ You MUST create a task for each of these items and complete them in order:
 
 **Template of `<topic>-design`: (mandatory, strict)**
 - The specification file must be formatted in well formed Markdown.
-- The specification deliverable must be a multi-file spec package using [modular-spec-package-template](reference/modular-spec-package-template.md).
+- The specification deliverable must be a **5-file spec package** using [modular-spec-package-template](reference/modular-spec-package-template.md):
+  - `00-index.md` — executive summary, objective & scope, changelog, architecture overview, cross-file links
+  - `01-backend.md` — DB schema, DTOs, API endpoints, validation rules, error handling
+  - `02-frontend.md` — wireframes, component tree, screen item specs, composable/store, TS types
+  - `03-behavior.md` — page events & handlers, UI states, confirm dialogs, navigation flows, sequence diagrams
+  - `04-quality.md` — per-page UT test cases (Arrange/Act/Assert), backend integration tests, performance, security, accessibility, logging
 - Structural compliance is mandatory: section hierarchy, ordering, and package/file ownership from the template are required and cannot be modified.
 - If project-specific content does not apply to a required section, keep that section and explicitly mark it as "Not applicable" with a short reason.
 
@@ -167,10 +173,8 @@ After the spec review loop passes, ask the user to review the written spec packa
 
 Wait for the user's response. If they request changes, make them and re-run the spec review loop. Only proceed once the user approves.
 
-<!-- **Implementation:**
-
-- Invoke the writing-plans skill to create a detailed implementation plan
-- Do NOT invoke any other skill. writing-plans is the next step. -->
+**Implementation:**
+Invoke the `writing-plans` skill to create a detailed implementation plan. Do NOT invoke any other skill — `writing-plans` is the next and only step after user approves the spec.
 
 ## Key Principles
 - **Multiple choice preferred** - Easier to answer than open-ended when possible
