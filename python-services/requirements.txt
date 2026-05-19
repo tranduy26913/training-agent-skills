@@ -1,0 +1,7 @@
+# Python workers – production runtime dependencies
+mysql-connector-python>=9.0.0
+# [CR-NBLM-LLM-001] Google Gemini provider support
+google-genai==2.0.1
+
+# Development / testing
+pytest>=9.0.0

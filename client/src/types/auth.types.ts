@@ -14,6 +14,9 @@ export interface AuthUser {
   email: string;
   role: UserRole;
   status: string;
+  avatar?: string;    // base64 image string / base64画像文字列
+  birthday?: string;  // ISO date 'YYYY-MM-DD' / ISO日付
+  note?: string;      // personal note / 個人メモ
 }
 
 // ログインレスポンスデータ / Login response data

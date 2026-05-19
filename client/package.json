@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc && vite build",
+    "build": "vue-tsc -p tsconfig.app.json && vite build",
     "preview": "vite preview",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
