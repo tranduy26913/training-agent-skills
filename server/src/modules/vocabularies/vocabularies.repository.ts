@@ -1,5 +1,4 @@
 // 語彙リポジトリ / Vocabulary database access layer
-import { BaseRepository } from '../../database/base.repository';
 import { pool } from '../../database/connection';
 import { withTransaction } from '../../database/transaction';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2/promise';
@@ -32,10 +31,8 @@ const ALLOWED_SORT_FIELDS: Record<string, string> = {
  * 語彙リポジトリクラス / Vocabulary repository — all DB operations
  * Handles CRUD, relations, audit logs, and reports for vocabulary management
  */
-export class VocabulariesRepository extends BaseRepository<VocabularyRow> {
-  constructor() {
-    super('vocabularies');
-  }
+export class VocabulariesRepository {
+  constructor() {}
 
   /**
    * フィルター付き語彙一覧取得 / Find vocabularies with dynamic filters and pagination
@@ -286,13 +283,13 @@ export class VocabulariesRepository extends BaseRepository<VocabularyRow> {
         [
           dto.meaning_vi ?? null,
           dto.hiragana ?? null,
-          dto.romaji !== undefined ? (dto.romaji ?? null) : undefined,
-          dto.kanji !== undefined ? (dto.kanji ?? null) : undefined,
-          dto.sino_vietnamese !== undefined ? (dto.sino_vietnamese ?? null) : undefined,
+          dto.romaji !== undefined ? (dto.romaji ?? null) : null,
+          dto.kanji !== undefined ? (dto.kanji ?? null) : null,
+          dto.sino_vietnamese !== undefined ? (dto.sino_vietnamese ?? null) : null,
           dto.level ?? null,
-          dto.image_url !== undefined ? (dto.image_url ?? null) : undefined,
-          dto.note !== undefined ? (dto.note ?? null) : undefined,
-          dto.tags !== undefined ? JSON.stringify(dto.tags) : undefined,
+          dto.image_url !== undefined ? (dto.image_url ?? null) : null,
+          dto.note !== undefined ? (dto.note ?? null) : null,
+          dto.tags !== undefined ? JSON.stringify(dto.tags) : null,
           dto.status ?? null,
           adminId,
           id,
