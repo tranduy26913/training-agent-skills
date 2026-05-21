@@ -314,5 +314,10 @@ export default {
     deletedError: 'Xóa từ vựng thất bại',
     createdSuccess: 'Tạo từ vựng thành công',
     updatedSuccess: 'Cập nhật từ vựng thành công',
+    info: 'Thông tin',
+    audit: 'Kiểm toán',
+    analytics: 'Phân tích',
+    resolveConfirm: 'Bạn có chắc muốn xử lý báo cáo này?',
+    rejectConfirm: 'Bạn có chắc muốn từ chối báo cáo này?',
   },
 } as const;

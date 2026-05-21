@@ -311,5 +311,10 @@ export default {
     deletedError: '語彙の削除に失敗しました',
     createdSuccess: '語彙を作成しました',
     updatedSuccess: '語彙を更新しました',
+    info: '情報',
+    audit: '監査',
+    analytics: '分析',
+    resolveConfirm: 'このレポートを解決済みにしますか？',
+    rejectConfirm: 'このレポートを拒否しますか？',
   },
 } as const;

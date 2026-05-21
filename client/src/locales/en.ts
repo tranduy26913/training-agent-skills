@@ -316,5 +316,10 @@ export default {
     deletedError: 'Failed to delete vocabulary',
     createdSuccess: 'Vocabulary created successfully',
     updatedSuccess: 'Vocabulary updated successfully',
+    info: 'Info',
+    audit: 'Audit',
+    analytics: 'Analytics',
+    resolveConfirm: 'Are you sure you want to resolve this report?',
+    rejectConfirm: 'Are you sure you want to reject this report?',
   },
 } as const;
