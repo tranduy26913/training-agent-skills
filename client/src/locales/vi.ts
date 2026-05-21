@@ -34,9 +34,9 @@ export default {
     employees: 'Nhân viên',
     notebooklm: 'NotebookLM',
     notebooklmOperations: 'Vận hành NotebookLM',
+    vocabularies: 'Từ vựng',
     settings: 'Cài đặt',
   },
-  topbar: {
     lightMode: 'Chuyển sang chế độ sáng',
     darkMode: 'Chuyển sang chế độ tối',
     language: 'Ngôn ngữ',

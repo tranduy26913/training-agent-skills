@@ -34,6 +34,7 @@ export default {
     employees: 'Employees',
     notebooklm: 'NotebookLM',
     notebooklmOperations: 'NotebookLM Operations',
+    vocabularies: 'Vocabularies',
     settings: 'Settings',
   },
   topbar: {

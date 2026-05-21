@@ -48,6 +48,12 @@ const menuItems: MenuItem[] = [
     roles: ['admin'],
   },
   {
+    labelKey: 'sidebar.vocabularies',
+    icon: 'pi pi-language',
+    to: '/vocabularies',
+    roles: ['admin'],
+  },
+  {
     labelKey: 'sidebar.settings',
     icon: 'pi pi-cog',
     to: '/settings',

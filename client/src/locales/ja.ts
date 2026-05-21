@@ -34,6 +34,7 @@ export default {
     employees: '従業員',
     notebooklm: 'NotebookLM',
     notebooklmOperations: 'NotebookLM運用',
+    vocabularies: '語彙管理',
     settings: '設定',
   },
   topbar: {
