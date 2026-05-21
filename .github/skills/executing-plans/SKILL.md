@@ -6,9 +6,9 @@ description: Use when you have a written implementation plan to execute in a sep
 # Executing Plans
 
 ## Overview
-Load plan, review critically, execute all tasks, report when complete.
-When a plan contains 2 or more executable tasks, coordinate execution in parallel with subagents whenever the tasks are independent enough to run concurrently.
-If the plan contains only 1 task, parallel subagents are not required.
+Load plan, review critically, execute all phases sequentially, report when complete.
+Tasks **within** the same phase are dispatched as parallel subagents. Phases are sequential — all tasks in a phase must complete before the next phase starts.
+If the plan has only 1 phase with 1 task, parallel subagents are not required.
 
 **Announce at start:** "I'm using the executing-plans skill to implement this plan."
 
@@ -25,26 +25,25 @@ If the plan contains only 1 task, parallel subagents are not required.
 
 ### Step 1: Load and Review Plan
 1. Read plan file
-2. Review critically - identify any questions or concerns about the plan
-3. If concerns: Raise them with your human partner before starting
-4. If no concerns: Create TodoWrite and proceed
+2. Review critically — identify hard blockers that would prevent execution entirely
+3. Resolve any ambiguities independently using codebase context; do **not** ask the user unless a blocker cannot be resolved by any means
+4. Create TodoWrite and proceed immediately
 
-### Step 2: Execute Tasks
-**Parallel subagents are mandatory when the plan has multiple executable tasks.**
+### Step 2: Execute Phases (sequential) and Tasks (parallel within phase)
+**Phases are sequential. Tasks within a phase run in parallel.**
 
 Execution rules:
-1. Count the plan tasks before starting implementation.
-2. If the plan has only 1 task, execute it directly without spawning subagents unless the user explicitly asks for subagent execution.
-3. If the plan has 2 or more tasks, you MUST assign the implementation work to subagents in parallel wherever task dependencies allow.
-4. Group only strictly dependent tasks into the same execution lane. Do not serialize unrelated tasks.
-5. Keep the parent agent responsible for coordination, status tracking, integration decisions, and final verification.
+1. Execute phases in order (Phase 1 → Phase 2 → …). Do not start a phase until all tasks of the previous phase are completed.
+2. Within each phase, dispatch independent tasks as parallel subagents.
+3. If a task inside a phase has `Depends on: Task N`, wait for that task to complete before starting the dependent task.
+4. If a phase has only 1 task, execute it directly without spawning a subagent (unless the user asks).
+5. Keep the parent agent responsible for phase sequencing, task completion tracking, integration decisions, and final verification.
 
-For each task or task lane:
-1. Mark as in_progress
-2. Dispatch the task to a subagent when parallel execution is required
-3. Follow each step exactly (plan has bite-sized steps)
-4. Run verifications as specified
-5. Mark as completed
+For each phase:
+1. Mark phase as in_progress
+2. Dispatch all independent tasks in the phase as parallel subagents
+3. Wait for all tasks in the phase to complete
+4. Mark phase as completed, then start the next phase
 
 ### Step 3: Post-Completion Review
 
@@ -117,7 +116,7 @@ Provide:
 - Follow plan steps exactly
 - Don't skip verifications
 - Reference skills when plan says to
-- If the plan has multiple tasks, parallel subagent execution is the default and required mode
-- If the plan has only one task, direct execution is acceptable
+- Phases are sequential; tasks within a phase run in parallel as subagents by default
+- If a phase has only one task, direct execution is acceptable
 - Stop when blocked, don't guess
 - Never start implementation on main/master branch without explicit user consent

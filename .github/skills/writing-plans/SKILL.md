@@ -4,22 +4,28 @@ description: Use when you have a spec or requirements for a multi-step task, bef
 --- 
 
 # Writing Plans 
+
+**Save plans to:** `docs/<topic>/plans/YYYY-MM-DD-<topic>.md`
+
 ## Overview
-Write comprehensive implementation plans assuming the engineer has zero context for our codebase and questionable taste. Document everything they need to know: which files to touch for each task, code, testing, docs they might need to check, how to test it. Give them the whole plan as bite-sized tasks. DRY. YAGNI. TDD. Frequent commits.
 
-Plans must be execution-ready for the `executing-plans` skill. When a plan has multiple tasks, task boundaries must be explicit enough that independent tasks can be dispatched to subagents in parallel.
+Write execution-ready plans for the `executing-plans` skill. Audience: skilled developers with no context on our codebase or problem domain. DRY. YAGNI. TDD. Frequent commits.
 
-Assume they are a skilled developer, but know almost nothing about our toolset or problem domain. Assume they don't know good test design very well.
-
-**Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
-
-**Context:** Prefer a dedicated worktree when the user or workflow provides one. If not, write the plan for the current workspace without assuming worktree-only setup. 
-
-**Save plans to:** docs/<topic>/plans/YYYY-MM-DD-<topic>.md - (User preferences for plan location override this default) 
+With coding tasks, follow TDD order when possible: write a failing test that references the spec, implement just enough to make it pass, verify the test passes, then commit. For non-coding tasks (e.g., schema migrations, config changes), TDD is not required.
 
 ## Scope Check
 
-If the spec covers multiple independent subsystems, it should have been broken into sub-project specs during brainstorming. If it wasn't, suggest breaking this into separate plans — one per subsystem. Each plan should produce working, testable software on its own.
+If the spec covers multiple independent subsystems, split into separate plans — one per subsystem. Each plan must produce working, testable software on its own.
+
+## Phase Structure
+
+Organize tasks into **Phases**. Phases are sequential — each phase starts only after the previous phase completes. Tasks **within** the same phase can run in parallel when they are independent.
+
+Rules:
+- Put tasks that can start at the same time in the same phase.
+- Start a new phase only when tasks depend on output from the previous phase.
+- Mark a task's `Depends on:` when it needs another task in the same phase to finish first.
+- If the plan has only one phase, use a single `## Phase 1 — [Name]` heading with tasks nested under it.
 
 ## File Structure
 
@@ -32,44 +38,16 @@ Before defining tasks, map out which files will be created or modified and what 
 
 This structure informs the task decomposition. Each task should produce self-contained changes that make sense independently.
 
-## Parallel-Ready Task Design
-
-Plans are not only documentation artifacts. They are execution inputs.
-
-- Decompose tasks so unrelated work can run in parallel.
-- Make dependencies explicit. If Task 3 depends on Task 1, say so directly.
-- Avoid plans where every task implicitly depends on the previous one unless that is genuinely required.
-- **Organize tasks into Phases** — all tasks within a phase can execute in parallel; phases are sequential.
-  - **Phase 1 — Foundation:** Schema migrations, shared types/interfaces, seed data. These have no dependencies.
-  - **Phase 2 — Core Implementation (parallel):** Backend endpoints + Frontend store/composable can typically run in parallel after Phase 1.
-  - **Phase 3 — UI Layer (parallel):** Individual page components (List, Create, Edit) can run in parallel with each other, after the store is ready.
-  - **Phase 4 — Quality:** Backend integration tests + Frontend component unit tests. Must run after Phase 2 and 3 are complete.
-  - _Not every plan needs all 4 phases. Only define phases that actually apply._
-- Prefer vertical slices with clear ownership over broad phase buckets like "frontend", "backend", "testing" when those buckets force unnecessary serialization.
-- If multiple tasks touch the same files heavily, either merge them into one task lane or redesign the plan to reduce conflict.
-- If a plan has only one meaningful task, keep it as one task. Do not split artificially just to create parallelism.
-
-Before finalizing the plan, ask: "Could an executing agent safely dispatch 2 or more tasks in parallel without constant integration conflicts?" If not, refine the task boundaries.
-
 ## Planning Principles (NOT Fixed Task Templates!)
-> 🔴 **No fixed task count or canned phase structure. Each plan is unique to the task.**
+> **No fixed task count or canned phase structure. Each plan is unique to the task.**
+
 ### Principle 1: Keep It SHORT
-| ❌ Wrong | ✅ Right |
-|----------|----------|
-| 50 tasks with sub-tasks | 5-10 clear tasks max |
-| Every micro-step listed | Only actionable items |
-| Verbose descriptions | One-line per task. Keep the task description concise and high-level; do not include any code within the task description. |
+- 5-10 clear tasks max
+- Only actionable items
+- Keep the task description concise and high-level; do not include any code within the task description.
+- Each task should have a clear, verifiable outcome.
 
-### Principle 2: Be SPECIFIC, Not Generic
-| ❌ Wrong | ✅ Right |
-|----------|----------|
-| "Set up project" | "Run npx create-next-app" |
-| "Add authentication" | "Install next-auth, create /api/auth/[...nextauth].ts" |
-| "Style the UI" | "Add Tailwind classes to Header.tsx" |
-
-> **Rule:** Each task should have a clear, verifiable outcome.
-
-### Principle 3: Dynamic Content Based on Project Type
+### Principle 2: Dynamic Content Based on Project Type
 
 **For NEW PROJECT:**
 - What tech stack? (decide first)
@@ -86,137 +64,105 @@ Before finalizing the plan, ask: "Could an executing agent safely dispatch 2 or 
 - What file/line to change?
 - How to test the fix?
 
-### Principle 4: Reference the Design Spec in Every Task
-> 🔴 **Every implementation task must trace directly to its spec source. Never implement from memory or assumption.**
-
-| ❌ Wrong | ✅ Right |
-|----------|----------|
-| "Implement the create endpoint" | "Implement per `01-backend.md` — SV-002" |
-| "Build the list page" | "Build `[ListPage]` per `02-frontend.md` — Section 3.1" |
-| "Write unit tests" | "Write tests per `04-quality.md` — [CreatePage] Unit Tests table" |
-| "Handle form validation" | "Validate per rules in `01-backend.md` — Section 3. Validation Rules" |
+### Principle 3: Reference the Design Spec in Every Task
+> **Every implementation task must trace directly to its spec source. Never implement from memory or assumption.**
+- Implement per `01-backend.md` — SV-002"
+- Build `[ListPage]` per `02-frontend.md` — Section 3.1
+- Write unit tests per `04-quality.md` — [CreatePage] Unit Tests table
+- Handle form validation per rules in `01-backend.md` — Section 3. Validation Rules
 
 > **Rule:** Each task must include a `**Spec Reference:**` field linking to the exact spec file and section. An executor who has never seen the feature must be able to open the spec and know exactly what to build.
 
-### Principle 5: Verification is Simple
-| ❌ Wrong | ✅ Right |
-|----------|----------|
-| "Verify the component works correctly" | "Run npm run dev, click button, see toast" |
-| "Test the API" | "curl localhost:3000/api/users returns 200" |
-| "Check styles" | "Open browser, verify dark mode toggle works" |
+### Principle 4: Tests are embedded in tasks, not deferred
+- Tests live in the same task as the code they test. Never defer tests to a later phase or separate task.
+- For tasks that implement logic, prefer TDD order (write failing test from `04-quality.md` → implement → verify PASS) when applicable.
+- TDD is **not required** for every task — schema migrations, config changes, type-only files, and routing setup do not need a failing-test step.
+- **Do NOT create a dedicated "Quality" or "Testing" phase.**
 
-### Principle 6: Tasks Must Be Phase-Organized and Parallelizable
-| ❌ Wrong | ✅ Right |
-|----------|----------|
-| "Task 1: Backend, Task 2: Frontend, Task 3: Tests" | "Phase 1: DB schema. Phase 2 (parallel): Backend API + Frontend store. Phase 3 (parallel): List page + Create page + Edit page. Phase 4: Tests" |
-| Hidden dependencies between all tasks | Explicit `Depends on:` only where truly required |
-| Two tasks editing the same central file heavily | One task lane or a cleaner decomposition |
-| Every task in its own sequential step | Group independent tasks in the same phase so they run in parallel |
+### Principle 5: Tasks Must Be Phase-Organized and Parallelizable
+- Phase 1: DB schema. Phase 2 (parallel): Backend API + Frontend store. Phase 3 (parallel): List page + Create page + Edit page.
+- Explicit `Depends on:` only where truly required.
+- Group independent tasks in the same phase so they run in parallel.
 
-> **Rule:** If the plan has multiple tasks, assume `executing-plans` will try to run tasks within the same phase in parallel. Write task boundaries so that is safe.
-
-### Principle 7: No Placeholders or Vague Language
-> 🔴 **Plans with vague steps cannot be executed. Every step must be immediately actionable.**
-
-Red flags to scan for before finalizing:
-- `[TODO]`, `TBD`, `...`, "add appropriate logic", "handle errors properly"
-- Step descriptions with no verifiable outcome
-- File paths without exact names (`path/to/file.ts` instead of `client/src/pages/users/UserListPage.vue`)
-- Test commands without expected output
-- "Same as above" references instead of explicit instructions
-
+### Principle 6: No Placeholders or Vague Language
+- No `[TODO]`, `TBD`, vague paths (`path/to/file.ts`), or steps with no verifiable outcome. Every command must have an expected result.
 > **Rule:** If a step requires the executor to ask a question before acting, it must be rewritten.
 
 ## Plan Document Header
 **Every plan MUST start with this header:**
 
-```markdown
-# [Feature Name] Implementation Plan 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use skill executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
-> **Execution mode:** Tasks within the same Phase run in parallel. Phases are sequential.
+````markdown
+# [Feature Name] Implementation Plan
+> **For agentic workers:** REQUIRED SUB-SKILL: Use skill `executing-plans` to implement this plan.
+> **Execution mode:** Phases are sequential. Tasks within the same phase run in parallel.
 
 **Goal:** [One sentence describing what this builds]
-**Architecture:** [2-3 sentences about approach]
 **Tech Stack:** [Key technologies/libraries]
 
 ## Execution Phases
 
-### Phase 1 — Foundation _(sequential, others depend on this)_
-- Task 1: [Database schema / migrations]
-- Task 2: [Shared TypeScript types / interfaces]
+### Phase 1 — [Name]
+- Task 1: [short description]
+- Task 2: [short description]
 
-### Phase 2 — Core Implementation _(tasks in this phase run in parallel)_
-- Task 3: [Backend service + API endpoints]
-- Task 4: [Frontend store + composable]
+### Phase 2 — [Name] _(after Phase 1)_
+- Task 3: [short description]
+- Task 4: [short description]
 
-### Phase 3 — UI Layer _(tasks in this phase run in parallel, after Phase 2)_
-- Task 5: [List page + table component]
-- Task 6: [Create page + form component]
-- Task 7: [Edit page]
-
-### Phase 4 — Quality _(after Phase 2 and 3)_
-- Task 8: [Backend integration tests]
-- Task 9: [Frontend component unit tests]
+### Phase 3 — [Name] _(after Phase 2)_
+- Task 5: [short description]
 
 ---
-```
-
-> Only define phases that apply to this plan. A simple CRUD feature might only need Phases 1–3. A pure backend task might only need Phases 1–2. Never add empty phases.
-
-If the plan has only 1 task, `Execution Phases` may be omitted.
+````
 
 ## Task Structure
+
 ````markdown
 ### Task N: [Task Name]
 
-**Phase:** [1 / 2 / 3 / 4]
-**Depends on:** [Task N, if required] or `None`
-**Spec Reference:** [e.g., `docs/<topic>/specs/<topic>-design/01-backend.md — SV-001 to SV-003`]
+**Phase:** N
+**Depends on:** [Task N within the same phase, if required] or `None`
+**Spec Reference:** `docs/<topic>/specs/<topic>-design/01-backend.md — Section X`
 
 **Files:**
 - Create: `exact/path/to/file.ts`
 - Modify: `exact/path/to/existing.ts`
-- Test: `exact/path/to/test.spec.ts`
+- Test: `exact/path/to/test.spec.ts` _(omit if no tests in this task)_
 
-- [ ] **Step 1: Write the failing test**
-  - Write test cases as defined in `04-quality.md — [relevant section name]`
-  - Run: `[test command] --reporter=verbose`
-  - Expected: FAIL — implementation does not exist yet
+- [ ] **Step 1:** [Describe what to do — e.g., run migration, implement endpoint, write tests]
+  - Run: `[command]`
+  - Expected: [verifiable outcome]
 
-- [ ] **Step 2: Implement**
-  - Implement per spec in `**Spec Reference**` above
-  - Follow exact field names, endpoint contracts, and flows defined in the spec
-  - Do NOT add logic not described in the spec
-  - Run: `[test command]`
-  - Expected: PASS
+- [ ] **Step 2:** ...
 
-- [ ] **Step 3: Commit**
+- [ ] **Commit:**
   - `git add [files]`
-  - `git commit -m "feat: [short description matching the spec section]"`
+  - `git commit -m "feat: [description]"`
 
-**Effort:** [X hours] _(manual by senior developer 3-5 years experience, no AI assistance)_
-
+**Effort:** [X hours]
 ````
 
-## REMEMBER
-- Tasks follow TDD principles: write failing test → verify it fails → implement per spec → verify it passes → commit.
-- Every task must have a `**Spec Reference:**` field. The executor must be able to open the spec and know exactly what to build.
-- Exact commands with expected output. No vague verification steps.
-- Make phase dependencies explicit so execution can be parallelized safely.
-- DRY, YAGNI, frequent commits. 
+> Steps are free-form — use as many as the task needs. For tasks that write code, prefer TDD order (failing test → implement → verify PASS) when applicable, but it is not mandatory for every task (e.g., schema migrations, config changes, type-only files).
 
-## Self-Review
-After writing the complete plan, look at the spec with fresh eyes and check the plan against it. This is a checklist you run yourself — not a subagent dispatch.
+## Planning Principles
 
-**1. Spec coverage:** Skim each section/requirement in the spec. Can you point to a task that implements it? List any gaps.
+**1. Keep it short** — 5–10 tasks max. Concise descriptions, no code in task body. Each task has a clear, verifiable outcome.
 
-**2. Placeholder scan:** Search your plan for the red flags listed in **Principle 7** above. Fix any vague steps, missing file paths, or unverifiable outcomes.
+**2. Spec reference in every task** — link to exact spec file + section. Executor must be able to open the spec and know exactly what to build without asking questions.
 
-**3. Type consistency:** Do the types, method signatures, and property names you used in later tasks match what you defined in earlier tasks? A function called clearLayers() in Task 3 but clearFullLayers() in Task 7 is a bug. If you find issues, fix them inline. No need to re-review — just fix and move on. If you find a spec requirement with no task, add the task. 
+**3. Tests are embedded in tasks** — tests live in the same task as the code they test; never defer to a later phase. For logic-heavy tasks, prefer TDD order (write failing test → implement → verify PASS). Not required for migrations, config, or type-only tasks.
 
-**4. Parallel execution check:** If the plan has multiple tasks, can independent tasks be run by subagents without hidden file conflicts, hidden ordering assumptions, or missing dependency notes? If not, rewrite the task boundaries before finalizing the plan.
+**4. Phases are sequential, tasks within a phase are parallel** — group independent tasks in the same phase so they run concurrently. Start a new phase only when the next group of tasks depends on the previous phase’s output.
 
-**5. Workflow consistency check:** Does the plan assume tools, branches, worktrees, or setup steps that are not actually required by the current workflow? If yes, rewrite those assumptions so the executor can act without guesswork.
+**5. No placeholders** — no `[TODO]`, `TBD`, vague paths (`path/to/file.ts`), or steps with no verifiable outcome. Every command must have an expected result.
+
+## Self-Review (run before saving)
+
+1. **Spec coverage** — every spec requirement maps to a task. Add missing tasks.
+2. **Placeholder scan** — no vague paths, missing commands, or unverifiable outcomes.
+3. **Type consistency** — types and method names match across all tasks.
+4. **Dependency check** — tasks that can run at the same time are in the same phase.
+5. **Test coverage check** — every task that writes logic includes tests in the same task. No task defers tests to a later phase. Tasks with no logic (migrations, config, type files) may omit tests.
 
 ## Process Flow
 ```dot
@@ -237,6 +183,6 @@ digraph brainstorming {
 }
 ```
 
-## After User Approves the Plan
+## After User Approves
 
-Invoke the `executing-plans` skill to start implementation. Do NOT start writing code directly — always go through `executing-plans`.
+Invoke the `executing-plans` skill. Do NOT write code directly.
