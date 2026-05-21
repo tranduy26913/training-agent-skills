@@ -308,5 +308,11 @@ export default {
     // analytics tab
     learnCount: 'Lượt học',
     favoriteCount: 'Lượt yêu thích',
+    deleteConfirm: 'Bạn có chắc chắn muốn xóa từ vựng này?',
+    deleteHeader: 'Xác nhận xóa',
+    deletedSuccess: 'Xóa từ vựng thành công',
+    deletedError: 'Xóa từ vựng thất bại',
+    createdSuccess: 'Tạo từ vựng thành công',
+    updatedSuccess: 'Cập nhật từ vựng thành công',
   },
 } as const;

@@ -305,5 +305,11 @@ export default {
     reject: '拒否',
     learnCount: '学習数',
     favoriteCount: 'お気に入り数',
+    deleteConfirm: 'この語彙を削除してもよろしいですか？',
+    deleteHeader: '削除確認',
+    deletedSuccess: '語彙を削除しました',
+    deletedError: '語彙の削除に失敗しました',
+    createdSuccess: '語彙を作成しました',
+    updatedSuccess: '語彙を更新しました',
   },
 } as const;

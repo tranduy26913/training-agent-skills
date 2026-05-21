@@ -310,5 +310,11 @@ export default {
     reject: 'Reject',
     learnCount: 'Learn Count',
     favoriteCount: 'Favorite Count',
+    deleteConfirm: 'Are you sure you want to delete this vocabulary?',
+    deleteHeader: 'Confirm Delete',
+    deletedSuccess: 'Vocabulary deleted successfully',
+    deletedError: 'Failed to delete vocabulary',
+    createdSuccess: 'Vocabulary created successfully',
+    updatedSuccess: 'Vocabulary updated successfully',
   },
 } as const;
