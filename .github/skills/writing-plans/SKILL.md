@@ -19,12 +19,11 @@ If the spec covers multiple independent subsystems, split into separate plans �
 
 ## Phase Structure
 
-Organize tasks into **Phases**. Phases are sequential — each phase starts only after the previous phase completes. Tasks **within** the same phase can run in parallel when they are independent.
+Organize tasks into **Phases**. Phases are sequential — each phase starts only after the previous phase completes. Tasks within a phase are also executed sequentially.
 
 Rules:
-- Put tasks that can start at the same time in the same phase.
+- Group related tasks that logically belong together into the same phase.
 - Start a new phase only when tasks depend on output from the previous phase.
-- Mark a task's `Depends on:` when it needs another task in the same phase to finish first.
 - If the plan has only one phase, use a single `## Phase 1 — [Name]` heading with tasks nested under it.
 
 ## File Structure
@@ -79,10 +78,10 @@ This structure informs the task decomposition. Each task should produce self-con
 - TDD is **not required** for every task — schema migrations, config changes, type-only files, and routing setup do not need a failing-test step.
 - **Do NOT create a dedicated "Quality" or "Testing" phase.**
 
-### Principle 5: Tasks Must Be Phase-Organized and Parallelizable
-- Phase 1: DB schema. Phase 2 (parallel): Backend API + Frontend store. Phase 3 (parallel): List page + Create page + Edit page.
-- Explicit `Depends on:` only where truly required.
-- Group independent tasks in the same phase so they run in parallel.
+### Principle 5: Tasks Must Be Phase-Organized
+- Phase 1: DB schema. Phase 2: Backend API + Frontend store. Phase 3: List page + Create page + Edit page.
+- Group related tasks that belong to the same phase together.
+- Start a new phase only when tasks require output from the previous phase.
 
 ### Principle 6: No Placeholders or Vague Language
 - No `[TODO]`, `TBD`, vague paths (`path/to/file.ts`), or steps with no verifiable outcome. Every command must have an expected result.
@@ -94,35 +93,18 @@ This structure informs the task decomposition. Each task should produce self-con
 ````markdown
 # [Feature Name] Implementation Plan
 > **For agentic workers:** REQUIRED SUB-SKILL: Use skill `executing-plans` to implement this plan.
-> **Execution mode:** Phases are sequential. Tasks within the same phase run in parallel.
+> **Execution mode:** Phases are sequential. Tasks within a phase are executed sequentially.
 
 **Goal:** [One sentence describing what this builds]
 **Tech Stack:** [Key technologies/libraries]
 
-## Execution Phases
 
-### Phase 1 — [Name]
-- Task 1: [short description]
-- Task 2: [short description]
-
-### Phase 2 — [Name] _(after Phase 1)_
-- Task 3: [short description]
-- Task 4: [short description]
-
-### Phase 3 — [Name] _(after Phase 2)_
-- Task 5: [short description]
-
----
-````
-
-## Task Structure
-
+## Plan Structure
 ````markdown
+## Phase 1 — [Name]
 ### Task N: [Task Name]
 
-**Phase:** N
-**Depends on:** [Task N within the same phase, if required] or `None`
-**Spec Reference:** `docs/<topic>/specs/<topic>-design/01-backend.md — Section X`
+**Spec Reference:** `docs/<topic>/specs/<topic>-design/01-backend.md — Section X.Y`
 
 **Files:**
 - Create: `exact/path/to/file.ts`
@@ -135,11 +117,10 @@ This structure informs the task decomposition. Each task should produce self-con
 
 - [ ] **Step 2:** ...
 
-- [ ] **Commit:**
+- [ ] **Step 3: Commit**
   - `git add [files]`
   - `git commit -m "feat: [description]"`
 
-**Effort:** [X hours]
 ````
 
 > Steps are free-form — use as many as the task needs. For tasks that write code, prefer TDD order (failing test → implement → verify PASS) when applicable, but it is not mandatory for every task (e.g., schema migrations, config changes, type-only files).
@@ -152,7 +133,7 @@ This structure informs the task decomposition. Each task should produce self-con
 
 **3. Tests are embedded in tasks** — tests live in the same task as the code they test; never defer to a later phase. For logic-heavy tasks, prefer TDD order (write failing test → implement → verify PASS). Not required for migrations, config, or type-only tasks.
 
-**4. Phases are sequential, tasks within a phase are parallel** — group independent tasks in the same phase so they run concurrently. Start a new phase only when the next group of tasks depends on the previous phase’s output.
+**4. Phases are sequential, tasks within a phase are also sequential** — group related tasks in the same phase. Start a new phase only when the next group of tasks depends on the previous phase's output.
 
 **5. No placeholders** — no `[TODO]`, `TBD`, vague paths (`path/to/file.ts`), or steps with no verifiable outcome. Every command must have an expected result.
 
@@ -161,7 +142,7 @@ This structure informs the task decomposition. Each task should produce self-con
 1. **Spec coverage** — every spec requirement maps to a task. Add missing tasks.
 2. **Placeholder scan** — no vague paths, missing commands, or unverifiable outcomes.
 3. **Type consistency** — types and method names match across all tasks.
-4. **Dependency check** — tasks that can run at the same time are in the same phase.
+4. **Dependency check** — tasks that depend on prior phase output are in a later phase.
 5. **Test coverage check** — every task that writes logic includes tests in the same task. No task defers tests to a later phase. Tasks with no logic (migrations, config, type files) may omit tests.
 
 ## Process Flow

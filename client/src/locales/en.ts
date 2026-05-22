@@ -271,7 +271,7 @@ export default {
     pageTitle: 'Vocabulary Management',
     createTitle: 'Create Vocabulary',
     editTitle: 'Edit Vocabulary',
-    createBtn: '+ Create Vocabulary',
+    createBtn: 'Create Vocabulary',
     searchPlaceholder: 'Search kanji/hiragana/meaning...',
     allLevels: 'All Levels',
     allStatuses: 'All Statuses',

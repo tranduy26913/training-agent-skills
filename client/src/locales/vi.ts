@@ -266,7 +266,7 @@ export default {
     pageTitle: 'Quản lý Từ vựng',
     createTitle: 'Tạo Từ vựng',
     editTitle: 'Chỉnh sửa Từ vựng',
-    createBtn: '+ Tạo từ vựng',
+    createBtn: 'Tạo từ vựng',
     searchPlaceholder: 'Nhập kanji/hiragana/nghĩa...',
     allLevels: 'Tất cả cấp độ',
     allStatuses: 'Tất cả trạng thái',

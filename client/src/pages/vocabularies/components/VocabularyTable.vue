@@ -97,6 +97,15 @@ const columns = computed<AppTableColumn<Vocabulary>[]>(() => [
     width: '160px',
     columnAlign: 'left',
   },
+  {
+    field: 'actions',
+    header: t('common.actions'),
+    width: '120px',
+    frozen: true,
+    alignFrozen: 'right',
+    headerAlign: 'right',
+    columnAlign: 'center',
+  },
 ]);
 </script>
 
@@ -113,7 +122,7 @@ const columns = computed<AppTableColumn<Vocabulary>[]>(() => [
     @sort-change="emit('sortChange', $event, $event)"
   >
     <!-- レベルバッジ / Level badge column -->
-    <template #column-level="{ data }">
+    <template #cell-level="{ data }">
       <Tag
         :value="data.level"
         :severity="levelSeverityMap[data.level] ?? 'secondary'"
@@ -122,7 +131,7 @@ const columns = computed<AppTableColumn<Vocabulary>[]>(() => [
     </template>
 
     <!-- ステータスバッジ / Status badge column -->
-    <template #column-status="{ data }">
+    <template #cell-status="{ data }">
       <Tag
         :value="data.status"
         :severity="statusSeverityMap[data.status] ?? 'secondary'"
@@ -131,7 +140,7 @@ const columns = computed<AppTableColumn<Vocabulary>[]>(() => [
     </template>
 
     <!-- タグチップス / Tags chips column -->
-    <template #column-tags="{ data }">
+    <template #cell-tags="{ data }">
       <div class="flex flex-wrap gap-1">
         <Tag
           v-for="tag in displayTags(data.tags)"
@@ -147,7 +156,7 @@ const columns = computed<AppTableColumn<Vocabulary>[]>(() => [
     </template>
 
     <!-- アクション列 / Actions column -->
-    <template #actions="{ data }">
+    <template #cell-actions="{ data }">
       <div class="flex gap-1">
         <Button
           icon="pi pi-pencil"

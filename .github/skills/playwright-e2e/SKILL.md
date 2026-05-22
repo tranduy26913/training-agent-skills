@@ -1,4 +1,4 @@
----
+﻿---
 name: playwright-e2e
 description: Plan and build comprehensive Playwright E2E test suites with Page Object Model, authentication state persistence, custom fixtures, visual regression, and CI integration. Uses interview-driven planning to clarify critical user flows, auth strategy, test data approach, and parallelization before writing any tests. Also runs as a standalone post-implementation E2E writer — reads 04-quality.md to generate a test case file, then writes Playwright tests from that plan.
 context: fork
@@ -130,7 +130,97 @@ Write a concrete implementation plan covering:
 
 Present via ExitPlanMode for user approval.
 
-## Phase 4: Execute
+## Phase 4: Write Test Cases (Markdown Review)
+
+**Before writing any code**, generate a test case specification file in Markdown and wait for user review.
+
+### Step 4.1: Create test case spec file
+
+Create the file at:
+
+```
+docs/<feature>/specs/<feature>-design/05-e2e-testcases.md
+```
+
+If no `docs/` structure exists, create at:
+
+```
+e2e/specs/<feature>-testcases.md
+```
+
+Use this exact format:
+
+```markdown
+# E2E Test Cases — <Feature Name>
+
+## Overview
+- **Feature**: <feature name>
+- **Flows from interview**: <list of flows the user selected>
+- **Auth strategy**: <how tests will authenticate>
+- **Total test cases**: <N>
+
+## Spec files
+
+| File | Covers |
+|------|--------|
+| `e2e/<feature>/auth.spec.ts` | Login, logout, session expiry |
+| `e2e/<feature>/crud.spec.ts` | Create, read, update, delete flows |
+
+## Test Cases
+
+### TC-001: <Title>
+- **Suite**: `<spec file>`
+- **Flow**: <step-by-step user actions>
+- **Preconditions**: <auth state, seed data, URL>
+- **Expected outcome**: <observable result at the end>
+- **screenshotStep labels**: `<step 1 name>`, `<step 2 name>`, ...
+- [ ] Written
+
+### TC-002: <Title>
+...
+```
+
+### Step 4.2: Rules for writing test cases
+
+- **One TC = one user-observable outcome** — not a technical assertion
+- **Group by spec file** — keep related flows in the same file
+- **Cover all flows** from the interview answers (Phase 2)
+- **No duplication** — check existing `*.spec.ts` files first; skip already-covered scenarios
+- **Preconditions must be explicit** — auth role, seed data, starting URL
+- **`screenshotStep` labels** — pre-define the label names for each step; these become the screenshot captions in the HTML report
+- **Coverage target**: at minimum, one happy-path TC and one failure/edge-case TC per flow
+
+### Step 4.3: Ask user to review
+
+After creating the file, **STOP and ask the user to review**:
+
+```
+AskUserQuestion:
+  "I've created the test case spec at <path>. Please review the test cases before I start writing the Playwright tests."
+  Options:
+    - "Looks good, proceed with writing the tests"
+    - "I want to add / modify some test cases first"
+    - "Remove TC-xxx: <reason>"
+    - "Add a test case: <description>"
+```
+
+Do NOT write any `.spec.ts` files until the user approves the spec.
+
+### Step 4.4: Apply review feedback
+
+For each change requested:
+- Add / remove / modify TCs in the Markdown file
+- Re-show the updated list briefly (title + expected outcome only)
+- Ask for confirmation again if changes are substantial
+
+Once approved, mark the spec with:
+```markdown
+> ✅ Approved by user on <date>. Proceeding to Phase 5.
+```
+
+---
+
+## Phase 5: Execute
 
 After approval, implement following this order:
 
@@ -162,26 +252,11 @@ export default defineConfig({
       name: 'setup',
       testMatch: /.*\.setup\.ts/,
     },
+    // Chrome only — install additional browsers with `npx playwright install` if cross-browser is needed
     {
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        storageState: 'e2e/.auth/user.json',
-      },
-      dependencies: ['setup'],
-    },
-    {
-      name: 'firefox',
-      use: {
-        ...devices['Desktop Firefox'],
-        storageState: 'e2e/.auth/user.json',
-      },
-      dependencies: ['setup'],
-    },
-    {
-      name: 'mobile',
-      use: {
-        ...devices['iPhone 14'],
         storageState: 'e2e/.auth/user.json',
       },
       dependencies: ['setup'],
@@ -473,23 +548,103 @@ test.describe('Resource CRUD', () => {
 });
 ```
 
+### Step 6: Screenshot step helper
+
+Wrap **business action steps** with `screenshotStep()` — it waits 300 ms for animations to settle, then captures a full-page screenshot and attaches it to the HTML report.
+
+**Do NOT wrap auxiliary setup steps** (login, navigate-to-page) — call those directly so the report only shows meaningful evidence screenshots.
+
+```typescript
+// e2e/helpers/screenshot-step.ts
+import { type Page, type TestInfo } from '@playwright/test';
+
+/**
+ * Wraps a test action, waits briefly for the UI to settle, then captures a
+ * full-page screenshot and attaches it to the Playwright HTML report.
+ *
+ * Use only for meaningful business steps — skip auxiliary steps such as
+ * login or page navigation by calling them directly without this wrapper.
+ */
+export async function screenshotStep(
+  page: Page,
+  testInfo: TestInfo,
+  stepName: string,
+  action: () => Promise<void>,
+): Promise<void> {
+  try {
+    await action();
+    // Small delay so animations/transitions finish before capturing
+    await page.waitForTimeout(300);
+    const screenshot = await page.screenshot({ fullPage: true });
+    await testInfo.attach(stepName, { body: screenshot, contentType: 'image/png' });
+  } catch (error) {
+    await page.waitForTimeout(300);
+    const screenshot = await page.screenshot({ fullPage: true });
+    await testInfo.attach(`❌ ${stepName}`, { body: screenshot, contentType: 'image/png' });
+    throw error;
+  }
+}
+```
+
+**Usage in tests:**
+
+```typescript
+// e2e/resource.spec.ts
+import { test, expect } from './fixtures';
+import { screenshotStep } from './helpers/screenshot-step';
+
+async function loginAsAdmin(page) {
+  // auxiliary — no screenshotStep wrapper
+  await page.goto('/login');
+  await page.getByLabel('Email').fill('admin@app.com');
+  await page.getByLabel('Password').fill('admin123');
+  await page.getByRole('button', { name: 'Sign In' }).click();
+  await page.waitForURL('/dashboard');
+}
+
+test('create resource — happy path', async ({ page }, testInfo) => {
+  // setup steps called directly, no screenshot
+  await loginAsAdmin(page);
+  await page.goto('/resources/create');
+
+  // business step — screenshot captured after action settles
+  await screenshotStep(page, testInfo, 'Fill required fields', async () => {
+    await page.getByLabel('Name').fill('My Resource');
+    await page.getByLabel('Description').fill('Test description');
+  });
+
+  await screenshotStep(page, testInfo, 'Submit → 201 created + toast', async () => {
+    await page.getByRole('button', { name: 'Save' }).click();
+    await expect(page.locator('.p-toast')).toBeVisible();
+    await expect(page).toHaveURL('/resources');
+  });
+});
+```
+
+Screenshots attached via `screenshotStep()` appear automatically in the **Attachments** tab of the standard Playwright HTML report (`playwright-report/index.html`). No custom reporter needed.
+
+---
+
 ## Directory structure reference
 
 ```
 e2e/
 ├── .auth/
-│   └── user.json            # Saved auth state (gitignored)
-├── fixtures.ts              # Custom test fixtures and API client
+│   └── user.json                   # Saved auth state (gitignored)
+├── helpers/
+│   └── screenshot-step.ts          # screenshotStep() helper
+├── fixtures.ts                     # Custom test fixtures and API client
 ├── pages/
-│   ├── login-page.ts        # Login page object
-│   ├── dashboard-page.ts    # Dashboard page object
-│   └── resource-page.ts     # Resource detail page object
-├── auth.setup.ts            # Global auth setup (runs once)
-├── auth.spec.ts             # Authentication tests
-├── dashboard.spec.ts        # Dashboard tests
-├── crud.spec.ts             # CRUD operation tests
-└── visual.spec.ts           # Visual regression tests (optional)
-playwright.config.ts         # Playwright configuration
+│   ├── login-page.ts               # Login page object
+│   ├── dashboard-page.ts           # Dashboard page object
+│   └── resource-page.ts            # Resource detail page object
+├── auth.setup.ts                   # Global auth setup (runs once)
+├── auth.spec.ts                    # Authentication tests
+├── dashboard.spec.ts               # Dashboard tests
+└── crud.spec.ts                    # CRUD operation tests
+playwright-report/
+└── index.html                      # Playwright HTML report (screenshots in Attachments tab)
+playwright.config.ts                # Playwright configuration
 ```
 
 ## Best practices
@@ -573,11 +728,12 @@ blob-report/
 - [ ] Tests create and clean up their own data (no shared mutable state)
 - [ ] Trace, screenshot, and video are captured on failure for debugging
 - [ ] `.auth/` directory is in `.gitignore`
-- [ ] `npx playwright test` passes locally before pushing
+- [ ] All business-step actions are wrapped with `screenshotStep()` — login/navigate called directly
+- [ ] `npx playwright test` passes locally and `playwright-report/index.html` shows screenshots in Attachments
 
 ---
 
-## Phase 5: Standalone Post-Implementation E2E Writer
+## Phase 6: Standalone Post-Implementation E2E Writer
 
 Use this phase when invoked **independently after implementation tasks are complete** — skip Phases 1–4 (setup wizard) entirely.
 

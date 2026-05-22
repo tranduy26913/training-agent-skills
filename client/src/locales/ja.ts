@@ -266,7 +266,7 @@ export default {
     pageTitle: '語彙管理',
     createTitle: '語彙作成',
     editTitle: '語彙編集',
-    createBtn: '+ 語彙作成',
+    createBtn: '語彙作成',
     searchPlaceholder: '漢字/ひらがな/意味で検索...',
     allLevels: '全レベル',
     allStatuses: '全ステータス',
