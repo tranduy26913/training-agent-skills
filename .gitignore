@@ -29,10 +29,16 @@ npm-debug.log*
 # TypeScript
 *.tsbuildinfo
 
+# Playwright
+client/e2e/.auth/
+client/test-results/
+client/playwright-report/
+blob-report/
+
 # Coverage
 coverage/
-/client/playwright-report
 /client/test-results
+/client/e2e/.auth/
 /python-services/tests
 /python-services/workers/__pycache__
 /python-services/__pycache__

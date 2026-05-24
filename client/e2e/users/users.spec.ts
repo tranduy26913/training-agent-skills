@@ -1,4 +1,4 @@
-import { test, expect, ApiClient } from './fixtures';
+import { test, expect, ApiClient } from '../fixtures';
 
 const ADMIN_EMAIL = process.env.TEST_USER_EMAIL ?? 'admin@app.com';
 const ADMIN_PASSWORD = process.env.TEST_USER_PASSWORD ?? 'admin123';
@@ -164,14 +164,14 @@ test.describe('Edit User', () => {
   });
 
   test('edit form loads with existing user data', async ({ page }) => {
-    const formPage = new (await import('./pages/user-form-page')).UserFormPage(page, 'edit');
+    const formPage = new (await import('../pages/user-form-page')).UserFormPage(page, 'edit');
     await formPage.gotoEdit(seededId);
     await expect(formPage.nameInput).toHaveValue(`E2E Edit ${tag}`);
     await expect(formPage.emailInput).toHaveValue(seededEmail);
   });
 
   test('update navigates back to /users', async ({ page }) => {
-    const formPage = new (await import('./pages/user-form-page')).UserFormPage(page, 'edit');
+    const formPage = new (await import('../pages/user-form-page')).UserFormPage(page, 'edit');
     await formPage.gotoEdit(seededId);
     await formPage.fillName(`E2E Edited ${tag}`);
     await formPage.submit();
@@ -179,7 +179,7 @@ test.describe('Edit User', () => {
   });
 
   test('cancel from edit navigates back to /users', async ({ page }) => {
-    const formPage = new (await import('./pages/user-form-page')).UserFormPage(page, 'edit');
+    const formPage = new (await import('../pages/user-form-page')).UserFormPage(page, 'edit');
     await formPage.gotoEdit(seededId);
     await formPage.cancel();
     await expect(page).toHaveURL('/users');

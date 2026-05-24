@@ -40,6 +40,38 @@ npm run dev
 | `npm run db:migrate` | Run database migrations |
 | `npm run db:seed` | Seed the database |
 
+## E2E Tests (Playwright)
+
+All commands run from the `client/` directory.
+
+```bash
+cd client
+```
+
+| Command | Description |
+|---------|-------------|
+| `npm run test:e2e` | Chạy toàn bộ E2E tests, report HTML tự mở sau khi xong |
+| `npm run test:e2e:ui` | Mở Playwright UI mode (interactive) |
+| `npm run test:e2e:report` | Mở lại HTML report của lần chạy gần nhất |
+| `npx playwright test e2e/<feature>/` | Chạy E2E cho 1 tính năng cụ thể, report tự mở |
+
+### Chạy theo tính năng
+
+```bash
+# Vocabularies
+npx playwright test e2e/vocabularies/
+
+# Users
+npx playwright test e2e/users/
+
+# Một spec file cụ thể
+npx playwright test e2e/vocabularies/vocabulary-list.spec.ts
+```
+
+Report HTML được lưu tại `client/playwright-report/index.html` và tự mở trên trình duyệt sau mỗi lần chạy (môi trường local).
+
+---
+
 ## Python Services
 
 Background workers that process NotebookLM jobs (document ingestion, semantic queries, document deletion) from a MySQL-backed job queue.

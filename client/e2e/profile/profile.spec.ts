@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures';
+import { test, expect } from '../fixtures';
 
 // プロフィールE2Eテスト / Profile E2E tests
 // Note: These tests run with admin auth (from auth.setup.ts storage state)
