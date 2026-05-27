@@ -80,5 +80,6 @@ export function useVocabularies() {
     updateReportStatus,
     suggestTags,
     searchVocabularies,
+    search: searchVocabularies,
   };
 }
