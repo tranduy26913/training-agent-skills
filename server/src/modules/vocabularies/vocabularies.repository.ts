@@ -38,8 +38,9 @@ export async function findVocabularies(
   const params: any[] = [];
 
   if (search) {
-    conditions.push('MATCH(v.meaning_vi, v.hiragana, v.romaji, v.kanji) AGAINST(? IN BOOLEAN MODE)');
-    params.push(`${search}*`);
+    conditions.push('(v.meaning_vi LIKE ? OR v.hiragana LIKE ? OR v.romaji LIKE ? OR v.kanji LIKE ?)');
+    const term = `%${search}%`;
+    params.push(term, term, term, term);
   }
   if (level) {
     conditions.push('v.level = ?');
@@ -57,26 +58,26 @@ export async function findVocabularies(
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
   const countSql = `SELECT COUNT(*) as total FROM vocabularies v ${where}`;
-  const [countRows] = await pool.execute<any[]>(countSql, params);
+  const [countRows] = await pool.query<any[]>(countSql, params);
   const total: number = countRows[0].total;
 
   const dataSql = `
     SELECT
       v.*,
       IFNULL(
-        JSON_ARRAYAGG(DISTINCT t.name ORDER BY t.name),
+        (SELECT JSON_ARRAYAGG(t2.name)
+         FROM vocabulary_tags vt2
+         JOIN tags t2 ON t2.id = vt2.tag_id
+         WHERE vt2.vocabulary_id = v.id),
         JSON_ARRAY()
       ) as tags
     FROM vocabularies v
-    LEFT JOIN vocabulary_tags vt ON vt.vocabulary_id = v.id
-    LEFT JOIN tags t ON t.id = vt.tag_id
     ${where}
-    GROUP BY v.id
     ORDER BY v.${safeSortBy} ${safeSortOrder}
     LIMIT ? OFFSET ?
   `;
   const dataParams = [...params, pageSize, offset];
-  const [rows] = await pool.execute<VocabularyRow[]>(dataSql, dataParams);
+  const [rows] = await pool.query<VocabularyRow[]>(dataSql, dataParams);
 
   // JSON_ARRAYAGG文字列をパース / Parse tags JSON from DB
   const data = rows.map((row: any) => ({

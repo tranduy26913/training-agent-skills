@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures';
+import { test, expect } from '../fixtures';
 
 const ADMIN_EMAIL = process.env.TEST_USER_EMAIL ?? 'admin@app.com';
 const ADMIN_PASSWORD = process.env.TEST_USER_PASSWORD ?? 'admin123';

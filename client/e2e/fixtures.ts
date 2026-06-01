@@ -3,6 +3,7 @@ import { LoginPage } from './pages/login-page';
 import { UserListPage } from './pages/user-list-page';
 import { UserFormPage } from './pages/user-form-page';
 import { ProfilePage } from './pages/profile-page';
+import { VocabularyListPage, VocabularyFormPage } from './pages/vocabulary-page';
 
 export class ApiClient {
   private token: string | null = null;
@@ -52,6 +53,47 @@ export class ApiClient {
       headers: this.token ? { Authorization: `Bearer ${this.token}` } : {},
     });
   }
+
+  async createVocabulary(data: {
+    meaning_vi: string;
+    level: string;
+    status: string;
+    hiragana?: string;
+    romaji?: string;
+    kanji?: string;
+  }): Promise<{ id: number }> {
+    const payload = {
+      hiragana: '',
+      romaji: '',
+      kanji: '',
+      sino_vietnamese: '',
+      media_url: '',
+      note: '',
+      tags: [],
+      related_ids: [],
+      synonym_ids: [],
+      antonym_ids: [],
+      ...data,
+    };
+    const response = await fetch(`${this.baseURL}/api/vocabularies`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) throw new Error(`Create vocabulary failed: ${response.status}`);
+    const body: { id: number } = await response.json();
+    return body;
+  }
+
+  async deleteVocabulary(id: number): Promise<void> {
+    await fetch(`${this.baseURL}/api/vocabularies/${id}`, {
+      method: 'DELETE',
+      headers: this.token ? { Authorization: `Bearer ${this.token}` } : {},
+    });
+  }
 }
 
 type Fixtures = {
@@ -60,6 +102,8 @@ type Fixtures = {
   userFormPage: UserFormPage;
   profilePage: ProfilePage;
   api: ApiClient;
+  vocabListPage: VocabularyListPage;
+  vocabFormPage: VocabularyFormPage;
 };
 
 export const test = base.extend<Fixtures>({
@@ -82,6 +126,14 @@ export const test = base.extend<Fixtures>({
   api: async ({ baseURL }, use) => {
     const client = new ApiClient(baseURL ?? 'http://localhost:5173');
     await use(client);
+  },
+
+  vocabListPage: async ({ page }, use) => {
+    await use(new VocabularyListPage(page));
+  },
+
+  vocabFormPage: async ({ page }, use) => {
+    await use(new VocabularyFormPage(page));
   },
 });
 

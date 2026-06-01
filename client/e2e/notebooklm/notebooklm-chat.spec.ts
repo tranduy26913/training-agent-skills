@@ -2,8 +2,8 @@
  * E2E tests for NotebookLM Chat feature
  * NotebookLMチャット機能のE2Eテスト
  */
-import { test, expect } from './fixtures';
-import { ChatSessionListPage, ChatSessionCreatePage, ChatSessionEditPage } from './pages/chat-page';
+import { test, expect } from '../fixtures';
+import { ChatSessionListPage, ChatSessionCreatePage, ChatSessionEditPage } from '../pages/chat-page';
 
 const ADMIN_EMAIL = process.env.TEST_USER_EMAIL ?? 'admin@app.com';
 const ADMIN_PASSWORD = process.env.TEST_USER_PASSWORD ?? 'admin123';
