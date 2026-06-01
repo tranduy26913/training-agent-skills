@@ -112,7 +112,7 @@ describe('LearnLevelPage', () => {
   });
 
   // Spec case 4: ProgressBar shows correct percentage
-  it('shows correct progress percentage in LevelCard (known=45, total=120 → 37%)', () => {
+  it('shows correct progress percentage in LevelCard (known=45, total=120 → 38%)', () => {
     const store = useLearnStore();
     store.loadingStats = false;
     store.levelStats = [{ level: 'N5', total: 120, known: 45, learning: 20, new_count: 55 }];

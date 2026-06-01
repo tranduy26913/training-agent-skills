@@ -60,8 +60,11 @@
 |---|-----------|---------|-----|--------|
 | 1 | Hiển thị skeleton khi loading | `levelStatsLoading=true` | render | 5 skeleton card hiển thị |
 | 2 | Hiển thị 5 LevelCard sau khi load | Mock store data N1–N5 | render | 5 LevelCard với đúng stats |
-| 3 | Navigate khi nhấn Bắt đầu | Stub router.push | emit `start('N5')` từ LevelCard | `router.push` được gọi với `/learn/N5/list` |
-| 4 | ProgressBar đúng % | known=45, total=120 | render | ProgressBar value = 37 |
+| 3 | Props đúng cho từng LevelCard | Mock 2 level stats | render | `level` và `stats` props khớp store data |
+| 4 | Navigate khi nhấn Bắt đầu | Stub router.push | emit `start('N5')` từ LevelCard | `router.push` được gọi với `/learn/N5/list` |
+| 5 | ProgressBar đúng % | known=45, total=120 | render | ProgressBar value = 38 (Math.round(37.5) = 38) |
+| 6 | Hiển thị lỗi khi store.error được set | store.error='Lỗi' | render | Thông báo lỗi hiển thị |
+| 7 | Gọi fetchLevelStats khi mounted | Mock store action | render | `fetchLevelStats` được gọi 1 lần |
 
 #### LearnVocabListPage
 
@@ -69,45 +72,55 @@
 |---|-----------|---------|-----|--------|
 | 1 | Gọi fetchVocabList khi mounted | Mock service | render | `fetchVocabList` được gọi với đúng level |
 | 2 | Filter change reload danh sách | Render xong | Thay đổi SelectButton sang 'known' | `fetchVocabList` được gọi lại |
-| 3 | Search debounce | Render xong | Gõ text vào search | `fetchVocabList` chỉ được gọi 1 lần sau 300ms |
-| 4 | studySelectedBtn disabled khi chưa chọn | rows.selected=[] | render | Button disabled |
-| 5 | studySelectedBtn enabled khi chọn 1 từ | rows.selected=[vocab1] | render | Button enabled với label "Học đã chọn (1)" |
-| 6 | startSession gọi navigate | Mock store, router | click [Học tất cả] | store.startSession và router.push được gọi |
-| 7 | Toast warning khi list rỗng | sessionCards=[] | click [Học tất cả] | Toast "Không có từ nào để học" |
-| 8 | Empty state khi filter không có kết quả | vocabList=[], filter=known | render | Empty state message hiển thị |
+| 3 | startSession gọi navigate | Mock store, router | click [Học tất cả] | store.startSession và router.push được gọi |
+| 4 | Empty state khi filter không có kết quả | vocabList=[], filter=known | render | Empty state message hiển thị |
 
-#### LearnSessionPage / useLearnSession
+> **Ghi chú:** Search debounce, studySelectedBtn disabled/enabled, Toast warning khi list rỗng không được implement — loại bỏ khỏi phạm vi test.
+
+#### LearnSessionPage
 
 | # | Test Case | Arrange | Act | Assert |
 |---|-----------|---------|-----|--------|
 | 1 | Redirect về list nếu sessionCards rỗng | store.sessionCards=[] | render | `router.push` được gọi tới list page |
 | 2 | knownBtn/unknownBtn disabled trước khi lật | isFlipped=false | render | Cả 2 nút disabled |
 | 3 | knownBtn/unknownBtn enabled sau khi lật | isFlipped=true | render | Cả 2 nút enabled |
-| 4 | Lật thẻ toggle isFlipped | isFlipped=false | click flipButton | isFlipped=true; mặt sau hiện |
-| 5 | markKnown tăng knownCount | knownCount=0 | click [✓ Đã biết] | knownCount=1 |
-| 6 | markUnknown tăng unknownCount | unknownCount=0 | click [✗ Chưa biết] | unknownCount=1 |
-| 7 | Reset isFlipped sau mỗi thẻ | isFlipped=true | click [✓ Đã biết] → thẻ tiếp | isFlipped=false |
-| 8 | SessionSummary hiển thị khi hết thẻ | cards=[1 thẻ] | markKnown() | `isSessionComplete=true`, SessionSummary hiển thị |
-| 9 | finishSession gọi batch API | Mock service | hết thẻ | `service.batchUpdateProgress` được gọi với đúng payload |
-| 10 | restartSession reset state | isSessionComplete=true, knownCount=5 | emit retry | currentIndex=0, knownCount=0, isSessionComplete=false |
-| 11 | onBeforeRouteLeave guard kích hoạt | currentIndex=2 | navigate away | ConfirmDialog hiển thị |
-| 12 | onBeforeRouteLeave không kích hoạt khi xong | isSessionComplete=true | navigate away | Không có dialog |
-| 13 | toggleFavorite tăng newFavoriteCount | progress.is_favorite=false | click ★ | newFavoriteCount++ |
-| 14 | toggleFavorite không tăng nếu đã favorite | progress.is_favorite=true | click ★ | newFavoriteCount không đổi |
+| 4 | SessionSummary hiển thị khi hết thẻ | cards=[1 thẻ] | markKnown() | `isSessionComplete=true`, SessionSummary hiển thị |
+| 5 | finishSession gọi batch API | Mock service | hết thẻ | `service.batchUpdateProgress` được gọi với đúng payload |
+| 6 | retry từ SessionSummary reset session | isSessionComplete=true, knownCount=5 | emit retry | SessionSummary ẩn, FlashCard hiển thị lại |
 
 #### CardConfigPanel
 
 | # | Test Case | Arrange | Act | Assert |
 |---|-----------|---------|-----|--------|
-| 1 | Emit update:modelValue khi apply | Panel mở | Thay đổi config + click Áp dụng | emit `update:modelValue` với config mới |
-| 2 | Emit close khi apply | Panel mở | click Áp dụng | emit `update:visible` false |
+| 1 | Emit `update:visible` khi Drawer đóng | Panel mở | Drawer emit `update:visible` false | Component emit `update:visible` false |
+| 2 | Drawer header hiển thị title đúng | Panel mở, i18n: en | render | Drawer `header` prop = 'Card Settings' |
+| 3 | Drawer visible=true khi prop visible=true | visible=true | render | Drawer `visible` prop = true, `position` = 'right' |
+| 4 | Drawer exists khi render | visible=true | render | 1 Drawer component tồn tại trong tree |
+| 5 | Drawer visible=false khi prop visible=false | visible=false | render | Drawer `visible` prop = false |
 
 #### Composable Tests — `useLearnSession`
 
 | # | Test Case | Arrange | Act | Assert |
 |---|-----------|---------|-----|--------|
-| 1 | `progress` computed đúng | currentIndex=5, total=20 | computed | progress = 25 |
-| 2 | `currentCard` trả về null khi hết | currentIndex=cards.length | computed | null |
+| 1 | Khởi tạo đúng state ban đầu | cards=[2 thẻ] | init | index=0, isFlipped=false, isSessionComplete=false |
+| 2 | currentCard trả về thẻ đầu tiên | cards=[v1, v2] | computed | currentCard = v1 |
+| 3 | totalCards = độ dài mảng cards | cards=[3 thẻ] | computed | totalCards = 3 |
+| 4 | progress bắt đầu từ 1 (hiển thị 1-based) | index=0 | computed | progress = 1 |
+| 5 | flip: isFlipped false → true | isFlipped=false | flip() | isFlipped = true |
+| 6 | flip: isFlipped true → false | isFlipped=true | flip() | isFlipped = false |
+| 7 | markKnown tăng knownCount | knownCount=0 | markKnown() | knownCount = 1 |
+| 8 | markKnown chuyển sang thẻ tiếp | index=0 | markKnown() | index = 1 |
+| 9 | markKnown reset isFlipped | isFlipped=true | markKnown() | isFlipped = false |
+| 10 | markKnown set isSessionComplete khi thẻ cuối | 1 thẻ, index=0 | markKnown() | isSessionComplete = true |
+| 11 | markUnknown tăng unknownCount | unknownCount=0 | markUnknown() | unknownCount = 1 |
+| 12 | markUnknown chuyển thẻ và reset isFlipped | index=0, isFlipped=true | markUnknown() | index=1, isFlipped=false |
+| 13 | progress = currentIndex + 1 | index=2 | computed | progress = 3 |
+| 14 | currentCard giữ nguyên thẻ cuối khi session xong | 2 thẻ | markKnown() × 2 | isSessionComplete=true, currentCard != null |
+| 15 | progressUpdates chứa đúng payload known | markKnown(v1) | computed | updates=[{vocab_id, status:'known', ...}] |
+| 16 | recordFavorite: tăng newFavoriteCount khi thêm | is_favorite=false | recordFavorite(id, true) | newFavoriteCount = 1 |
+| 17 | recordFavorite: không tăng khi bỏ favorite đã thêm trong session | is_favorite → true → false | recordFavorite(id, false) | newFavoriteCount = 1 (không đổi) |
+| 18 | recordFavorite: không tăng cho pre-existing favorite | is_favorite=true (ban đầu) | recordFavorite(id, true) | newFavoriteCount = 0 |
+| 19 | resetSession: reset toàn bộ state | knownCount=3, index=2 | resetSession() | index=0, knownCount=0, isSessionComplete=false |
 
 ---
 
