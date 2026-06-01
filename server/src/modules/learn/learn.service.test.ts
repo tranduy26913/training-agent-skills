@@ -125,10 +125,9 @@ describe('LearnService', () => {
   // batchUpdateProgress
   // ============================
   describe('batchUpdateProgress', () => {
-    it('calls upsert and incrementLearnCount for batch updates', async () => {
+    it('calls batchUpsertProgressWithLearnCount for batch updates', async () => {
       // Arrange
-      vi.mocked(repo.batchUpsertProgress).mockResolvedValue(2);
-      vi.mocked(repo.incrementLearnCount).mockResolvedValue();
+      vi.mocked(repo.batchUpsertProgressWithLearnCount).mockResolvedValue(2);
       const updates = [
         { vocabulary_id: 1, status: 'known' as const },
         { vocabulary_id: 2, status: 'learning' as const },
@@ -139,20 +138,18 @@ describe('LearnService', () => {
 
       // Assert
       expect(result).toBe(2);
-      expect(repo.batchUpsertProgress).toHaveBeenCalledWith(userId, updates);
-      expect(repo.incrementLearnCount).toHaveBeenCalledWith([1, 2]);
+      expect(repo.batchUpsertProgressWithLearnCount).toHaveBeenCalledWith(userId, updates);
     });
 
-    it('does not call incrementLearnCount when updates is empty', async () => {
+    it('does not call transaction function when updates is empty', async () => {
       // Arrange
-      vi.mocked(repo.batchUpsertProgress).mockResolvedValue(0);
-      vi.mocked(repo.incrementLearnCount).mockResolvedValue();
+      vi.mocked(repo.batchUpsertProgressWithLearnCount).mockResolvedValue(0);
 
       // Act
       await service.batchUpdateProgress(userId, []);
 
       // Assert
-      expect(repo.incrementLearnCount).not.toHaveBeenCalled();
+      expect(repo.batchUpsertProgressWithLearnCount).not.toHaveBeenCalled();
     });
   });
 

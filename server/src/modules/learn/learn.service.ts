@@ -45,15 +45,13 @@ export class LearnService {
   }
 
   /**
-   * バッチ進捗更新 / Batch upsert progress and increment learn_count
+   * バッチ進捗更新 / Batch upsert progress and increment learn_count atomically
    * Called at end of a flashcard session with all results
    */
   async batchUpdateProgress(userId: number, updates: UpdateProgressDto[]): Promise<number> {
     if (updates.length === 0) return 0;
 
-    const count = await repo.batchUpsertProgress(userId, updates);
-    const vocabularyIds = updates.map((u) => u.vocabulary_id);
-    await repo.incrementLearnCount(vocabularyIds);
+    const count = await repo.batchUpsertProgressWithLearnCount(userId, updates);
 
     logger.info(`[LEARN] user:${userId} batch updated ${count} words`);
     return count;

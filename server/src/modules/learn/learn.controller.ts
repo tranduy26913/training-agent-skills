@@ -3,7 +3,6 @@ import { Response } from 'express';
 import { LearnService } from './learn.service';
 import { sendSuccess, handleError } from '../../utils/response.util';
 import type { AuthenticatedRequest } from '../../types/express.d';
-import type { GetVocabulariesQuery } from './learn.validation';
 import type { LearnVocabFilter } from '../../models/learn.model';
 
 /**
@@ -38,13 +37,13 @@ export class LearnController {
   async getVocabularies(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.userId;
-      const query = req.query as unknown as GetVocabulariesQuery;
+      const q = req.query;
 
       const filter: LearnVocabFilter = {
-        level: query.level,
-        progressStatus: query.progress_status ?? 'all',
-        page: query.page ?? 1,
-        limit: query.limit ?? 50,
+        level: q.level as string,
+        progressStatus: (q.progress_status as string) ?? 'all',
+        page: q.page ? Number(q.page) : 1,
+        limit: q.limit ? Math.min(Number(q.limit), 200) : 50,
       };
 
       const result = await this.service.getVocabularies(userId, filter);

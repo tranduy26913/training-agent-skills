@@ -1,5 +1,5 @@
 // 学習リポジトリ / FlashCard learning repository — parameterized SQL queries
-import type { RowDataPacket } from 'mysql2/promise';
+import type { RowDataPacket, PoolConnection } from 'mysql2/promise';
 import { pool } from '../../database/connection';
 import type {
   LevelStatsDto,
@@ -125,43 +125,50 @@ export async function getVocabularies(
 // ==============================================================
 
 /**
- * バッチ進捗アップサート / Batch upsert user vocabulary progress records
- * Uses INSERT ... ON DUPLICATE KEY UPDATE for efficiency
+ * バッチ進捗アップサートとlearn_count加算をトランザクションで実行
+ * Batch upsert progress AND increment learn_count atomically in one transaction
  */
-export async function batchUpsertProgress(
+export async function batchUpsertProgressWithLearnCount(
   userId: number,
   updates: UpdateProgressDto[]
 ): Promise<number> {
   if (updates.length === 0) return 0;
 
-  // バルクINSERT値を構築 / Build bulk INSERT value rows
-  const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
-  const values = updates.map((u) => [userId, u.vocabulary_id, u.status, 1, now]);
+  const conn: PoolConnection = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
 
-  const [result] = await pool.query<RowDataPacket[]>(
-    `INSERT INTO user_vocabulary_progress
-       (user_id, vocabulary_id, status, review_count, last_reviewed)
-     VALUES ?
-     ON DUPLICATE KEY UPDATE
-       status        = VALUES(status),
-       review_count  = review_count + 1,
-       last_reviewed = VALUES(last_reviewed),
-       updated_at    = NOW()`,
-    [values]
-  );
+    // バルクINSERT / Bulk upsert progress records
+    const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    const values = updates.map((u) => [userId, u.vocabulary_id, u.status, 1, now]);
 
-  return updates.length;
-}
+    await conn.query(
+      `INSERT INTO user_vocabulary_progress
+         (user_id, vocabulary_id, status, review_count, last_reviewed)
+       VALUES ?
+       ON DUPLICATE KEY UPDATE
+         status        = VALUES(status),
+         review_count  = review_count + 1,
+         last_reviewed = VALUES(last_reviewed),
+         updated_at    = NOW()`,
+      [values]
+    );
 
-/**
- * 語彙のlearn_countを加算 / Increment learn_count for multiple vocabularies in one query
- */
-export async function incrementLearnCount(vocabularyIds: number[]): Promise<void> {
-  if (vocabularyIds.length === 0) return;
-  await pool.query(
-    `UPDATE vocabularies SET learn_count = learn_count + 1 WHERE id IN (?)`,
-    [vocabularyIds]
-  );
+    // learn_countを一括加算 / Increment learn_count for all vocabularies in batch
+    const vocabularyIds = updates.map((u) => u.vocabulary_id);
+    await conn.query(
+      `UPDATE vocabularies SET learn_count = learn_count + 1 WHERE id IN (?)`,
+      [vocabularyIds]
+    );
+
+    await conn.commit();
+    return updates.length;
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
 }
 
 // ==============================================================
