@@ -5,6 +5,8 @@ import { sendSuccess, handleError } from '../../utils/response.util';
 import type { AuthenticatedRequest } from '../../types/express.d';
 import type { LearnVocabFilter } from '../../models/learn.model';
 
+const MAX_VOCAB_PAGE_SIZE = 200;
+
 /**
  * 学習コントローラークラス / FlashCard learning controller
  * Handles HTTP requests for the /api/learn/* endpoints
@@ -43,7 +45,7 @@ export class LearnController {
         level: q.level as string,
         progressStatus: (q.progress_status as string) ?? 'all',
         page: q.page ? Number(q.page) : 1,
-        limit: q.limit ? Math.min(Number(q.limit), 200) : 50,
+        limit: q.limit ? Math.min(Number(q.limit), MAX_VOCAB_PAGE_SIZE) : 50,
       };
 
       const result = await this.service.getVocabularies(userId, filter);

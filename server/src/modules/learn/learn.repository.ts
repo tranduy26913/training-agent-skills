@@ -9,6 +9,9 @@ import type {
 } from '../../models/learn.model';
 import type { VocabularyLevel } from '../../models/vocabularies.model';
 
+// ページサイズ上限 / Maximum allowed page size for vocabulary queries
+const MAX_VOCAB_PAGE_SIZE = 200;
+
 // ==============================================================
 // Level statistics query
 // ==============================================================
@@ -55,7 +58,7 @@ export async function getVocabularies(
   filter: { level: VocabularyLevel; progressStatus: string; page: number; limit: number }
 ): Promise<{ data: LearnVocabularyItem[]; total: number }> {
   const { level, progressStatus, page, limit } = filter;
-  const pageSize = Math.min(limit, 200);
+  const pageSize = Math.min(limit, MAX_VOCAB_PAGE_SIZE);
   const offset = (page - 1) * pageSize;
 
   // 進捗フィルター条件 / Build progress status filter condition
