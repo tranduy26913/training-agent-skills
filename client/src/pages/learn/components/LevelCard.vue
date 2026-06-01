@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import ProgressBar from 'primevue/progressbar';
 import type { LevelStatsDto } from '@/types/learn.types';
@@ -14,6 +15,8 @@ const emit = defineEmits<{
   start: [level: string];
 }>();
 
+const { t } = useI18n();
+
 // 既知語彙の割合 / Percentage of known vocabularies
 const knownPercent = computed(() =>
   props.stats.total > 0 ? Math.round((props.stats.known / props.stats.total) * 100) : 0,
@@ -25,7 +28,7 @@ const knownPercent = computed(() =>
     <!-- レベルバッジ / Level badge -->
     <div class="flex items-center justify-between">
       <span class="text-2xl font-bold text-primary">{{ level }}</span>
-      <span class="text-sm text-surface-500">{{ stats.total }} 語 / words</span>
+      <span class="text-sm text-surface-500">{{ stats.total }} {{ t('learn.level.words') }}</span>
     </div>
 
     <!-- 進捗バー / Progress bar -->
@@ -33,14 +36,14 @@ const knownPercent = computed(() =>
 
     <!-- 統計 / Stats row -->
     <div class="flex justify-between text-sm">
-      <span class="text-green-600">✓ {{ stats.known }} 習得</span>
-      <span class="text-yellow-500">↻ {{ stats.learning }} 学習中</span>
-      <span class="text-surface-400">✦ {{ stats.new_count }} 未学習</span>
+      <span class="text-green-600">{{ t('learn.level.known') }} {{ stats.known }}</span>
+      <span class="text-yellow-500">{{ t('learn.level.learning') }} {{ stats.learning }}</span>
+      <span class="text-surface-400">{{ t('learn.level.newCount') }} {{ stats.new_count }}</span>
     </div>
 
     <!-- 開始ボタン / Start button -->
     <Button
-      :label="`${level} を学ぶ`"
+      :label="t('learn.level.studyButton', { level })"
       icon="pi pi-play"
       class="w-full"
       @click="emit('start', level)"

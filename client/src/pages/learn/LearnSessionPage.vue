@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { shallowRef, onMounted } from 'vue';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
@@ -20,6 +21,7 @@ const router = useRouter();
 const confirm = useConfirm();
 const toast = useToast();
 const store = useLearnStore();
+const { t } = useI18n();
 
 const level = route.params.level as JlptLevel;
 const mode = (route.query.mode as 'all' | 'unknown') ?? 'unknown';
@@ -42,11 +44,11 @@ onBeforeRouteLeave((_to, _from, next) => {
   const s = session.value;
   if (s && s.currentIndex.value > 0 && !s.isSessionComplete.value) {
     confirm.require({
-      message: 'セッションを中断しますか？ / Quit the session?',
-      header: '確認 / Confirm',
+      message: t('learn.session.quitConfirm'),
+      header: t('common.confirm'),
       icon: 'pi pi-exclamation-triangle',
-      acceptLabel: '終了する / Quit',
-      rejectLabel: 'キャンセル / Cancel',
+      acceptLabel: t('learn.session.quit'),
+      rejectLabel: t('common.cancel'),
       accept: () => next(),
       reject: () => next(false),
     });
@@ -85,7 +87,7 @@ async function saveProgress(): Promise<void> {
   const s = session.value;
   if (s && s.progressUpdates.value.length > 0) {
     await store.batchUpdateProgress(s.progressUpdates.value);
-    toast.add({ severity: 'success', summary: '保存完了', detail: '進捗を保存しました', life: 3000 });
+    toast.add({ severity: 'success', summary: t('learn.session.saveSuccess'), detail: t('learn.session.saveDetail'), life: 3000 });
   }
 }
 
@@ -114,12 +116,12 @@ function handleBackToList(): void {
 
     <!-- ヘッダー / Header -->
     <div class="mb-4 flex items-center justify-between">
-      <h1 class="text-xl font-bold">{{ level }} フラッシュカード</h1>
+      <h1 class="text-xl font-bold">{{ t('learn.session.pageTitle', { level }) }}</h1>
       <Button
         icon="pi pi-cog"
         text
         rounded
-        aria-label="Card settings"
+        :aria-label="t('learn.session.configAlt')"
         @click="session && (session.configVisible.value = true)"
       />
     </div>
@@ -131,8 +133,8 @@ function handleBackToList(): void {
 
     <!-- 語彙がない場合 / Empty state -->
     <div v-else-if="store.vocabularies.length === 0" class="py-12 text-center text-surface-500">
-      <p>このレベルの学習済み以外の語彙がありません。</p>
-      <Button label="一覧へ戻る" class="mt-4" @click="handleBackToList" />
+      <p>{{ t('learn.session.noVocabs') }}</p>
+      <Button :label="t('learn.session.backToList')" class="mt-4" @click="handleBackToList" />
     </div>
 
     <!-- セッション完了 / Session complete: show summary -->
@@ -165,7 +167,7 @@ function handleBackToList(): void {
       <!-- アクションボタン / Known / Unknown buttons (enabled only after flip) -->
       <div class="mt-6 flex justify-center gap-4">
         <Button
-          label="要復習 / Review"
+          :label="t('learn.session.markUnknown')"
           icon="pi pi-times"
           severity="danger"
           outlined
@@ -173,7 +175,7 @@ function handleBackToList(): void {
           @click="handleUnknown"
         />
         <Button
-          label="知っている / Known"
+          :label="t('learn.session.markKnown')"
           icon="pi pi-check"
           severity="success"
           :disabled="!session.isFlipped.value"

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
@@ -14,17 +15,18 @@ import type { JlptLevel, ProgressStatus } from '@/types/learn.types';
 const route = useRoute();
 const router = useRouter();
 const store = useLearnStore();
+const { t } = useI18n();
 
 const level = route.params.level as JlptLevel;
 
 // 進捗フィルター / Progress status filter
 const progressFilter = ref<'all' | ProgressStatus>('all');
-const filterOptions = [
-  { label: 'すべて / All', value: 'all' },
-  { label: '未学習 / New', value: 'new' },
-  { label: '学習中 / Learning', value: 'learning' },
-  { label: '習得済 / Known', value: 'known' },
-];
+const filterOptions = computed(() => [
+  { label: t('learn.vocabList.filterAll'), value: 'all' },
+  { label: t('learn.vocabList.filterNew'), value: 'new' },
+  { label: t('learn.vocabList.filterLearning'), value: 'learning' },
+  { label: t('learn.vocabList.filterKnown'), value: 'known' },
+]);
 
 const page = ref(1);
 
@@ -77,9 +79,9 @@ function statusSeverity(status: ProgressStatus | null): 'success' | 'warn' | 'se
 }
 
 function statusLabel(status: ProgressStatus | null): string {
-  if (status === 'known') return '習得済';
-  if (status === 'learning') return '学習中';
-  return '未学習';
+  if (status === 'known') return t('learn.vocabList.statusKnown');
+  if (status === 'learning') return t('learn.vocabList.statusLearning');
+  return t('learn.vocabList.statusNew');
 }
 </script>
 
@@ -88,12 +90,12 @@ function statusLabel(status: ProgressStatus | null): string {
     <!-- ヘッダー / Header -->
     <div class="mb-6 flex items-center justify-between">
       <div>
-        <h1 class="text-3xl font-bold">{{ level }} 語彙一覧</h1>
+        <h1 class="text-3xl font-bold">{{ t('learn.vocabList.pageTitle', { level }) }}</h1>
         <p v-if="levelStat" class="text-surface-500">
-          {{ levelStat.total }} 語 — 習得 {{ levelStat.known }} / 学習中 {{ levelStat.learning }} / 未学習 {{ levelStat.new_count }}
+          {{ levelStat.total }} {{ t('learn.level.words') }} — {{ t('learn.level.known') }} {{ levelStat.known }} / {{ t('learn.level.learning') }} {{ levelStat.learning }} / {{ t('learn.level.newCount') }} {{ levelStat.new_count }}
         </p>
       </div>
-      <Button icon="pi pi-arrow-left" text label="レベル選択へ" @click="router.push({ name: 'LearnLevel' })" />
+      <Button icon="pi pi-arrow-left" text :label="t('learn.vocabList.backToLevel')" @click="router.push({ name: 'LearnLevel' })" />
     </div>
 
     <!-- フィルター + セッション開始ボタン / Filters and start buttons -->
@@ -106,8 +108,8 @@ function statusLabel(status: ProgressStatus | null): string {
         @change="handleFilterChange"
       />
       <div class="ml-auto flex gap-2">
-        <Button label="すべて学習 / Study All" icon="pi pi-play" outlined @click="startSession('all')" />
-        <Button label="未習得を学習 / Study Unknown" icon="pi pi-play" @click="startSession('unknown')" />
+        <Button :label="t('learn.vocabList.studyAll')" icon="pi pi-play" outlined @click="startSession('all')" />
+        <Button :label="t('learn.vocabList.studyUnknown')" icon="pi pi-play" @click="startSession('unknown')" />
       </div>
     </div>
 
@@ -122,11 +124,11 @@ function statusLabel(status: ProgressStatus | null): string {
       lazy
       @page="handlePageChange"
     >
-      <Column field="kanji" header="漢字" />
-      <Column field="hiragana" header="ひらがな" />
-      <Column field="romaji" header="Romaji" />
-      <Column field="meaning_vi" header="Nghĩa" />
-      <Column header="進捗 / Progress">
+      <Column field="kanji" :header="t('learn.vocabList.colKanji')" />
+      <Column field="hiragana" :header="t('learn.vocabList.colHiragana')" />
+      <Column field="romaji" :header="t('learn.vocabList.colRomaji')" />
+      <Column field="meaning_vi" :header="t('learn.vocabList.colMeaning')" />
+      <Column :header="t('learn.vocabList.colProgress')">
         <template #body="{ data }">
           <Tag
             :severity="statusSeverity(data.progress?.status ?? null)"
@@ -134,7 +136,7 @@ function statusLabel(status: ProgressStatus | null): string {
           />
         </template>
       </Column>
-      <Column header="お気に入り">
+      <Column :header="t('learn.vocabList.colFavorite')">
         <template #body="{ data }">
           <i
             :class="data.progress?.is_favorite ? 'pi pi-star-fill text-yellow-400' : 'pi pi-star text-surface-300'"

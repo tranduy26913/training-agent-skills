@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import Skeleton from 'primevue/skeleton';
 import { useLearnStore } from '@/stores/learn.store';
 import LevelCard from './components/LevelCard.vue';
@@ -8,6 +9,7 @@ import LevelCard from './components/LevelCard.vue';
 // レベル選択ページ / JLPT level selection page
 const router = useRouter();
 const store = useLearnStore();
+const { t } = useI18n();
 
 onMounted(() => {
   store.fetchLevelStats();
@@ -20,8 +22,8 @@ function handleStart(level: string): void {
 
 <template>
   <div class="mx-auto max-w-4xl px-4 py-8">
-    <h1 class="mb-2 text-3xl font-bold">学習レベルを選択</h1>
-    <p class="mb-6 text-surface-500">Choose your JLPT level to start studying</p>
+    <h1 class="mb-2 text-3xl font-bold">{{ t('learn.level.pageTitle') }}</h1>
+    <p class="mb-6 text-surface-500">{{ t('learn.level.pageSubtitle') }}</p>
 
     <!-- エラー表示 / Error state -->
     <p v-if="store.error" class="text-red-500">{{ store.error }}</p>

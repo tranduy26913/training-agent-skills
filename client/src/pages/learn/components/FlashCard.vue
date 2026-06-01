@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import type { LearnVocabularyItem, CardConfig } from '@/types/learn.types';
 
@@ -40,35 +41,33 @@ const backFields = computed(() => {
 });
 
 const isFavorite = computed(() => props.vocab.progress?.is_favorite ?? false);
+
+const { t } = useI18n();
 </script>
 
 <template>
   <div
     class="card-scene cursor-pointer select-none"
-    style="perspective: 1000px;"
     @click="emit('flip')"
   >
     <div
       class="card-inner relative transition-transform duration-500"
       :class="{ 'rotate-y-180': isFlipped }"
-      style="transform-style: preserve-3d; min-height: 220px;"
     >
       <!-- 表面 / Front face -->
       <div
         class="card-face absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-2xl border border-surface-200 bg-surface-0 p-6 shadow-md dark:border-surface-700 dark:bg-surface-900"
-        style="backface-visibility: hidden;"
       >
         <span v-if="frontFields.kanji" class="text-5xl font-bold text-primary">{{ vocab.kanji }}</span>
         <span v-if="frontFields.hiragana" class="text-2xl text-surface-600">{{ vocab.hiragana }}</span>
         <span v-if="frontFields.romaji" class="text-lg italic text-surface-500">{{ vocab.romaji }}</span>
         <span v-if="frontFields.meaning_vi" class="text-xl text-surface-700 dark:text-surface-300">{{ vocab.meaning_vi }}</span>
-        <p class="mt-2 text-sm text-surface-400">タップして裏返す / Tap to flip</p>
+        <p class="mt-2 text-sm text-surface-400">{{ t('learn.card.tapToFlip') }}</p>
       </div>
 
       <!-- 裏面 / Back face -->
       <div
-        class="card-face absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-2xl border border-primary-200 bg-primary-50 p-6 shadow-md dark:border-primary-700 dark:bg-primary-950"
-        style="backface-visibility: hidden; transform: rotateY(180deg);"
+        class="card-face card-back absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-2xl border border-primary-200 bg-primary-50 p-6 shadow-md dark:border-primary-700 dark:bg-primary-950"
       >
         <span v-if="backFields.kanji" class="text-5xl font-bold text-primary">{{ vocab.kanji }}</span>
         <span v-if="backFields.hiragana" class="text-2xl text-surface-600">{{ vocab.hiragana }}</span>
@@ -91,3 +90,22 @@ const isFavorite = computed(() => props.vocab.progress?.is_favorite ?? false);
     </div>
   </div>
 </template>
+
+<style scoped>
+.card-scene {
+  perspective: 1000px;
+}
+
+.card-inner {
+  transform-style: preserve-3d;
+  min-height: 220px;
+}
+
+.card-face {
+  backface-visibility: hidden;
+}
+
+.card-back {
+  transform: rotateY(180deg);
+}
+</style>
