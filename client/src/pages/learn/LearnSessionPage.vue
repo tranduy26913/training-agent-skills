@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, watch } from 'vue';
+import { shallowRef, onMounted } from 'vue';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
@@ -24,31 +24,23 @@ const store = useLearnStore();
 const level = route.params.level as JlptLevel;
 const mode = (route.query.mode as 'all' | 'unknown') ?? 'unknown';
 
-// セッションを初期化（語彙ロード後） / Session is initialized after vocabularies are loaded
-let session = useLearnSession([]);
-
-// 語彙ロード完了後にセッションを再初期化 / Re-initialize session when vocabularies load
-watch(
-  () => store.vocabularies,
-  (vocabs) => {
-    if (vocabs.length > 0) {
-      session = useLearnSession(vocabs);
-    }
-  },
-  { immediate: false },
-);
+// セッションをshallowRefで管理 — nullは語彙ロード前の状態 / Hold session as reactive ref
+// Using shallowRef ensures template reactively tracks session object reassignment
+const session = shallowRef<ReturnType<typeof useLearnSession> | null>(null);
 
 onMounted(async () => {
   const progressStatus = mode === 'unknown' ? 'new' : 'all';
-  await store.fetchVocabularies({ level, progress_status: progressStatus === 'new' ? 'new' : 'all', page: 1, limit: 200 });
+  await store.fetchVocabularies({ level, progress_status: progressStatus, page: 1, limit: 200 });
   if (store.vocabularies.length > 0) {
-    session = useLearnSession(store.vocabularies);
+    // 語彙ロード後にセッションを初期化 / Initialize session after vocabularies are ready
+    session.value = useLearnSession(store.vocabularies);
   }
 });
 
 // セッション中の離脱確認 / Route leave guard — confirm before leaving mid-session
 onBeforeRouteLeave((_to, _from, next) => {
-  if (session.currentIndex.value > 0 && !session.isSessionComplete.value) {
+  const s = session.value;
+  if (s && s.currentIndex.value > 0 && !s.isSessionComplete.value) {
     confirm.require({
       message: 'セッションを中断しますか？ / Quit the session?',
       header: '確認 / Confirm',
@@ -65,29 +57,34 @@ onBeforeRouteLeave((_to, _from, next) => {
 
 // カードをめくる / Flip the current card
 function handleFlip(): void {
-  session.flip();
+  session.value?.flip();
 }
 
 // 「知っている」ボタン / Mark current card as known
 async function handleKnown(): Promise<void> {
-  session.markKnown();
-  if (session.isSessionComplete.value) {
+  const s = session.value;
+  if (!s) return;
+  s.markKnown();
+  if (s.isSessionComplete.value) {
     await saveProgress();
   }
 }
 
 // 「要復習」ボタン / Mark current card for review
 async function handleUnknown(): Promise<void> {
-  session.markUnknown();
-  if (session.isSessionComplete.value) {
+  const s = session.value;
+  if (!s) return;
+  s.markUnknown();
+  if (s.isSessionComplete.value) {
     await saveProgress();
   }
 }
 
 // セッション完了時に進捗保存 / Save progress to backend when session ends
 async function saveProgress(): Promise<void> {
-  if (session.progressUpdates.value.length > 0) {
-    await store.batchUpdateProgress(session.progressUpdates.value);
+  const s = session.value;
+  if (s && s.progressUpdates.value.length > 0) {
+    await store.batchUpdateProgress(s.progressUpdates.value);
     toast.add({ severity: 'success', summary: '保存完了', detail: '進捗を保存しました', life: 3000 });
   }
 }
@@ -96,13 +93,13 @@ async function saveProgress(): Promise<void> {
 async function handleToggleFavorite(vocabularyId: number): Promise<void> {
   const result = await store.toggleFavorite(vocabularyId);
   if (result !== null) {
-    session.recordFavorite(vocabularyId, result.is_favorite);
+    session.value?.recordFavorite(vocabularyId, result.is_favorite);
   }
 }
 
 // リトライ / Retry the session with same cards
 function handleRetry(): void {
-  session.resetSession();
+  session.value?.resetSession();
 }
 
 // 一覧へ戻る / Return to vocab list
@@ -123,7 +120,7 @@ function handleBackToList(): void {
         text
         rounded
         aria-label="Card settings"
-        @click="session.configVisible.value = true"
+        @click="session && (session.configVisible.value = true)"
       />
     </div>
 
@@ -140,14 +137,14 @@ function handleBackToList(): void {
 
     <!-- セッション完了 / Session complete: show summary -->
     <SessionSummary
-      v-else-if="session.isSessionComplete.value"
-      :results="session.sessionResults.value"
+      v-else-if="session?.isSessionComplete.value"
+      :results="session!.sessionResults.value"
       @retry="handleRetry"
       @back-to-list="handleBackToList"
     />
 
     <!-- セッション進行中 / Active session -->
-    <template v-else>
+    <template v-else-if="session">
       <!-- 進捗バー / Progress bar -->
       <SessionProgress
         :current="session.progress.value"
@@ -187,6 +184,7 @@ function handleBackToList(): void {
 
     <!-- カード設定パネル / Card config drawer -->
     <CardConfigPanel
+      v-if="session"
       v-model:visible="session.configVisible.value"
       v-model:config="session.config.value"
     />
