@@ -1,15 +1,15 @@
 import { BaseRepository } from '../../database/base.repository';
 import { pool } from '../../database/connection';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2/promise';
-import type { UserRow, UserFilters, AuditLogEntry, AuditLogRow } from '../../models/users.model';
+import type { User, UserFilters, AuditLogDTO, AuditLog } from '../../models/users.model';
 
-export class UsersRepository extends BaseRepository<UserRow> {
+export class UsersRepository extends BaseRepository<User> {
   constructor() {
     super('users');
   }
 
   // フィルター付きユーザー一覧取得 / Find all users with dynamic filters
-  async findAllWithFilters(filters: UserFilters): Promise<{ data: UserRow[]; total: number }> {
+  async findAllWithFilters(filters: UserFilters): Promise<{ data: User[]; total: number }> {
     const conditions: string[] = [];
     const params: unknown[] = [];
 
@@ -56,7 +56,7 @@ export class UsersRepository extends BaseRepository<UserRow> {
     const sortColumn = ALLOWED_SORT_FIELDS[filters.sortBy || ''] || 'u.created_at';
     const sortDir = filters.sortOrder === 'asc' ? 'ASC' : 'DESC';
 
-    const [rows] = await pool.query<UserRow[]>(
+    const [rows] = await pool.query<User[]>(
       `SELECT u.id, u.name, u.email, u.role, u.status, u.avatar,
               u.last_login_at, u.points, u.note, u.birthday,
               u.created_at, u.updated_at
@@ -73,8 +73,8 @@ export class UsersRepository extends BaseRepository<UserRow> {
   }
 
   // IDでユーザー取得（パスワード除外） / Find user by ID excluding password
-  async findByIdWithoutPassword(id: number): Promise<UserRow | null> {
-    const [rows] = await pool.query<UserRow[]>(
+  async findByIdWithoutPassword(id: number): Promise<User | null> {
+    const [rows] = await pool.query<User[]>(
       'SELECT id, name, email, role, status, avatar, last_login_at, points, note, birthday, created_at, updated_at FROM `users` WHERE id = ?',
       [id]
     );
@@ -82,18 +82,18 @@ export class UsersRepository extends BaseRepository<UserRow> {
   }
 
   // メールでユーザー検索 / Find user by email
-  async findByEmail(email: string, excludeId?: number): Promise<UserRow | null> {
+  async findByEmail(email: string, excludeId?: number): Promise<User | null> {
     const query = excludeId
       ? 'SELECT * FROM `users` WHERE email = ? AND id != ? LIMIT 1'
       : 'SELECT * FROM `users` WHERE email = ? LIMIT 1';
     const params = excludeId ? [email, excludeId] : [email];
 
-    const [rows] = await pool.query<UserRow[]>(query, params);
+    const [rows] = await pool.query<User[]>(query, params);
     return rows[0] || null;
   }
 
   // 監査ログ作成 / Create audit log entry
-  async createAuditLog(entry: AuditLogEntry): Promise<void> {
+  async createAuditLog(entry: AuditLogDTO): Promise<void> {
     await pool.query<ResultSetHeader>(
       'INSERT INTO `audit_logs` (`admin_id`, `target_user_id`, `action`, `changed_fields`) VALUES (?, ?, ?, ?)',
       [entry.admin_id, entry.target_user_id, entry.action, JSON.stringify(entry.changed_fields ?? null)]
@@ -101,8 +101,8 @@ export class UsersRepository extends BaseRepository<UserRow> {
   }
 
   // 監査ログ取得 / Get audit logs for a target user
-  async getAuditLogs(targetUserId: number, limit = 20): Promise<AuditLogRow[]> {
-    const [rows] = await pool.query<AuditLogRow[]>(
+  async getAuditLogs(targetUserId: number, limit = 20): Promise<AuditLog[]> {
+    const [rows] = await pool.query<AuditLog[]>(
       `SELECT al.*, u.name as admin_name
        FROM \`audit_logs\` al
        JOIN \`users\` u ON al.admin_id = u.id

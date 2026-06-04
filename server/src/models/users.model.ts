@@ -10,7 +10,7 @@ import type {
 } from './common.model';
 
 // ユーザーデータ行 / User database row
-export interface UserRow extends RowDataPacket {
+export interface User extends RowDataPacket {
   id: number;
   name: string;
   email: string;
@@ -37,7 +37,7 @@ export interface UserFilters extends PaginationParams, SortParams {
 }
 
 // 監査ログエントリ入力 / Audit log create input
-export interface AuditLogEntry {
+export interface AuditLogDTO {
   admin_id: number;
   target_user_id: number;
   action: AuditAction;
@@ -45,7 +45,7 @@ export interface AuditLogEntry {
 }
 
 // 監査ログ行 / Audit log database row
-export interface AuditLogRow extends RowDataPacket {
+export interface AuditLog extends RowDataPacket {
   id: number;
   admin_id: number;
   target_user_id: number;

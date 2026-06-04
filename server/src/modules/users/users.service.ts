@@ -1,7 +1,7 @@
 import { UsersRepository } from './users.repository';
 import { hashPassword } from '../../utils/hash.util';
 import { ServiceError } from '../../models/common.model';
-import type { UserRow, UserFilters, AuditLogRow } from '../../models/users.model';
+import type { User, UserFilters, AuditLog } from '../../models/users.model';
 import type { PaginatedResult } from '../../models/common.model';
 import type { CreateUserInput, UpdateUserInput } from './users.validation';
 
@@ -24,7 +24,7 @@ export class UsersService {
 
   // 変更フィールド差分取得 / Build changed fields diff between old and new data
   buildChangedFields(
-    oldUser: UserRow,
+    oldUser: User,
     newData: UpdateUserInput,
   ): Record<string, { old: unknown; new: unknown }> | null {
     // [UPDATE] include note and birthday in tracked fields
@@ -32,7 +32,7 @@ export class UsersService {
     const changes: Record<string, { old: unknown; new: unknown }> = {};
 
     for (const field of fields) {
-      const oldVal = oldUser[field as keyof UserRow];
+      const oldVal = oldUser[field as keyof User];
       const newVal = newData[field];
       // newDataにフィールドが含まれない場合はスキップ / Skip if field not in update input
       if (newVal === undefined) continue;
@@ -51,7 +51,7 @@ export class UsersService {
   }
 
   // ユーザー一覧取得 / Get paginated users with filters
-  async getUsers(filters: UserFilters): Promise<PaginatedResult<UserRow>> {
+  async getUsers(filters: UserFilters): Promise<PaginatedResult<User>> {
     const page = filters.page || 1;
     const limit = filters.limit || 20;
     const { data, total } = await this.repository.findAllWithFilters(filters);
@@ -68,7 +68,7 @@ export class UsersService {
   }
 
   // ユーザー取得 / Get single user by ID
-  async getUser(id: number): Promise<UserRow> {
+  async getUser(id: number): Promise<User> {
     const user = await this.repository.findByIdWithoutPassword(id);
     if (!user) {
       throw new ServiceError('User not found', 404);
@@ -77,7 +77,7 @@ export class UsersService {
   }
 
   // ユーザー作成 / Create a new user
-  async createUser(data: CreateUserInput, adminId: number): Promise<UserRow> {
+  async createUser(data: CreateUserInput, adminId: number): Promise<User> {
     const existing = await this.repository.findByEmail(data.email);
     if (existing) {
       throw new ServiceError('Email already exists', 409);
@@ -95,7 +95,7 @@ export class UsersService {
       note: data.note ?? null,
       birthday: data.birthday ?? null,
       password: hashedPassword,
-    } as Partial<UserRow>);
+    } as Partial<User>);
 
     await this.repository.createAuditLog({
       admin_id: adminId,
@@ -108,7 +108,7 @@ export class UsersService {
   }
 
   // ユーザー更新 / Update an existing user
-  async updateUser(id: number, data: UpdateUserInput, adminId: number): Promise<UserRow> {
+  async updateUser(id: number, data: UpdateUserInput, adminId: number): Promise<User> {
     const oldUser = await this.getUser(id);
 
     const existing = await this.repository.findByEmail(data.email, id);
@@ -126,7 +126,7 @@ export class UsersService {
       status: data.status,
       note: data.note ?? null,
       birthday: data.birthday ?? null,
-    } as Partial<UserRow>);
+    } as Partial<User>);
 
     await this.repository.createAuditLog({
       admin_id: adminId,
@@ -157,7 +157,7 @@ export class UsersService {
   }
 
   // ユーザーアクティビティ取得 / Get audit logs for a user
-  async getUserActivity(id: number, limit = 20): Promise<AuditLogRow[]> {
+  async getUserActivity(id: number, limit = 20): Promise<AuditLog[]> {
     await this.getUser(id);
     return this.repository.getAuditLogs(id, limit);
   }
