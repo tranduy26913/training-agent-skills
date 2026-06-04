@@ -24,23 +24,19 @@ When writing any spec deliverable, the output MUST follow the multi-file spec pa
 If any required section, required file, or required ownership rule is missing, the spec is considered invalid and must be corrected before presenting to the user.
 </TEMPLATE-COMPLIANCE-GATE>
 
-## Anti-Pattern: "This Is Too Simple To Need A Design"
-
-Every project goes through this process. A todo list, a single-function utility, a config change — all of them. "Simple" projects are where unexamined assumptions cause the most wasted work. The design can be short (a few sentences for truly simple projects), but you MUST present it and get approval.
-
 ## Checklist
 
 You MUST create a task for each of these items and complete them in order:
 
 1. **Define type of the requirement** — Determine if the requirement is to create a new specification or to request a change. If the user already has a source, there's no need to ask again. If it's a change request, it must be added according to rule **Change Request**.
-1. **Explore project context** — check files, docs, recent commits
-2. **Ask clarifying questions, Combine all the questions and ask them all at once, use tool vscode_askQuestions to gather answers** — Understand purpose/constraints/success criteria
+1. **Explore project context** — check files, docs. Do not check e2e, test
+2. **Ask clarifying questions, Combine all the questions and ask them all at once, use #tool:vscode/askQuestions to gather answers** — Understand purpose/constraints/success criteria
 3. **Propose 2-3 approaches** — with trade-offs and your recommendation
-4. **Present design** — in sections scaled to their complexity, get user approval after each section
-5. **Write design doc** — save to `docs/<topic>/specs/<topic>-design/` with `index.md` as the canonical entry point. Use Vietnamese for the content, while keeping the headers/section titles in English. Follow [modular-spec-package-template](reference/modular-spec-package-template.md) with 100% structural compliance.
-6. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
-7. **User reviews written spec** — ask user to review the spec file before proceeding
-8. **Transition to implementation** — invoke writing-plans skill to create implementation plan
+<!-- 4. **Present design** — in sections scaled to their complexity, get user approval after each section -->
+4. **Write design doc** — save to `docs/<topic>/specs/<topic>-design/` with `index.md` as the canonical entry point. Use Vietnamese for the content, while keeping the headers/section titles in English. Follow [modular-spec-package-template](reference/modular-spec-package-template.md) with 100% structural compliance.
+<!-- 6. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below) -->
+5. **User reviews written spec** — ask user to review the spec file before proceeding
+6. **Transition to implementation** — invoke writing-plans skill to create implementation plan
 
 **Template of `<topic>-design`: (mandatory, strict)**
 - The specification file must be formatted in well formed Markdown.
@@ -49,7 +45,7 @@ You MUST create a task for each of these items and complete them in order:
   - `01-backend.md` — DB schema, DTOs, API endpoints, validation rules, error handling
   - `02-frontend.md` — wireframes, component tree, screen item specs, composable/store, TS types
   - `03-behavior.md` — page events & handlers, UI states, confirm dialogs, navigation flows, sequence diagrams
-    > **Optional**: For features with complex user-system interactions (multiple actors, alternative flows, exception handling), invoke `use-case-writer` skill first to generate structured UC specs (13-field format). Save output to `docs/<topic>/specs/UC-XX_name.md` and reference from this file.
+    <!-- > **Optional**: For features with complex user-system interactions (multiple actors, alternative flows, exception handling), invoke `use-case-writer` skill first to generate structured UC specs (13-field format). Save output to `docs/<topic>/specs/UC-XX_name.md` and reference from this file. -->
   - `04-quality.md` — per-page UT test cases (Arrange/Act/Assert), backend integration tests, performance, security, accessibility, logging
 - Structural compliance is mandatory: section hierarchy, ordering, and package/file ownership from the template are required and cannot be modified.
 - If project-specific content does not apply to a required section, keep that section and explicitly mark it as "Not applicable" with a short reason.
@@ -83,10 +79,7 @@ digraph brainstorming {
     "Explore project context" [shape=box];
     "Ask clarifying questions" [shape=box];
     "Propose 2-3 approaches" [shape=box];
-    "Present design sections" [shape=box];
-    "User approves design?" [shape=diamond];
     "Write design doc" [shape=box];
-    "Spec self-review\n(fix inline)" [shape=box];
     "User reviews spec?" [shape=diamond];
     "Invoke writing-plans skill" [shape=doublecircle];
     "Suggest next steps" [shape=box];
@@ -95,12 +88,8 @@ digraph brainstorming {
 
     "Explore project context" -> "Ask clarifying questions";
     "Ask clarifying questions" -> "Propose 2-3 approaches";
-    "Propose 2-3 approaches" -> "Present design sections";
-    "Present design sections" -> "User approves design?";
-    "User approves design?" -> "Present design sections" [label="no, revise"];
-    "User approves design?" -> "Write design doc" [label="yes"];
-    "Write design doc" -> "Spec self-review\n(fix inline)";
-    "Spec self-review\n(fix inline)" -> "User reviews spec?";
+    "Propose 2-3 approaches" -> "Write design doc";
+    "Write design doc" -> "User reviews spec?";
     "User reviews spec?" -> "Write design doc" [label="changes requested"];
     "User reviews spec?" -> "Suggest next steps" [label="approved"];
 }
@@ -126,14 +115,6 @@ digraph brainstorming {
 - Present options conversationally with your recommendation and reasoning
 - Lead with your recommended option and explain why
 
-**Presenting the design:**
-
-- Once you believe you understand what you're building, present the design
-- Scale each section to its complexity: a few sentences if straightforward, up to 200-300 words if nuanced
-- Ask after each section whether it looks right so far
-- Cover: architecture, components, data flow, error handling, testing
-- Be ready to go back and clarify if something doesn't make sense
-
 **Design for isolation and clarity:**
 
 - Break the system into smaller units that each have one clear purpose, communicate through well-defined interfaces, and can be understood and tested independently
@@ -156,7 +137,7 @@ digraph brainstorming {
 - Use elements-of-style:writing-clearly-and-concisely skill if available
 - Commit the design document to git
 
-**Spec Self-Review:**
+**Spec Checklist:**
 After writing the spec document, look at it with fresh eyes:
 
 1. **Placeholder scan:** Any "TBD", "TODO", incomplete sections, or vague requirements? Fix them.

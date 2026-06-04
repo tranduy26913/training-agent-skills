@@ -1,4 +1,4 @@
----
+﻿---
 name: playwright-e2e
 description: Plan and build comprehensive Playwright E2E test suites with Page Object Model, authentication state persistence, custom fixtures, visual regression, and CI integration. Uses interview-driven planning to clarify critical user flows, auth strategy, test data approach, and parallelization before writing any tests. Also runs as a standalone post-implementation E2E writer — reads 04-quality.md to generate a test case file, then writes Playwright tests from that plan.
 context: fork
@@ -130,7 +130,108 @@ Write a concrete implementation plan covering:
 
 Present via ExitPlanMode for user approval.
 
-## Phase 4: Execute
+## Phase 4: Write Test Cases (Markdown Review)
+
+**Before writing any code**, generate a test case specification file in Markdown and wait for user review.
+
+### Step 4.1: Create test case spec file
+
+Create the file at:
+
+```
+docs/<feature>/specs/<feature>-design/05-e2e-testcases.md
+```
+
+If no `docs/` structure exists, create at:
+
+```
+e2e/specs/<feature>-testcases.md
+```
+
+Use this exact format:
+
+```markdown
+# E2E Test Cases — <Feature Name>
+
+## Overview
+- **Feature**: <feature name>
+- **Flows from interview**: <list of flows the user selected>
+- **Auth strategy**: <how tests will authenticate>
+- **Total test cases**: <N>
+
+## Spec files
+
+| File | Covers |
+|------|--------|
+| `e2e/<feature>/auth.spec.ts` | Login, logout, session expiry |
+| `e2e/<feature>/crud.spec.ts` | Create, read, update, delete flows |
+
+## Test Cases
+
+### TC-001: <Title>
+- **Suite**: `<spec file>`
+- **Preconditions**: <auth state, seed data or existing data to use, starting URL>
+- **Steps**:
+  1. Navigate to `<URL>`
+  2. <User action — fill field / click button / select option>
+  3. <Next action>
+  4. ...
+- **Expected outcome**: <observable result — what the user sees at the end>
+- **screenshotStep labels**: `<step label 1>`, `<step label 2>`, ...
+  - ⚠ Toast steps: capture screenshot immediately when toast is visible (before auto-dismiss)
+  - ⚠ Error steps: capture screenshot after error element becomes visible
+- [ ] Written
+
+### TC-002: <Title>
+...
+```
+
+### Step 4.2: Rules for writing test cases
+
+- **One TC = one user-observable outcome** — not a technical assertion
+- **Group by spec file** — keep related flows in the same file
+- **Cover all flows** from the interview answers (Phase 2)
+- **No duplication** — check existing `*.spec.ts` files first; skip already-covered scenarios
+- **Preconditions must be explicit** — auth role, data source (seed vs. existing), starting URL
+- **Steps must be detailed** — list every discrete user action (fill field, click button, select option, wait for response). Steps in the spec become the guide for `screenshotStep` labels in the code.
+- **Steps must be human-readable** — write steps in plain language that a non-technical person can follow (e.g., "Click the 'Create Vocabulary' button" not "Click `[data-testid='vocab-create-btn']`"). Never include CSS selectors, `data-testid` values, or code snippets inside step descriptions. Reserve technical locator details for the `.spec.ts` implementation only.
+- **`screenshotStep` labels** — pre-define a label for every meaningful step; each label becomes a screenshot caption in the HTML report. Plan labels that cover the full user flow — not just the final outcome.
+- **Toast screenshots** — mark steps that produce a toast notification with ⚠; these must be captured before the toast auto-dismisses (see `screenshotStep` patterns in Phase 5).
+- **Error screenshots** — mark steps that produce field validation errors with ⚠; capture screenshot after the error element is visible.
+- **Existing data for read/edit/delete** — unless the test directly validates the *creation* flow, prefer pointing to pre-existing stable data (e.g., a seeded admin user or a record created in `beforeAll`) rather than seeding per-test. Seed only when the data must be unique or will be mutated/deleted.
+- **Coverage target**: at minimum, one happy-path TC and one failure/edge-case TC per flow
+
+### Step 4.3: Ask user to review
+
+After creating the file, **STOP and ask the user to review**:
+
+```
+AskUserQuestion:
+  "I've created the test case spec at <path>. Please review the test cases before I start writing the Playwright tests."
+  Options:
+    - "Looks good, proceed with writing the tests"
+    - "I want to add / modify some test cases first"
+    - "Remove TC-xxx: <reason>"
+    - "Add a test case: <description>"
+```
+
+Do NOT write any `.spec.ts` files until the user approves the spec.
+
+### Step 4.4: Apply review feedback
+
+For each change requested:
+- Add / remove / modify TCs in the Markdown file
+- Re-show the updated list briefly (title + expected outcome only)
+- Ask for confirmation again if changes are substantial
+
+Once approved, mark the spec with:
+```markdown
+> ✅ Approved by user on <date>. Proceeding to Phase 5.
+```
+
+---
+
+## Phase 5: Execute
 
 After approval, implement following this order:
 
@@ -141,13 +242,18 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
+  // All artifacts (screenshots, traces, videos) and the HTML report go into
+  // one directory. Feature subfolders come automatically from spec file paths:
+  //   e2e/users/users.spec.ts        → test-results/users-users-TC001-chromium/
+  //   e2e/vocabularies/*.spec.ts     → test-results/vocabularies-*-TC001-chromium/
+  outputDir: './test-results',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI
-    ? [['html', { open: 'never' }], ['github']]
-    : [['html', { open: 'on-failure' }]],
+    ? [['html', { open: 'never', outputFolder: 'playwright-report' }], ['github']]
+    : [['html', { open: 'always', outputFolder: 'playwright-report' }]],
 
   use: {
     baseURL: process.env.BASE_URL || 'http://localhost:3000',
@@ -162,26 +268,11 @@ export default defineConfig({
       name: 'setup',
       testMatch: /.*\.setup\.ts/,
     },
+    // Chrome only — install additional browsers with `npx playwright install` if cross-browser is needed
     {
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        storageState: 'e2e/.auth/user.json',
-      },
-      dependencies: ['setup'],
-    },
-    {
-      name: 'firefox',
-      use: {
-        ...devices['Desktop Firefox'],
-        storageState: 'e2e/.auth/user.json',
-      },
-      dependencies: ['setup'],
-    },
-    {
-      name: 'mobile',
-      use: {
-        ...devices['iPhone 14'],
         storageState: 'e2e/.auth/user.json',
       },
       dependencies: ['setup'],
@@ -473,23 +564,146 @@ test.describe('Resource CRUD', () => {
 });
 ```
 
+### Step 6: Screenshot step helper
+
+Wrap **every meaningful user action** with `screenshotStep()` — it captures a full-page screenshot and attaches it to the HTML report. Each screenshot documents one step of the user flow.
+
+**Coverage rule**: every interaction the user performs (fill a field, click a button, see a result, see an error, see a toast) gets its own `screenshotStep`. The test report should read like a visual walkthrough of the entire flow.
+
+**Do NOT wrap auxiliary setup steps** (login, navigate-to-page, API seeding) — call those directly so the report only shows meaningful evidence screenshots.
+
+```typescript
+// e2e/helpers/screenshot-step.ts
+import { type Page, type TestInfo } from '@playwright/test';
+
+/**
+ * Wraps a test action, then captures a full-page screenshot and attaches it
+ * to the Playwright HTML report.
+ *
+ * Use for every meaningful user action (fill, click, assert result, assert error,
+ * assert toast). Skip auxiliary steps such as login or page navigation.
+ *
+ * @param captureImmediately - Set true when the step asserts a transient element
+ *   (toast notification, temporary banner) — captures the screenshot right after
+ *   the action resolves, before any settle delay, so the element is still visible.
+ */
+export async function screenshotStep(
+  page: Page,
+  testInfo: TestInfo,
+  stepName: string,
+  action: () => Promise<void>,
+  options?: { captureImmediately?: boolean },
+): Promise<void> {
+  try {
+    await action();
+    // For toasts and other transient elements, capture immediately before they disappear.
+    // For normal steps, wait briefly so animations/transitions finish.
+    if (!options?.captureImmediately) {
+      await page.waitForTimeout(300);
+    }
+    const screenshot = await page.screenshot({ fullPage: true });
+    await testInfo.attach(stepName, { body: screenshot, contentType: 'image/png' });
+  } catch (error) {
+    const screenshot = await page.screenshot({ fullPage: true });
+    await testInfo.attach(`❌ ${stepName}`, { body: screenshot, contentType: 'image/png' });
+    throw error;
+  }
+}
+```
+
+**Pattern — standard action step (fill field, click button):**
+
+```typescript
+await screenshotStep(page, testInfo, 'Fill name and description', async () => {
+  await page.getByTestId('name-input').fill('My Resource');
+  await page.getByTestId('description-input').fill('Test description');
+});
+```
+
+**Pattern — toast notification (⚠ capture before auto-dismiss):**
+
+```typescript
+await screenshotStep(page, testInfo, 'Save → success toast', async () => {
+  await page.getByTestId('save-btn').click();
+  // Wait until the toast is visible — screenshot is taken immediately after (captureImmediately)
+  await expect(page.locator('.p-toast')).toBeVisible({ timeout: 5000 });
+}, { captureImmediately: true });
+// After the toast step, assert the post-toast state in a separate step
+await screenshotStep(page, testInfo, 'Redirected to list page', async () => {
+  await expect(page).toHaveURL('/resources');
+});
+```
+
+**Pattern — field validation error (⚠ capture after error appears):**
+
+```typescript
+await screenshotStep(page, testInfo, 'Submit → field validation errors', async () => {
+  await page.getByTestId('save-btn').click();
+  // Wait until the error element is visible before the screenshot is taken
+  await expect(page.getByTestId('name-error')).toBeVisible({ timeout: 5000 });
+  await expect(page.getByTestId('email-error')).toBeVisible();
+});
+```
+
+**Pattern — full CRUD happy path (all steps covered):**
+
+```typescript
+test('TC-007: create resource — happy path', async ({ page }, testInfo) => {
+  // Auxiliary setup — no screenshotStep
+  await page.goto('/resources/create');
+
+  await screenshotStep(page, testInfo, 'Create page loaded', async () => {
+    await expect(page.getByTestId('create-page')).toBeVisible();
+  });
+
+  await screenshotStep(page, testInfo, 'Fill required fields', async () => {
+    await page.getByTestId('name-input').fill('My Resource');
+    await page.getByTestId('email-input').fill('res@test.com');
+  });
+
+  await screenshotStep(page, testInfo, 'Save → success toast', async () => {
+    await page.getByTestId('save-btn').click();
+    await expect(page.locator('.p-toast')).toBeVisible({ timeout: 5000 });
+  }, { captureImmediately: true });
+
+  await screenshotStep(page, testInfo, 'Redirected to list — new item visible', async () => {
+    await expect(page).toHaveURL('/resources');
+    await expect(page.getByText('My Resource')).toBeVisible();
+  });
+});
+```
+
+Screenshots attached via `screenshotStep()` appear automatically in the **Attachments** tab of the standard Playwright HTML report (`playwright-report/index.html`). No custom reporter needed.
+
+---
+
 ## Directory structure reference
 
 ```
 e2e/
 ├── .auth/
-│   └── user.json            # Saved auth state (gitignored)
-├── fixtures.ts              # Custom test fixtures and API client
+│   └── user.json                       # Saved auth state (gitignored)
+├── helpers/
+│   └── screenshot-step.ts              # screenshotStep() helper
+├── fixtures.ts                         # Custom test fixtures and API client
 ├── pages/
-│   ├── login-page.ts        # Login page object
-│   ├── dashboard-page.ts    # Dashboard page object
-│   └── resource-page.ts     # Resource detail page object
-├── auth.setup.ts            # Global auth setup (runs once)
-├── auth.spec.ts             # Authentication tests
-├── dashboard.spec.ts        # Dashboard tests
-├── crud.spec.ts             # CRUD operation tests
-└── visual.spec.ts           # Visual regression tests (optional)
-playwright.config.ts         # Playwright configuration
+│   ├── login-page.ts                   # Shared page objects
+│   └── ...
+├── auth.setup.ts                       # Global auth setup (runs once)
+├── auth/
+│   └── auth.spec.ts                    # Authentication tests
+├── users/
+│   └── users.spec.ts                   # User management tests
+├── vocabularies/
+│   ├── vocabulary-list.spec.ts         # Vocabulary list tests
+│   ├── vocabulary-create.spec.ts       # Vocabulary create tests
+│   └── vocabulary-edit.spec.ts         # Vocabulary edit tests
+└── <feature>/
+    └── <feature>-<flow>.spec.ts        # Feature spec files — one folder per feature
+playwright-report/                      # HTML report (gitignored)
+│   └── index.html                      # Opens automatically after test run (open: 'always')
+test-results/                           # Test artifacts — screenshots, traces, videos (gitignored)
+playwright.config.ts                    # Playwright configuration
 ```
 
 ## Best practices
@@ -527,20 +741,105 @@ await expect(page).toHaveURL('/dashboard');
 await expect(page.getByTestId('spinner')).toBeHidden();
 ```
 
-### Isolate test data
-Each test should create its own data and clean up after:
+### Isolate test data — seed only when necessary
+
+For **create** tests: always seed or fill in the UI (the creation itself is the subject of the test).
+
+For **edit / delete / read-detail** tests: prefer pointing to **pre-existing stable data** (e.g., a record seeded once in `beforeAll`, a well-known admin account, or a fixture record that is never deleted). Only seed per-test when the record must be unique or will be mutated/deleted in a way that cannot be rolled back.
 
 ```typescript
-test('edit resource', async ({ api, page }) => {
-  // Arrange — seed via API
-  const resource = await api.createResource({ name: 'Test' });
-
-  // Act
-  await page.goto(`/resources/${resource.id}`);
-  // ... test logic ...
-
-  // Cleanup (also runs on failure via afterEach)
+// ✅ Read/view test — use existing data, no seed needed
+test('TC-010: edit page pre-fills existing vocabulary', async ({ page }) => {
+  // Use a well-known record ID that is always present in the test DB
+  await page.goto('/vocabularies/1/edit');
+  await expect(page.getByTestId('meaning-vi-input')).not.toBeEmpty();
 });
+
+// ✅ Edit test — seed only when mutation must be isolated
+test('TC-011: update meaning_vi and save', async ({ api, page }) => {
+  const item = await api.createVocabulary({ meaning_vi: `E2E ${uid()}`, ... });
+  try {
+    await page.goto(`/vocabularies/${item.id}/edit`);
+    // ... test logic ...
+  } finally {
+    await api.deleteVocabulary(item.id).catch(() => {});
+  }
+});
+
+// ✅ Delete test — seed so deletion doesn't destroy stable shared data
+test('TC-005: delete vocabulary', async ({ api, page }) => {
+  const item = await api.createVocabulary({ meaning_vi: `E2E Delete ${uid()}`, ... });
+  // Seed here because we will delete it — don't delete production/stable data
+  ...
+});
+```
+
+**Decision guide for seeding:**
+
+| Test type | Mutates data? | Use existing? | Seed? |
+|-----------|---------------|---------------|-------|
+| List / search / filter | No | ✅ Yes | Only if list might be empty |
+| View detail / edit page load | No | ✅ Yes | No |
+| Update (save changes) | Yes | ❌ No | ✅ Yes — isolate the mutation |
+| Delete | Yes (destroys) | ❌ No | ✅ Yes — never delete shared data |
+| Create | N/A | N/A | N/A — form under test |
+
+### Screenshot every step of the flow
+
+Every meaningful user interaction must have its own `screenshotStep`. The test report should be a visual walkthrough that a reviewer can follow without reading code.
+
+```typescript
+// ✅ Every action documented
+await screenshotStep(page, testInfo, 'Search input filled', async () => {
+  await page.getByTestId('search-input').fill('hello');
+});
+await screenshotStep(page, testInfo, 'Search results loaded', async () => {
+  await expect(page.getByTestId('result-row').first()).toBeVisible();
+});
+
+// ❌ Multiple actions squashed — unclear which step failed and which state was captured
+await screenshotStep(page, testInfo, 'Search and see results', async () => {
+  await page.getByTestId('search-input').fill('hello');
+  await page.getByRole('button', { name: 'Search' }).click();
+  await expect(page.getByTestId('result-row').first()).toBeVisible();
+});
+```
+
+### Capture toasts before auto-dismiss
+
+Always use `captureImmediately: true` when the step asserts a toast or any other element that auto-hides:
+
+```typescript
+// ✅ Correct — screenshot taken immediately when toast is visible
+await screenshotStep(page, testInfo, 'Success toast shown', async () => {
+  await page.getByTestId('save-btn').click();
+  await expect(page.locator('.p-toast')).toBeVisible({ timeout: 5000 });
+}, { captureImmediately: true });
+
+// ❌ Wrong — 300ms settle delay may run after the toast has already dismissed
+await screenshotStep(page, testInfo, 'Success toast shown', async () => {
+  await page.getByTestId('save-btn').click();
+  await expect(page.locator('.p-toast')).toBeVisible({ timeout: 5000 });
+});
+```
+
+### Capture field errors explicitly
+
+When testing validation, assert the error element is visible inside the `screenshotStep` action so the screenshot captures the error state:
+
+```typescript
+// ✅ Error visible in screenshot
+await screenshotStep(page, testInfo, 'Submit → required field errors', async () => {
+  await page.getByTestId('save-btn').click();
+  await expect(page.getByTestId('name-error')).toBeVisible({ timeout: 5000 });
+});
+
+// ❌ Error state not visible — screenshot taken before error renders
+await page.getByTestId('save-btn').click();
+await screenshotStep(page, testInfo, 'Submitted form', async () => {
+  // empty action — no assertion, error may not be visible yet
+});
+await expect(page.getByTestId('name-error')).toBeVisible();
 ```
 
 ### Tag tests for selective runs
@@ -570,14 +869,17 @@ blob-report/
 - [ ] Auth setup saves storageState and all test projects depend on it
 - [ ] Page objects use role-based locators (`getByRole`, `getByLabel`, `getByText`)
 - [ ] No `waitForTimeout()` calls — only wait for elements, URLs, or responses
-- [ ] Tests create and clean up their own data (no shared mutable state)
+- [ ] Edit/delete tests use existing stable data where possible; only seed when mutation/deletion requires isolation
+- [ ] Every meaningful user action is wrapped in its own `screenshotStep()` — full flow visible in the report
+- [ ] Toast steps use `{ captureImmediately: true }` so the screenshot is taken before the toast disappears
+- [ ] Error steps assert the error element inside the `screenshotStep` action so the error is visible in the screenshot
 - [ ] Trace, screenshot, and video are captured on failure for debugging
 - [ ] `.auth/` directory is in `.gitignore`
-- [ ] `npx playwright test` passes locally before pushing
+- [ ] `npx playwright test` passes locally and `playwright-report/index.html` shows screenshots in Attachments
 
 ---
 
-## Phase 5: Standalone Post-Implementation E2E Writer
+## Phase 6: Standalone Post-Implementation E2E Writer
 
 Use this phase when invoked **independently after implementation tasks are complete** — skip Phases 1–4 (setup wizard) entirely.
 
@@ -614,10 +916,18 @@ The file must list **every E2E test case** to be written. Use this format:
 ## Test Cases
 
 ### TC-001: <Test case title>
-- **Flow**: <User action sequence>
-- **Preconditions**: <Auth state, seed data needed>
-- **Expected outcome**: <What should be true at the end>
+- **Preconditions**: <Auth state, existing data to use OR seed data needed>
+- **Steps**:
+  1. Navigate to `<URL>`
+  2. <Exact user action — fill field / click button / select option>
+  3. <Next action>
+  4. ...
+- **Expected outcome**: <What the user sees at the end>
+- **screenshotStep labels**: `<label 1>`, `<label 2>`, ...
+  - ⚠ `<label>` — toast step (use `captureImmediately: true`)
+  - ⚠ `<label>` — field error step
 - **Spec file**: `e2e/<feature>/<file>.spec.ts`
+- [ ] Written
 
 ### TC-002: ...
 ```
@@ -626,6 +936,9 @@ Rules for generating test cases:
 - **No duplication**: Skip any test case already covered in existing `*.spec.ts` files
 - **Full coverage**: Include every scenario from the E2E section of `04-quality.md`
 - **One test case = one user-observable outcome** (not a step)
+- **Detailed steps**: List every discrete action — fill field, click button, wait for response, see result. Steps guide the `screenshotStep` labels in the code.
+- **Plan screenshot labels upfront**: Every step maps to a `screenshotStep` label. Mark toast and error steps with ⚠.
+- **Seed data rule**: For list/filter/view/edit-load tests — prefer existing stable data; only seed for mutation tests (update, delete) or when uniqueness is required.
 - Group related cases under a shared spec file
 
 ### Step 3 — Write Playwright tests from test case plan
@@ -634,9 +947,12 @@ For each test case in `05-e2e-testcases.md`:
 
 1. **Locate or create the spec file** listed in `TC-xxx → Spec file`
 2. **Write the test** following Playwright best practices (see Best practices section above):
-   - Use role-based locators (`getByRole`, `getByLabel`, `getByText`)
+   - Use role-based locators (`getByRole`, `getByLabel`, `getByText`) or `getByTestId`
    - No `waitForTimeout()` — wait for elements, URLs, or API responses
-   - Seed test data via API fixtures in `beforeEach`; clean up in `afterEach`
+   - For edit/delete tests: use existing stable data when possible; seed only when the test mutates or destroys the record
+   - Wrap every meaningful user action in its own `screenshotStep()` — the report must show the full flow
+   - Use `{ captureImmediately: true }` for steps that assert toasts or other transient elements
+   - Assert error elements inside the `screenshotStep` action so the screenshot captures the error state
    - Re-use existing Page Objects from `e2e/pages/` if they cover the page
    - Create new Page Object if one doesn't exist for this page
 3. **Authenticate** using `storageState` from `e2e/.auth/user.json` (default)

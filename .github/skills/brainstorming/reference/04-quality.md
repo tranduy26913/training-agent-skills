@@ -4,7 +4,6 @@ title: [Feature] - Quality & Operations
 version: [e.g., 1.0]
 author: [Team or Owner]
 date: [YYYY-MM-DD]
-status: [Draft | Review | Approved]
 ---
 
 # [Feature] - Quality & Operations
@@ -162,42 +161,4 @@ status: [Draft | Review | Approved]
 
 ---
 
-## 4. Accessibility (a11y)
-
-| Requirement | Detail |
-|-------------|--------|
-| Keyboard navigation | All form fields and buttons accessible via Tab key |
-| Screen reader labels | All inputs have `aria-label` or associated `<label>` |
-| Error announcements | Validation errors announced via `aria-live` regions |
-| Focus management | After modal close or page nav, focus returns to meaningful element |
-| Color contrast | All text meets WCAG 2.1 AA contrast ratio (≥ 4.5:1) |
-| Table semantics | Use proper `<th>` with `scope` for table headers |
-
----
-
-## 5. Logging & Audit
-
-### 5.1 Audit Log Events
-
-| Action | Logged Fields |
-|--------|--------------|
-| CREATE [resource] | `entity_id`, `performed_by`, `timestamp`, `new_values` |
-| UPDATE [resource] | `entity_id`, `performed_by`, `timestamp`, `old_values`, `new_values` |
-| DELETE [resource] | `entity_id`, `performed_by`, `timestamp` |
-
-### 5.2 Application Logs
-
-| Level | When to Log |
-|-------|------------|
-| `INFO` | Successful API responses (create, update, delete) |
-| `WARN` | Validation errors, failed login attempts |
-| `ERROR` | Unhandled exceptions, database failures |
-
-### 5.3 Audit Log Storage
-
-- Table: `audit_logs` (existing or new)
-- Retention: [e.g., 90 days / indefinite]
-- Access: Viewable by [Admin role] via [OptionalViewer] panel on edit page
-
----
 ```

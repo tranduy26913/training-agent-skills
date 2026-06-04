@@ -4,7 +4,6 @@ title: [Feature Design Title]
 version: [e.g., 1.0]
 author: [Team or Owner]
 date: [YYYY-MM-DD]
-status: [Draft | Review | Approved]
 ---
 
 # [Feature Design Title]
@@ -42,9 +41,6 @@ Describe the main goal of this feature and its intended users.
 ---
 
 ## 2. Architecture Overview
-
-### 2.1 System Architecture
-
 ```text
 [Client Application]
       |
@@ -61,26 +57,6 @@ Describe the main goal of this feature and its intended users.
 [Database]
   - Existing tables
   - New tables
-```
-
-### 2.2 Data Model Summary
-
-#### [Main Table] (Existing)
-```sql
-[table_name] {
-  id: INT (PRIMARY KEY)
-  ...
-  created_at: TIMESTAMP
-  updated_at: TIMESTAMP
-}
-```
-
-#### [New Table] (NEW)
-```sql
-[table_name] {
-  id: INT (PRIMARY KEY)
-  ...
-}
 ```
 
 ---

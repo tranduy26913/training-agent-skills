@@ -3,7 +3,6 @@ title: User Management - Frontend
 version: 1.2
 author: Admin Team
 date: 2026-05-17
-status: Approved
 ---
 
 # User Management — Frontend
@@ -209,74 +208,44 @@ UserEditPage
 ## 5. Composable
 
 ### useUsers.ts (`pages/users/composables/`)
-
-Thin API wrappers sử dụng `apiClient`:
-
-```typescript
-export function useUsers() {
-  const getUsers    = (filters: UserFilters) => apiClient.get('/api/users', { params: filters })
-  const getUser     = (id: number)           => apiClient.get(`/api/users/${id}`)
-  const createUser  = (data: CreateUserDto)  => apiClient.post('/api/users', data)
-  const updateUser  = (id: number, data: UpdateUserDto) => apiClient.put(`/api/users/${id}`, data)
-  const deleteUser  = (id: number)           => apiClient.delete(`/api/users/${id}`)
-  const getUserActivity = (id: number, limit = 10) =>
-    apiClient.get(`/api/users/${id}/activity`, { params: { limit } })
-  return { getUsers, getUser, createUser, updateUser, deleteUser, getUserActivity }
-}
-```
+Methods:
+- `getUsers(filters: UserFilters): Promise<UserDto[]>` - Gọi API lấy
+- `getUser(id: number): Promise<UserDto>` - Lấy chi tiết user
+- `createUser(data: CreateUserDto): Promise<UserDto>` - Tạo user mới
+- `updateUser(id: number, data: UpdateUserDto): Promise<UserDto>` - Cập nhật user
+- `deleteUser(id: number): Promise<void>` - Xóa user
+- `getUserActivity(id: number, limit?: number): Promise<AuditLogDto[]>` - Lấy lịch sử audit gần nhất
 
 ### useEmailValidation.ts (`composables/`)
-
-```typescript
-export function useEmailValidation(
-  email: Ref<string>,
-  excludeId?: number,
-  debounceMs = 500
-) {
-  const isChecking = ref(false)
-  const error = ref<string | null>(null)
-
-  // watch email → debounce → GET /api/users/check-email
-  // sets error = 'users.emailAlreadyExists' nếu exists=true
-
-  return { isChecking, error }
-}
-```
 
 ---
 
 ## 6. Store
 
 ### users.store.ts (`stores/`)
-
-```typescript
-// defineStore('users', () => { ... })
-// State:
-//   users: UserDto[]
-//   currentUser: UserDto | null
-//   auditLogs: AuditLogDto[]
-//   pagination: PaginationInfo
-//   filters: UserFilters
-//   loading: boolean
-//   loadingUser: boolean
-//   loadingActivity: boolean
-//   error: string | null
-//
-// Actions:
-//   fetchUsers(filters?)       → GET SV-001; cập nhật users + pagination
-//   fetchUser(id)              → GET SV-003; cập nhật currentUser
-//   createUser(data)           → POST SV-002; throw { code:'EMAIL_EXISTS' } nếu 409
-//   updateUser(id, data)       → PUT SV-004; throw { code:'EMAIL_EXISTS' } nếu 409
-//   deleteUser(id)             → DELETE SV-005; reload fetchUsers
-//   fetchUserActivity(id)      → GET SV-006; cập nhật auditLogs
-//   resetFilters()             → reset filters + fetchUsers()
-//   clearCurrentUser()         → currentUser=null, auditLogs=[]
-```
-
+State:
+- users: UserDto[]
+- currentUser: UserDto | null
+- auditLogs: AuditLogDto[]
+- pagination: PaginationInfo
+- filters: UserFilters
+- loading: boolean
+- loadingUser: boolean
+- loadingActivity: boolean
+- error: string | null
+Actions:
+- fetchUsers(filters?)       → GET SV-001; cập nhật users + pagination
+- fetchUser(id)              → GET SV-003; cập nhật currentUser
+- createUser(data)           → POST SV-002; throw { code:'EMAIL_EXISTS' } nếu 409
+- updateUser(id, data)       → PUT SV-004; throw { code:'EMAIL_EXISTS' } nếu 409
+- deleteUser(id)             → DELETE SV-005; reload fetchUsers
+- fetchUserActivity(id)      → GET SV-006; cập nhật auditLogs
+- resetFilters()             → reset filters + fetchUsers()
+- clearCurrentUser()         → currentUser=null, auditLogs=[]
 ---
 
-## 7. TypeScript Models (`types/users.types.ts`)
-
+## 7. TypeScript Types & Interfaces 
+### users.types.ts (`types/`)
 ```typescript
 export interface User {
   id: number;
@@ -295,8 +264,8 @@ export interface User {
 
 export interface UserFilters {
   search?: string;
-  role?: string;
-  status?: string;
+  role?: 'admin' | 'user' | 'moderator';
+  status?: 'active' | 'inactive' | 'suspended';
   startDate?: string;
   endDate?: string;
   page?: number;
@@ -304,15 +273,7 @@ export interface UserFilters {
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
 }
-
-export interface PaginationInfo {
-  page: number;
-  limit: number;
-  total: number;
-  pages: number;
-}
 ```
-
 ---
 
 ## 8. Database Schema Reference

@@ -3,7 +3,6 @@ title: User Management - Index
 version: 1.2
 author: Admin Team
 date: 2026-05-17
-status: Approved
 ---
 
 # User Management — Index

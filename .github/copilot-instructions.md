@@ -9,7 +9,7 @@
 - **vue-router-best-practices** - REQUIRED: Use for any Vue Router implementation tasks
 - **ut-review** - REQUIRED: Use when reviewing, auditing, adding missing, or fixing UT tests
 
-# Ask Next Suggestions Guidelines (ALWAYS FOLLOW THESE)
+<!-- # Ask Next Suggestions Guidelines (ALWAYS FOLLOW THESE)
 **Always present next-step suggestions as a short list of selectable options using the VS Code vscode_askQuestions tool**.
 - This rule is mandatory in every chat whenever suggesting next work, follow-up actions, or choices.
 - Provide 3–6 concise options.
@@ -20,4 +20,4 @@
 
 # When Ending a Response (ALWAYS FOLLOW THESE)
 - Always end with vscode_askQuestions for next steps or selectable follow-up suggestions unless explicitly told not to or if the task is complete and no next steps are needed.
-- Every end-of-response vscode_askQuestions call must include allowFreeformInput: true.
+- Every end-of-response vscode_askQuestions call must include allowFreeformInput: true. -->

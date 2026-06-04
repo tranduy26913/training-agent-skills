@@ -192,29 +192,3 @@ status: Approved
 
 ---
 
-## 4. Accessibility
-
-| Element | Yêu cầu |
-|---------|---------|
-| Edit/Delete buttons | ARIA label: `aria-label="Edit {user.name}"` / `aria-label="Delete {user.name}"` |
-| Confirm Dialog | Focus trap; Escape key closes; ARIA role `dialog` |
-| Form inputs | `<label>` hoặc `aria-label` trên mọi input |
-| Dropdown | Keyboard navigable (PrimeVue built-in) |
-| DataTable | Column headers có `scope="col"` |
-| Error messages | `aria-live="polite"` cho inline validation messages |
-
----
-
-## 5. Logging & Audit
-
-### audit_logs table
-
-Mọi action thành công ghi một bản ghi vào `audit_logs`:
-
-| Action | Ghi lại |
-|--------|---------|
-| `CREATE` | `admin_id`, `target_user_id`, `changed_fields = null` |
-| `UPDATE` | `admin_id`, `target_user_id`, `changed_fields = { field: { old, new } }` — chỉ fields thực sự thay đổi |
-| `DELETE` | `admin_id`, `target_user_id`, `changed_fields = null` |
-
-**Lưu ý:** Các field không nên log (e.g. `password`) phải bị loại khỏi `changed_fields`.

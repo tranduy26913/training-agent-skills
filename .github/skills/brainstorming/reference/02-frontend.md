@@ -4,7 +4,6 @@ title: [Feature] - Frontend Specification
 version: [e.g., 1.0]
 author: [Team or Owner]
 date: [YYYY-MM-DD]
-status: [Draft | Review | Approved]
 ---
 
 # [Feature] - Frontend Specification
@@ -254,49 +253,25 @@ client/src/pages/[feature]/
 ## 5. Composable
 
 ### use[Feature].ts
-
-```typescript
-// State
-const items = ref<Item[]>([])
-const currentItem = ref<Item | null>(null)
-const loading = ref(false)
-const error = ref<string | null>(null)
-const pagination = ref<PaginationInfo>({ page: 1, limit: 10, total: 0, pages: 0 })
-
-// API methods
-async function fetchItems(filters?: ItemFilters): Promise<void>
-async function fetchItem(id: number): Promise<void>
-async function createItem(data: CreateItemDto): Promise<Item>
-async function updateItem(id: number, data: UpdateItemDto): Promise<void>
-async function deleteItem(id: number): Promise<void>
-async function fetchItemActivity(id: number): Promise<ActivityLog[]>
-```
-
+Method:
+- `fetchItems(filters: FilterState, pagination: PaginationInfo): Promise<void>` - Fetches items from API with given filters and pagination, updates state
 ---
 
 ## 6. Store
 
 ### File: `client/src/stores/[feature].store.ts`
 
-```typescript
-interface [Feature]State {
-  items: Item[]
-  currentItem: Item | null
-  activityLogs: ActivityLog[]
-  pagination: PaginationInfo
-  filters: ItemFilters
-  loading: boolean
-  error: string | null
-}
+State:
+- items: Item[]
+- currentItem: Item | null
+- activityLogs: ActivityLog[]
+- pagination: PaginationInfo
+- filters: ItemFilters
+- loading: boolean
+- error: string | null
 
-// Actions
-fetchItems(filters?: ItemFilters): Promise<void>
-fetchItem(id: number): Promise<void>
-createItem(data: CreateItemDto): Promise<Item>
-updateItem(id: number, data: UpdateItemDto): Promise<void>
-deleteItem(id: number): Promise<void>
-fetchItemActivity(id: number): Promise<void>
-```
+Actions:
+- `setItems(items: Item[]): void` - Sets the list of items in the store
 
 **Store Dependencies:**
 
@@ -308,63 +283,13 @@ fetchItemActivity(id: number): Promise<void>
 
 ---
 
-## 7. TypeScript Models
-
-```typescript
-// Entity
-interface Item {
-  id: number
-  fieldA: string
-  fieldB: string
-  createdAt: string
-  updatedAt: string
-}
-
-// Create DTO
-interface CreateItemDto {
-  fieldA: string
-  fieldB: string
-  fieldC?: string
-}
-
-// Update DTO
-interface UpdateItemDto extends Partial<CreateItemDto> {}
-
-// Filter state
-interface ItemFilters {
-  search?: string
-  filterA?: string
-  filterB?: string
-  page: number
-  limit: number
-}
-
-// Pagination
-interface PaginationInfo {
-  page: number
-  limit: number
-  total: number
-  pages: number
-}
-```
+## 7. TypeScript Types & Interfaces
+```markdown
+### File: `types/[feature].types.ts`
+Types:
+- `Item`: Main data model representing an item in this feature
+- `ItemFilters`: Filter criteria for listing items
 
 ---
 
-## 8. Database Schema Reference
-
-> Full DB schema details are in [01-backend.md](./01-backend.md#data-models).
-
-```sql
--- [main_table]
-CREATE TABLE [table_name] (
-  id          INT AUTO_INCREMENT PRIMARY KEY,
-  field_a     VARCHAR(100) NOT NULL,
-  field_b     VARCHAR(50)  NOT NULL,
-  field_c     TEXT,
-  created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-```
-
----
 ```

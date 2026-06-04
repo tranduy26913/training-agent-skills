@@ -4,7 +4,6 @@ title: [Feature] - Backend Specification
 version: [e.g., 1.0]
 author: [Team or Owner]
 date: [YYYY-MM-DD]
-status: [Draft | Review | Approved]
 ---
 
 # [Feature] - Backend Specification
@@ -36,43 +35,12 @@ CREATE TABLE [related_table] (
   FOREIGN KEY (parent_id) REFERENCES [table_name](id) ON DELETE CASCADE
 );
 ```
-
-### 1.2 TypeScript DTOs
-
-```typescript
-// Request DTOs
-interface CreateItemDto {
-  fieldA: string
-  fieldB: string
-  fieldC?: string
-}
-
-interface UpdateItemDto {
-  fieldA?: string
-  fieldB?: string
-  fieldC?: string
-}
-
-// Response DTOs
-interface ItemResponseDto {
-  id: number
-  fieldA: string
-  fieldB: string
-  fieldC?: string
-  createdAt: string
-  updatedAt: string
-}
-
-interface PaginatedResponseDto<T> {
-  data: T[]
-  pagination: {
-    page: number
-    limit: number
-    total: number
-    pages: number
-  }
-}
-```
+### 1.2 TypeScript Models
+Only list name of the data models relevant to this feature. Do not include full definitions.
+Include full path of the files where these models are defined.
+``` markdown
+### [model_name].model.ts (`models/`)
+- `[ModelName]` (field1, field2, field3, ...)
 
 ---
 
@@ -116,21 +84,8 @@ Flow:
 Response (200 OK):
 ```json
 {
-  "data": [
-    {
-      "id": 1,
-      "fieldA": "value",
-      "fieldB": "value",
-      "createdAt": "2024-01-01T00:00:00Z",
-      "updatedAt": "2024-01-01T00:00:00Z"
-    }
-  ],
-  "pagination": {
-    "page": 1,
-    "limit": 10,
-    "total": 50,
-    "pages": 5
-  }
+  "data": [{resource objects}],
+  "pagination": {...pagination metadata}
 }
 ```
 
@@ -171,13 +126,7 @@ Flow:
 Response (201 Created):
 ```json
 {
-  "data": {
-    "id": 1,
-    "fieldA": "value",
-    "fieldB": "value",
-    "createdAt": "2024-01-01T00:00:00Z",
-    "updatedAt": "2024-01-01T00:00:00Z"
-  }
+  "data": [{resource objects}]
 }
 ```
 
@@ -212,13 +161,7 @@ Flow:
 Response (200 OK):
 ```json
 {
-  "data": {
-    "id": 1,
-    "fieldA": "value",
-    "fieldB": "value",
-    "createdAt": "2024-01-01T00:00:00Z",
-    "updatedAt": "2024-01-01T00:00:00Z"
-  }
+  "data": {resource objects}
 }
 ```
 
@@ -259,13 +202,7 @@ Flow:
 Response (200 OK):
 ```json
 {
-  "data": {
-    "id": 1,
-    "fieldA": "new value",
-    "fieldB": "value",
-    "createdAt": "2024-01-01T00:00:00Z",
-    "updatedAt": "2024-01-02T00:00:00Z"
-  }
+  "data": {resource objects},
 }
 ```
 
@@ -338,15 +275,7 @@ Flow:
 Response (200 OK):
 ```json
 {
-  "data": [
-    {
-      "id": 1,
-      "action": "UPDATE",
-      "performedBy": "admin@example.com",
-      "changes": {},
-      "createdAt": "2024-01-01T00:00:00Z"
-    }
-  ]
+  "data": [{resource object}]
 }
 ```
 

@@ -4,7 +4,6 @@ title: [Feature] - Behavior Specification
 version: [e.g., 1.0]
 author: [Team or Owner]
 date: [YYYY-MM-DD]
-status: [Draft | Review | Approved]
 ---
 
 # [Feature] - Behavior Specification

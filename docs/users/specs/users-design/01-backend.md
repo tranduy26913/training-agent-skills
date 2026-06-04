@@ -55,11 +55,12 @@ audit_logs {
 }
 ```
 
-### 1.2 TypeScript DTOs
-
+### 1.2 TypeScript Models
+File: `client/src/models/users.model.ts`
+Models: (Không mô tả DTO vì DTO sẽ nằm ở Validation Rules)
 ```typescript
 // Response type — never includes password
-export interface UserDto {
+export interface User {
   id: number;
   name: string;
   email: string;
@@ -74,26 +75,7 @@ export interface UserDto {
   updated_at: string;
 }
 
-export interface CreateUserDto {
-  name: string;
-  email: string;
-  role: 'admin' | 'user' | 'moderator';
-  status: 'active' | 'inactive' | 'suspended';
-  note?: string;
-  birthday?: string;              // "YYYY-MM-DD", no future dates
-}
-
-export interface UpdateUserDto {
-  name: string;
-  email: string;
-  role: 'admin' | 'user' | 'moderator';
-  status: 'active' | 'inactive' | 'suspended';
-  note?: string;
-  birthday?: string;
-  // points: NOT accepted — read-only
-}
-
-export interface AuditLogDto {
+export interface AuditLog {
   id: number;
   admin_id: number;
   admin_name: string;
@@ -102,15 +84,6 @@ export interface AuditLogDto {
   timestamp: string;
 }
 
-export interface UserListResponse {
-  data: UserDto[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    pages: number;
-  };
-}
 ```
 
 ---
@@ -154,15 +127,7 @@ GET /api/users?page=1&limit=10&search=john&role=admin&status=active
 **Response 200:**
 ```json
 {
-  "data": [
-    {
-      "id": 1, "name": "John Doe", "email": "john@example.com",
-      "role": "admin", "status": "active",
-      "note": "Some note", "birthday": "1990-01-15",
-      "points": 0, "last_login_at": "2026-04-20T14:30:00Z",
-      "created_at": "2026-01-15T10:30:00Z", "updated_at": "2026-04-10T14:20:00Z"
-    }
-  ],
+  "data": User[],
   "pagination": { "page": 1, "limit": 10, "total": 45, "pages": 5 }
 }
 ```
@@ -186,7 +151,7 @@ GET /api/users?page=1&limit=10&search=john&role=admin&status=active
 7. INSERT vào `audit_logs` (action=`CREATE`, changed_fields=null)
 8. Trả về UserDto (không bao gồm password)
 
-**Response 201:** `{ "data": UserDto }`
+**Response 201:** `{ "data": User }`
 
 **Errors:** 400 Validation | 401 | 403 | 409 Email already exists
 
@@ -201,7 +166,7 @@ GET /api/users?page=1&limit=10&search=john&role=admin&status=active
 3. Query `users` WHERE id=? → 404 nếu không tìm thấy
 4. Trả về UserDto (loại bỏ password)
 
-**Response 200:** `{ "data": UserDto }`
+**Response 200:** `{ "data": User }`
 
 **Errors:** 401 | 403 | 404 User not found
 
@@ -221,7 +186,7 @@ GET /api/users?page=1&limit=10&search=john&role=admin&status=active
 6. UPDATE `users`; INSERT `audit_logs` (action=`UPDATE`, changed_fields)
 7. Trả về UserDto mới nhất
 
-**Response 200:** `{ "data": UserDto }`
+**Response 200:** `{ "data": User }`
 
 **Errors:** 400 | 401 | 403 | 404 | 409
 
@@ -256,14 +221,7 @@ GET /api/users?page=1&limit=10&search=john&role=admin&status=active
 **Response 200:**
 ```json
 {
-  "data": [
-    {
-      "id": 1, "admin_id": 5, "admin_name": "Admin User",
-      "action": "UPDATE",
-      "changed_fields": { "name": { "old": "John", "new": "John Smith" } },
-      "timestamp": "2026-04-15T10:00:00Z"
-    }
-  ]
+  "data": AuditLog[]
 }
 ```
 
@@ -296,8 +254,7 @@ GET /api/users?page=1&limit=10&search=john&role=admin&status=active
 ---
 
 ## 3. Validation Rules
-
-### Client-side
+### Zod schemas
 
 | Field | Rule |
 |-------|------|
@@ -308,21 +265,10 @@ GET /api/users?page=1&limit=10&search=john&role=admin&status=active
 | Note | Optional, max 500 chars |
 | Birthday | Optional, valid date, không được là ngày tương lai |
 
-### Server-side (Zod schema)
-
-```typescript
-// createUserSchema / updateUserSchema
-z.object({
-  name:     z.string().min(2).max(50),
-  email:    z.string().email(),
-  role:     z.enum(['admin', 'user', 'moderator']),
-  status:   z.enum(['active', 'inactive', 'suspended']),
-  note:     z.string().max(500).optional(),
-  birthday: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(
-    d => new Date(d) <= new Date(), 'Birthday cannot be in the future'
-  ).optional(),
-})
-```
+type:
+- `CreateUserDto` 
+- `UpdateUserDto`
+...
 
 ### Business Rules
 
