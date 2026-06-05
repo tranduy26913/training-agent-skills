@@ -84,7 +84,7 @@ Flow:
 Response (200 OK):
 ```json
 {
-  "data": [{resource objects}],
+  "data": [{resource objects}], (CHỈ MÔ TẢ TÊN MODEL, KHÔNG LIỆT KÊ CHI TIẾT CÁC TRƯỜNG)
   "pagination": {...pagination metadata}
 }
 ```
@@ -126,7 +126,7 @@ Flow:
 Response (201 Created):
 ```json
 {
-  "data": [{resource objects}]
+  "data": [{resource objects}], (CHỈ MÔ TẢ TÊN MODEL, KHÔNG LIỆT KÊ CHI TIẾT CÁC TRƯỜNG)
 }
 ```
 
@@ -161,7 +161,7 @@ Flow:
 Response (200 OK):
 ```json
 {
-  "data": {resource objects}
+  "data": {resource objects}  (CHỈ MÔ TẢ TÊN MODEL, KHÔNG LIỆT KÊ CHI TIẾT CÁC TRƯỜNG)
 }
 ```
 
@@ -202,7 +202,7 @@ Flow:
 Response (200 OK):
 ```json
 {
-  "data": {resource objects},
+  "data": {resource objects}  (CHỈ MÔ TẢ TÊN MODEL, KHÔNG LIỆT KÊ CHI TIẾT CÁC TRƯỜNG)
 }
 ```
 
@@ -251,33 +251,6 @@ Errors:
 | 401 | `UNAUTHORIZED` | Not authenticated |
 | 403 | `FORBIDDEN` | Insufficient permissions |
 | 404 | `NOT_FOUND` | [Resource] not found |
-
----
-
-### SV-006 — GET `/api/[resource]/:id/activity` _(optional)_
-**Get activity history of a [resource]**
-
-**Required Role:** `[role]`
-
-Request:
-```http
-GET /api/[resource]/1/activity
-Authorization: Bearer <token>
-```
-
-Flow:
-1. Verify JWT token
-2. Check role/permission
-3. Validate `id` route parameter
-4. Query activity/audit logs by resource id
-5. Return log entries
-
-Response (200 OK):
-```json
-{
-  "data": [{resource object}]
-}
-```
 
 ---
 

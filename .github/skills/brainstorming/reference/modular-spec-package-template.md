@@ -44,11 +44,11 @@ Use the file templates in this folder as the starting point:
 1. Executive Summary
 2. Changelog
 3. Objective & Scope (Purpose, In Scope, Out of Scope)
-4. Architecture Overview (system diagram, data model summary)
+4. Architecture Overview (system diagram)
 5. Spec File Index (table linking to the other 4 files)
 
 ### 01-backend.md
-1. Data Models (DB schema + TypeScript DTOs)
+1. Data Models (DB schema + TypeScript Models)
 2. API Endpoints (one subsection per endpoint: request, flow, response, errors)
 3. Validation Rules (client-side + server-side + business rules)
 4. Error Handling (standard format + error scenarios table)
@@ -60,15 +60,14 @@ Use the file templates in this folder as the starting point:
 4. Component Details (props + emits per component)
 5. Composable
 6. Store
-7. TypeScript Models
-8. Database Schema Reference (link to 01-backend.md)
+7. TypeScript Types & Interfaces
 
 ### 03-behavior.md
 1. Page Events & Handlers (onMounted + each handler per page)
 2. UI States (loading, empty, error, success tables)
 3. Confirm Dialogs (per dialog: trigger, title, message, buttons, outcomes)
 4. Navigation Flows (table: action → from → to → condition)
-5. Sequence Diagrams (create, update, delete flows)
+5. Short Sequence Diagrams (create, update, delete flows)
 
 ### 04-quality.md
 1. Testing Strategy
@@ -76,8 +75,6 @@ Use the file templates in this folder as the starting point:
    - 1.2 Frontend Tests (per-page UT table with Arrange/Act/Assert columns, composable tests)
 2. Performance Considerations
 3. Security Considerations
-4. Accessibility (a11y)
-5. Logging & Audit
 
 ---
 
