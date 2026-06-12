@@ -1,3 +1,4 @@
+-- UP
 -- Migration 010: Add llm_provider column to chat_sessions table
 -- チャットセッションテーブルにLLMプロバイダーカラムを追加するマイグレーション
 -- CR-NBLM-LLM-001: Per-session LLM provider selection
