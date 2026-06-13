@@ -9,7 +9,9 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "migrate": "ts-node src/database/migrate.ts",
+    "migrate:test": "ts-node src/database/migrate.ts --test",
     "seed": "ts-node src/database/seed.ts",
+    "seed:test": "ts-node src/database/seed.ts --test",
     "test": "vitest run",
     "test:watch": "vitest"
   },

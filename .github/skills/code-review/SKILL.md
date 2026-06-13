@@ -34,15 +34,8 @@ After both passes, the skill produces a **Review Report** with a findings table 
 
 | Input | Required | Description |
 |-------|----------|-------------|
-| `BASE_SHA` | ✅ | Starting commit SHA |
-| `HEAD_SHA` | ✅ | Ending commit SHA (`git rev-parse HEAD`) |
 | `WHAT_WAS_IMPLEMENTED` | ✅ | One-line summary of what was built |
 | `SPEC_FILES` | optional | Paths to `01-backend.md`, `02-frontend.md`, `03-behavior.md` |
-
-```bash
-git diff --stat {BASE_SHA}..{HEAD_SHA}
-git diff {BASE_SHA}..{HEAD_SHA}
-```
 
 ---
 
@@ -61,6 +54,7 @@ For each changed file, check every applicable rule. Record each violation as a f
 | Fix | `Yes — [how]` or `No — [reason]` |
 
 Apply all rule categories that are relevant to the file type:
+- Run build and tests first — any failures are Critical findings
 - All files: R-001 to R-010 (Code Quality)
 - Backend/Express files: R-011 to R-017 (Architecture), R-041 to R-045 (Security), R-051 to R-053 (Performance), R-071 to R-076 (Express)
 - Vue component files: R-031 to R-038 (Vue 3), R-052 to R-054 (Performance), R-061 to R-067 (PrimeVue), R-101 to R-106 (i18n)
@@ -105,13 +99,6 @@ After both passes, output the full review report:
 ```
 ## Code Review Report
 **Feature:** {WHAT_WAS_IMPLEMENTED}
-**Commits:** {BASE_SHA}..{HEAD_SHA}
-**Date:** [today]
-
----
-
-### Strengths
-- [What is done well — be specific with file references]
 
 ---
 
@@ -135,18 +122,7 @@ _(Fill with actual findings — remove example rows)_
 | Spec Compliance | 1 | 1 | 0 | 2 |
 | **Total** | **1** | **2** | **2** | **5** |
 
-**Fixable in this session:** X / Y findings  
-**Blocked (needs external action):** list any if applicable
-
 ---
-
-### Verdict
-
-**Ready to merge?** Yes / No / With fixes
-
-**Required actions before merge:**
-- [ ] [Fix 1 — file:line]
-- [ ] [Fix 2 — file:line]
 ```
 
 ---

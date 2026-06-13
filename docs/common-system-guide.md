@@ -1,4 +1,4 @@
-# Common System Guide
+ # Common System Guide
 
 > Tài liệu này là **nguồn sự thật duy nhất** cho toàn bộ hệ thống.  
 > Mọi developer **bắt buộc** đọc và tuân thủ trước khi đóng góp code.
@@ -108,65 +108,6 @@ export async function getUsers(filters: UserFilters): Promise<PaginatedResult<Us
 - **Zod** validate toàn bộ input từ request (body, params, query) tại middleware `validate`.
 - **Throw `ServiceError`** với status code phù hợp khi có lỗi nghiệp vụ.
 - **Không bao giờ** trả password hoặc sensitive data trong response.
-
-### 2.4 File & thư mục
-
-| Loại file | Convention |
-|---|---|
-| Vue component | `PascalCase.vue` – ví dụ `UserListPage.vue` |
-| Composable | `use<Name>.ts` – ví dụ `useEmailValidation.ts` |
-| Pinia store | `<feature>.store.ts` – ví dụ `auth.store.ts` |
-| Service (FE) | `<feature>.service.ts` |
-| Type/interface | `<feature>.types.ts` |
-| Route definition | `<feature>.routes.ts` |
-| BE Controller | `<feature>.controller.ts` |
-| BE Service | `<feature>.service.ts` |
-| BE Repository | `<feature>.repository.ts` |
-| BE Validation (Zod) | `<feature>.validation.ts` |
-
----
-
-## 3. Cấu trúc thư mục
-
-```
-client/src/
-├── app/                    # App component
-├── assets/                 # Static assets
-├── components/             # Shared/reusable components
-│   └── app/                # Global components (AppDataTable, AppSidebar,…)
-├── composables/            # useXxx() – reusable reactive logic
-├── layouts/                # Layout components (DefaultLayout, AuthLayout,…)
-├── locales/                # i18n – en.ts, vi.ts, ja.ts
-├── pages/                  # Feature folders, mỗi folder là 1 tính năng
-│   ├── auth/
-│   │   ├── components/
-│   │   ├── *.vue
-│   │   └── auth.routes.ts
-│   ├── users/
-│   ├── employees/
-│   └── notebooklm/
-├── plugins/                # Vue plugin setup (pinia, router, i18n, primevue)
-├── router/                 # Route aggregator + navigation guard
-├── services/               # API services (axios wrappers)
-├── stores/                 # Pinia stores
-└── types/                  # Shared TypeScript types
-
-server/src/
-├── app.ts                  # Express app setup
-├── server.ts               # HTTP server entry
-├── config/                 # App/DB/auth/CORS config
-├── database/               # Connection pool, BaseRepository, migrations, seeds
-├── middleware/             # auth, error, validate
-├── models/                 # TypeScript interfaces cho DB rows
-├── modules/                # Feature modules (auth, users, employees, notebooklm)
-│   └── <feature>/
-│       ├── <feature>.controller.ts
-│       ├── <feature>.service.ts
-│       ├── <feature>.routes.ts
-│       └── <feature>.validation.ts
-├── types/                  # Shared types (AuthenticatedRequest,…)
-└── utils/                  # hash, token, logger, response helpers
-```
 
 ---
 
@@ -586,7 +527,7 @@ sendSuccess(res, data, 'Created', 201)          // 201
 
 // Lỗi
 sendError(res, 'Not found', 404)
-sendError(res, 'Validation failed', 422, details)
+sendError(res, 'Validation failed', 422)
 ```
 
 ### 6.2 ServiceError (`server/src/models/common.model.ts`)

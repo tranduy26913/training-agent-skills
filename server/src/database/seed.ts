@@ -5,6 +5,13 @@ import fs from 'fs';
 import path from 'path';
 import { pool } from './connection';
 
+// Check for test mode via command line argument
+const isTestMode = process.argv.includes('--test');
+if (isTestMode) {
+  process.env.DB_NAME = 'app_db_test';
+  console.log('Running seeds in TEST mode on database: app_db_test');
+}
+
 async function runSeeds(): Promise<void> {
   const seedsDir = path.resolve(__dirname, '../../../database/seeds');
   if (!fs.existsSync(seedsDir)) {

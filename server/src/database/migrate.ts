@@ -6,6 +6,13 @@ import path from 'path';
 import { pool } from './connection';
 import type { RowDataPacket } from 'mysql2/promise';
 
+// Check for test mode via command line argument
+const isTestMode = process.argv.includes('--test');
+if (isTestMode) {
+  process.env.DB_NAME = 'app_db_test';
+  console.log('Running migrations in TEST mode on database: app_db_test');
+}
+
 async function ensureMigrationsTable(): Promise<void> {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS \`_migrations\` (

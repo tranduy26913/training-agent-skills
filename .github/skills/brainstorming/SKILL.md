@@ -34,9 +34,9 @@ You MUST create a task for each of these items and complete them in order:
 3. **Propose 2-3 approaches** — with trade-offs and your recommendation
 <!-- 4. **Present design** — in sections scaled to their complexity, get user approval after each section -->
 4. **Write design doc** — save to `docs/<topic>/specs/<topic>-design/` with `index.md` as the canonical entry point. Use Vietnamese for the content, while keeping the headers/section titles in English. Follow [modular-spec-package-template](reference/modular-spec-package-template.md) with 100% structural compliance.
-<!-- 6. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below) -->
-5. **User reviews written spec** — ask user to review the spec file before proceeding
-6. **Transition to implementation** — invoke writing-plans skill to create implementation plan
+5. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
+6. **User reviews written spec** — ask user to review the spec file before proceeding
+7. **No code blocks in spec** - If the spec requires code snippets, describe them in pseudo code instead of using code blocks.
 
 **Template of `<topic>-design`: (mandatory, strict)**
 - The specification file must be formatted in well formed Markdown.
@@ -80,6 +80,7 @@ digraph brainstorming {
     "Ask clarifying questions" [shape=box];
     "Propose 2-3 approaches" [shape=box];
     "Write design doc" [shape=box];
+    "Spec self-review\n(fix inline)" [shape=box];
     "User reviews spec?" [shape=diamond];
     "Invoke writing-plans skill" [shape=doublecircle];
     "Suggest next steps" [shape=box];
@@ -89,7 +90,8 @@ digraph brainstorming {
     "Explore project context" -> "Ask clarifying questions";
     "Ask clarifying questions" -> "Propose 2-3 approaches";
     "Propose 2-3 approaches" -> "Write design doc";
-    "Write design doc" -> "User reviews spec?";
+    "Write design doc" -> "Spec self-review\n(fix inline)";
+    "Spec self-review\n(fix inline)" -> "User reviews spec?";
     "User reviews spec?" -> "Write design doc" [label="changes requested"];
     "User reviews spec?" -> "Suggest next steps" [label="approved"];
 }
@@ -134,8 +136,6 @@ digraph brainstorming {
 
 - Write the validated design to `docs/<topic>/specs/<topic>-design/index.md` plus the required concern files from the modular template.
   - (User preferences for spec location override this default)
-- Use elements-of-style:writing-clearly-and-concisely skill if available
-- Commit the design document to git
 
 **Spec Checklist:**
 After writing the spec document, look at it with fresh eyes:

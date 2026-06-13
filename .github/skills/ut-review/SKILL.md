@@ -104,7 +104,6 @@ Flag any **missing** or **weak** tests (e.g. tests that only check snapshots wit
 For each failing test:
 
 1. Read the error message carefully — do not guess.
-2. Load `systematic-debugging` skill procedure.
 3. Determine root cause:
    - **Test is broken** → fix the test assertion or setup.
    - **Implementation is broken** → fix the source code (follow TDD red→green cycle).

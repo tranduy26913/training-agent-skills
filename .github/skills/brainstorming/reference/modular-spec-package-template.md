@@ -31,10 +31,10 @@ Use the file templates in this folder as the starting point:
 | File | Owns | Must NOT contain |
 |------|------|-----------------|
 | `00-index.md` | Executive summary, objective & scope, changelog, architecture overview, cross-file reference table | Implementation details |
-| `01-backend.md` | DB schema, TypeScript DTOs, API endpoint contracts, validation rules, error handling | UI/component concerns |
-| `02-frontend.md` | File structure, wireframes, component tree, screen item specs, composable/store definitions, TS types | API endpoint detail, DB schema |
-| `03-behavior.md` | Page events & handlers, UI states (loading/empty/error), confirm dialogs, navigation flows, sequence diagrams | Raw API contracts, DB schema |
-| `04-quality.md` | Unit tests per page/component, integration tests, E2E flows, performance, security, accessibility, logging/audit | Implementation source code |
+| `01-backend.md` | DB schema, TypeScript Models, API endpoint contracts, validation rules, error handling | UI/component concerns, Implementation source code |
+| `02-frontend.md` | File structure, wireframes, component tree, screen item specs, composable/store definitions, TS types | API endpoint detail, DB schema, Implementation source code |
+| `03-behavior.md` | Page events & handlers, UI states (loading/empty/error), confirm dialogs, navigation flows, sequence diagrams | Raw API contracts, DB schema, Implementation source code |
+| `04-quality.md` | Unit tests per page/component, integration tests, performance, security | Implementation source code |
 
 ---
 
@@ -67,7 +67,7 @@ Use the file templates in this folder as the starting point:
 2. UI States (loading, empty, error, success tables)
 3. Confirm Dialogs (per dialog: trigger, title, message, buttons, outcomes)
 4. Navigation Flows (table: action → from → to → condition)
-5. Short Sequence Diagrams (create, update, delete flows)
+5.  Mermaid Diagrams (create, update, delete Mermaid)
 
 ### 04-quality.md
 1. Testing Strategy
@@ -75,6 +75,12 @@ Use the file templates in this folder as the starting point:
    - 1.2 Frontend Tests (per-page UT table with Arrange/Act/Assert columns, composable tests)
 2. Performance Considerations
 3. Security Considerations
+
+---
+
+## Common Rules
+- Do not include implementation details or source code in any file; focus on specifications, contracts, and design
+- Use Vietnamese for content; headers may remain English
 
 ---
 

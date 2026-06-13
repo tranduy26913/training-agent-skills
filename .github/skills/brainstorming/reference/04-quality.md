@@ -16,7 +16,10 @@ date: [YYYY-MM-DD]
 
 ### 1.1 Backend Tests
 
-#### Unit Tests (Service layer)
+> **Rule**: All **backend tests** should be in **only 1 file**: `server/src/modules/[feature]/[feature].controller.test.ts`
+- Use Database test for test. Not use in-memory mocks or fake implementations. Use the same test database and run migrations before tests.
+
+#### Unit Tests
 
 | Test Case | Description |
 |-----------|-------------|
@@ -31,7 +34,7 @@ date: [YYYY-MM-DD]
 | Delete [resource] - constraint | Business rule prevents deletion, throws error |
 | List [resource] - filtered | Returns filtered, paginated results |
 
-#### Integration Tests (API + Database)
+#### Integration Tests
 
 | Test Case | HTTP Method | Endpoint |
 |-----------|-------------|----------|
