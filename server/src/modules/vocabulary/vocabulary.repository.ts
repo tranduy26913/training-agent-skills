@@ -43,8 +43,8 @@ export class VocabularyRepository extends BaseRepository<VocabularyRow> {
     filters: VocabularyFilter,
     pagination: PaginationParams
   ): Promise<VocabularyListResponse> {
-    const conditions: string[] = ['v.status != ?'];
-    const params: unknown[] = [VocabularyStatus.Delete];
+    const conditions: string[] = ["v.status != 'Delete'"];
+    const params: unknown[] = [];
 
     // Add filter conditions
     if (filters.kanji) {
@@ -378,8 +378,8 @@ export class VocabularyRepository extends BaseRepository<VocabularyRow> {
    */
   async softDelete(id: number, userId: number): Promise<void> {
     await pool.query(
-      `UPDATE \`vocabularies\` SET status = ?, updated_by = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-      [VocabularyStatus.Delete, userId, id]
+      `UPDATE \`vocabularies\` SET status = 'Delete', updated_by = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      [userId, id]
     );
   }
 
@@ -388,8 +388,8 @@ export class VocabularyRepository extends BaseRepository<VocabularyRow> {
    * MultiSelect 用の関連付けオプションを取得（指定された ID を除外）
    */
   async findRelationOptions(excludeIds: number[] = []): Promise<VocabRelationDto[]> {
-    const conditions: string[] = ['status != ?'];
-    const params: unknown[] = [VocabularyStatus.Delete];
+    const conditions: string[] = ["v.status != 'Delete'"];
+    const params: unknown[] = [];
 
     if (excludeIds.length > 0) {
       const placeholders = excludeIds.map(() => '?').join(',');
