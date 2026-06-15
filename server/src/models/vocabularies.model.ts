@@ -308,5 +308,5 @@ export interface VocabularyAnalytics {
  * Used in PATCH /api/vocabularies/:id/reports/:reportId
  */
 export interface ResolveReportDto {
-  status: VocabReportStatus.Resolved | VocabReportStatus.Dismissed;
+  status: 'resolved' | 'dismissed';
 }

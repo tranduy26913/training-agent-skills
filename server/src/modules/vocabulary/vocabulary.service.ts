@@ -66,12 +66,17 @@ export class VocabularyService {
       // Check if it's a soft-deleted vocabulary
       const vocab = await this.repository.findById(id);
       if (vocab && vocab.status === 'Delete') {
-        throw new ServiceError('Vocabulary has been deleted', 404, 'SOFT_DELETED');
+        throw new ServiceError('Vocabulary has been deleted', 404);
       }
       throw new ServiceError('Vocabulary not found', 404);
     }
 
-    return result;
+    return {
+      vocabulary: result.vocabulary!,
+      relations: result.relations,
+      changeLogs: result.changeLogs,
+      reports: result.reports,
+    };
   }
 
   /**
@@ -92,7 +97,7 @@ export class VocabularyService {
     );
 
     if (isDuplicate) {
-      throw new ServiceError('Vocabulary with this kanji and meaning already exists', 409, 'DUPLICATE_VOCAB');
+      throw new ServiceError('Vocabulary with this kanji and meaning already exists', 409);
     }
 
     // Create vocabulary
@@ -101,7 +106,7 @@ export class VocabularyService {
     // Get created vocabulary
     const result = await this.repository.findByIdWithDetails(vocabId);
 
-    if (!result) {
+    if (!result || !result.vocabulary) {
       throw new ServiceError('Failed to retrieve created vocabulary', 500);
     }
 
@@ -135,7 +140,7 @@ export class VocabularyService {
     }
 
     if (existing.status === 'Delete') {
-      throw new ServiceError('Vocabulary has been deleted', 404, 'SOFT_DELETED');
+      throw new ServiceError('Vocabulary has been deleted', 404);
     }
 
     // Check for duplicate kanji + meaning_vi (excluding current vocab)
@@ -147,7 +152,7 @@ export class VocabularyService {
       );
 
       if (isDuplicate) {
-        throw new ServiceError('Vocabulary with this kanji and meaning already exists', 409, 'DUPLICATE_VOCAB');
+        throw new ServiceError('Vocabulary with this kanji and meaning already exists', 409);
       }
     }
 
@@ -157,7 +162,7 @@ export class VocabularyService {
     // Get updated vocabulary
     const result = await this.repository.findByIdWithDetails(id);
 
-    if (!result) {
+    if (!result || !result.vocabulary) {
       throw new ServiceError('Failed to retrieve updated vocabulary', 500);
     }
 
@@ -213,7 +218,7 @@ export class VocabularyService {
   }> {
     // Validate report status
     if (data.status !== 'resolved' && data.status !== 'dismissed') {
-      throw new ServiceError('Invalid report status', 400, 'INVALID_STATUS');
+      throw new ServiceError('Invalid report status', 400);
     }
 
     // Check if vocabulary exists

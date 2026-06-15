@@ -30,9 +30,17 @@ import {
  * Vocabulary Repository Class
  * Handles all database operations for vocabulary management
  */
-export class VocabularyRepository extends BaseRepository<VocabularyRow> {
-  constructor() {
-    super('vocabularies');
+export class VocabularyRepository {
+  /**
+   * Find vocabulary by ID
+   * ID で語彙を取得
+   */
+  async findById(id: number): Promise<VocabularyRow | null> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      `SELECT * FROM \`vocabularies\` WHERE id = ?`,
+      [id]
+    );
+    return (rows[0] as VocabularyRow) || null;
   }
 
   /**
@@ -90,7 +98,7 @@ export class VocabularyRepository extends BaseRepository<VocabularyRow> {
     const offset = (page - 1) * limit;
 
     // Get vocabularies
-    const [rows] = await pool.query<VocabularyRow[]>(
+    const [rows] = await pool.query<RowDataPacket[]>(
       `SELECT v.* FROM \`vocabularies\` v ${whereClause} ORDER BY ${sortColumn} ${sortDir} LIMIT ? OFFSET ?`,
       [...params, limit, offset]
     );
@@ -102,7 +110,7 @@ export class VocabularyRepository extends BaseRepository<VocabularyRow> {
     );
 
     // Transform to response format with relations
-    const items = await Promise.all(rows.map((row) => this.mapToResponse(row)));
+    const items = await Promise.all(rows.map((row: any) => this.mapToResponse(row as VocabularyRow)));
 
     return {
       items,
@@ -169,7 +177,7 @@ export class VocabularyRepository extends BaseRepository<VocabularyRow> {
     });
 
     // Get change logs
-    const [logRows] = await pool.query<VocabChangeLogRow[]>(
+    const [logRows] = await pool.query<RowDataPacket[]>(
       `SELECT * FROM \`vocab_change_logs\` WHERE vocab_id = ? ORDER BY created_at DESC`,
       [id]
     );
@@ -185,7 +193,7 @@ export class VocabularyRepository extends BaseRepository<VocabularyRow> {
     }));
 
     // Get reports
-    const [reportRows] = await pool.query<VocabReportRow[]>(
+    const [reportRows] = await pool.query<RowDataPacket[]>(
       `SELECT * FROM \`vocab_reports\` WHERE vocab_id = ? ORDER BY created_at DESC`,
       [id]
     );
@@ -559,10 +567,10 @@ export class VocabularyRepository extends BaseRepository<VocabularyRow> {
       }
 
       // Check if target vocabulary exists
-      const [targetRows] = await connection.query<RowDataPacket[]>(
+      const [targetRows] = await connection.query(
         `SELECT id FROM \`vocabularies\` WHERE id = ? AND status != ?`,
-        [targetVocabId, VocabularyStatus.Delete]
-      );
+        [targetVocabId, 'Delete']
+      ) as [RowDataPacket[], any];
 
       if (!targetRows[0]) {
         throw new Error(`Target vocabulary ${targetVocabId} not found`);

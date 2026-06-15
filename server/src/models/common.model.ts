@@ -48,6 +48,7 @@ export class ServiceError extends Error {
   constructor(
     message: string,
     public code: number,
+    public errorCode?: string,
   ) {
     super(message);
     this.name = 'ServiceError';

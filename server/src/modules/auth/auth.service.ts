@@ -2,7 +2,7 @@ import { pool } from '../../database/connection';
 import { comparePassword, hashPassword } from '../../utils/hash.util';
 import { signToken } from '../../utils/token.util';
 import { ServiceError } from '../../models/common.model';
-import type { UserRow } from '../../models/users.model';
+import type { User } from '../../models/users.model';
 import type { LoginResponseData } from '../../models/auth.model';
 import type { LoginInput, UpdateProfileInput, ChangePasswordInput } from './auth.validation';
 
@@ -10,7 +10,7 @@ import type { LoginInput, UpdateProfileInput, ChangePasswordInput } from './auth
 export class AuthService {
   // ログイン処理 / Login with email and password
   async login(input: LoginInput): Promise<LoginResponseData | null> {
-    const [rows] = await pool.query<UserRow[]>(
+    const [rows] = await pool.query<User[]>(
       'SELECT * FROM `users` WHERE `email` = ? LIMIT 1',
       [input.email],
     );
@@ -41,8 +41,8 @@ export class AuthService {
   async updateProfile(
     userId: number,
     input: UpdateProfileInput,
-  ): Promise<Omit<UserRow, 'password'>> {
-    const [existing] = await pool.query<UserRow[]>(
+  ): Promise<Omit<User, 'password'>> {
+    const [existing] = await pool.query<User[]>(
       'SELECT * FROM `users` WHERE `id` = ? LIMIT 1',
       [userId],
     );
@@ -62,7 +62,7 @@ export class AuthService {
       ],
     );
 
-    const [updated] = await pool.query<UserRow[]>(
+    const [updated] = await pool.query<User[]>(
       'SELECT * FROM `users` WHERE `id` = ? LIMIT 1',
       [userId],
     );
@@ -77,7 +77,7 @@ export class AuthService {
    * 認証済みユーザーのパスワードを変更する。更新前に現在のパスワードを確認する。
    */
   async changePassword(userId: number, input: ChangePasswordInput): Promise<void> {
-    const [rows] = await pool.query<UserRow[]>(
+    const [rows] = await pool.query<User[]>(
       'SELECT * FROM `users` WHERE `id` = ? LIMIT 1',
       [userId],
     );

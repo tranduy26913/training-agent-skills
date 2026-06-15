@@ -129,12 +129,12 @@ export class VocabularyController {
       const vocabId = Number(req.params.id);
       const reportId = Number(req.params.reportId);
       const adminId = req.user!.userId;
-      const data: ResolveReportDto = req.body;
+      const data = req.body;
 
       // Validate report status
       const validatedData = validateResolveReportDto(data);
 
-      const result = await vocabularyService.resolveReport(vocabId, reportId, validatedData, adminId);
+      const result = await vocabularyService.resolveReport(vocabId, reportId, { status: validatedData.status as 'resolved' | 'dismissed' }, adminId);
       sendSuccess(res, result);
     } catch (error) {
       handleError(res, error);
