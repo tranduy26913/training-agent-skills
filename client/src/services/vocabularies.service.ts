@@ -26,18 +26,25 @@ class VocabulariesApiClient extends BaseApiClient<VocabularyResponse, CreateVoca
   // 語彙詳細取得（関連データ付き） / Get vocabulary detail with relations and audit data
   async getVocabularyDetail(id: number): Promise<VocabularyDetail> {
     const response: AxiosResponse<VocabularyDetail> = await apiClient.get(
-      `${this.basePath}/${id}/detail`,
+      `${this.basePath}/${id}`,
     );
     return response.data;
   }
 
   // 語彙関係オプション取得 / Get vocabulary options for relation MultiSelect
   async getRelationOptions(excludeIds?: number[]): Promise<VocabRelationDto[]> {
+    // Load from main endpoint with limit=1000 as per spec
     const params = excludeIds?.length ? `?excludeIds=${excludeIds.join(',')}` : '';
     const response: AxiosResponse<VocabRelationDto[]> = await apiClient.get(
-      `${this.basePath}/relations${params}`,
+      `${this.basePath}${params}`,
+      { params: { limit: 1000 } },
     );
-    return response.data;
+    return response.data.map((item) => ({
+      id: item.id,
+      kanji: item.kanji,
+      hiragana: item.hiragana,
+      level: item.level,
+    }));
   }
 
   // 分析データ取得 / Get analytics data for a vocabulary
@@ -51,7 +58,7 @@ class VocabulariesApiClient extends BaseApiClient<VocabularyResponse, CreateVoca
   // レポート解決 / Resolve a vocabulary report
   async resolveReport(vocabId: number, reportId: number, status: 'resolved' | 'dismissed'): Promise<void> {
     await apiClient.patch(
-      `${this.basePath}/${vocabId}/reports/${reportId}/resolve`,
+      `${this.basePath}/${vocabId}/reports/${reportId}`,
       { status },
     );
   }

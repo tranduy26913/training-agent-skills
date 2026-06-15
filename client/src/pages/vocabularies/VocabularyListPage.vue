@@ -119,7 +119,7 @@ function handleDelete(id: number): void {
         {{ t('vocab.title') }}
       </h2>
       <Button
-        :label="t('vocab.createVocabulary')"
+        :label="t('vocab.btn.create')"
         icon="pi pi-plus"
         @click="router.push({ name: 'VocabularyCreate' })"
       />

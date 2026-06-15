@@ -11,7 +11,7 @@ const { t } = useI18n();
 
 // Emits / イベント定義
 const emit = defineEmits<{
-  filterChange: [filters: UserFilters];
+  'filter-change': [filters: UserFilters];
 }>();
 
 // フィルター状態 / Filter state
@@ -54,7 +54,7 @@ function emitFilters(): void {
   if (dateRange.value && dateRange.value[1]) {
     filters.endDate = dateRange.value[1].toISOString().split('T')[0];
   }
-  emit('filterChange', filters);
+  emit('filter-change', filters);
 }
 
 // 検索デバウンス / Debounced search handler

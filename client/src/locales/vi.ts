@@ -337,6 +337,7 @@ export default {
       reset: 'Đặt lại',
       search: 'Tìm kiếm',
       resolve: 'Giải quyết',
+      create: 'Tạo mới',
     },
     tab: {
       info: 'Thông tin',
@@ -345,7 +346,19 @@ export default {
     },
     validation: {
       kanji_required: 'Kanji là bắt buộc',
+      kanji_max_length: 'Kanji tối đa 255 ký tự',
+      kanji_numbers_only: 'Kanji không được chỉ chứa số',
+      hiragana_max_length: 'Hiragana tối đa 255 ký tự',
+      hiragana_invalid_chars: 'Hiragana chỉ chứa ký tự Nhật',
+      romaji_max_length: 'Romaji tối đa 255 ký tự',
+      romaji_invalid_chars: 'Romaji chỉ chứa a-z',
       meaning_required: 'Nghĩa tiếng Việt là bắt buộc',
+      meaning_max_length: 'Nghĩa tiếng Việt tối đa 1000 ký tự',
+      on_yomi_max_length: 'Âm hán việt tối đa 255 ký tự',
+      media_url_invalid: 'Media URL không hợp lệ',
+      note_max_length: 'Note tối đa 2000 ký tự',
+      tags_max_count: 'Tối đa 10 tags',
+      tags_max_length: 'Mỗi tag tối đa 50 ký tự',
     },
     helper: {
       tags: 'Phân cách tags bằng dấu phẩy (tối đa 10 tags)',

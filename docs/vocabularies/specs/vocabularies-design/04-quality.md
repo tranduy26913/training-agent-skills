@@ -1,11 +1,4 @@
----
-title: Admin Vocabulary Management - Quality Specification
-version: 1.0
-author: Admin Team
-date: 2026-06-04
----
-
-# Admin Vocabulary Management - Quality Specification
+# Vocabulary Management — Quality Specification
 
 > Related: [00-index.md](./00-index.md) | [01-backend.md](./01-backend.md) | [02-frontend.md](./02-frontend.md) | [03-behavior.md](./03-behavior.md)
 
@@ -13,354 +6,194 @@ date: 2026-06-04
 
 ## 1. Testing Strategy
 
-### 1.1 Backend Unit Tests
+### 1.1 Backend Tests
+> **Rule**: All **backend tests** should be in **only 1 file**: `server/src/modules/vocabulary/vocabulary.controller.test.ts`
+- Use Database test for test. Not use in-memory mocks or fake implementations. Use the same test database and run migrations before tests.
+#### Unit Tests — `vocabularies.controller.test.ts`
 
-**VocabulariesService Tests**
+| TC ID | Test Case | Arrange | Act | Assert |
+|-------|-----------|---------|-----|--------|
+| UT-001 | POST /api/vocabularies — create success | Valid DTO, admin user | `controller.create(req, res)` | 201 + created vocabulary |
+| UT-002 | POST /api/vocabularies — validation error | Invalid DTO (missing kanji) | `controller.create(req, res)` | 400 + validation error message |
+| UT-003 | POST /api/vocabularies — duplicate kanji+meaning | Existing vocab with same kanji+meaning | `controller.create(req, res)` | 409 + DUPLICATE_VOCAB error |
+| UT-004 | POST /api/vocabularies — unauthorized | No auth token | `controller.create(req, res)` | 401 Unauthorized |
+| UT-005 | POST /api/vocabularies — non-admin | User role='user' | `controller.create(req, res)` | 403 Forbidden |
+| UT-006 | PUT /api/vocabularies/:id — update success | Valid DTO, existing vocab | `controller.update(req, res)` | 200 + updated vocabulary + version incremented |
+| UT-007 | PUT /api/vocabularies/:id — change log created | Valid DTO, existing vocab | `controller.update(req, res)` | 200 + change log in DB |
+| UT-008 | PUT /api/vocabularies/:id — not found | Non-existent id | `controller.update(req, res)` | 404 NOT_FOUND |
+| UT-009 | PUT /api/vocabularies/:id — soft deleted | Vocab with status='Delete' | `controller.update(req, res)` | 404 SOFT_DELETED |
+| UT-010 | DELETE /api/vocabularies/:id — soft delete success | Existing vocab | `controller.delete(req, res)` | 200 + status='Delete' |
+| UT-011 | DELETE /api/vocabularies/:id — not found | Non-existent id | `controller.delete(req, res)` | 404 NOT_FOUND |
+| UT-012 | DELETE /api/vocabularies/:id — unauthorized | No auth token | `controller.delete(req, res)` | 401 Unauthorized |
+| UT-013 | DELETE /api/vocabularies/:id — non-admin | User role='user' | `controller.delete(req, res)` | 403 Forbidden |
+| UT-014 | GET /api/vocabularies — list with defaults | No query params | `controller.findAll(req, res)` | 200 + paginated results (page=1, limit=20) |
+| UT-015 | GET /api/vocabularies — filter by level | Query `level=N3` | `controller.findAll(req, res)` | 200 + filtered results |
+| UT-016 | GET /api/vocabularies — filter by status | Query `status=Publish` | `controller.findAll(req, res)` | 200 + filtered results |
+| UT-017 | GET /api/vocabularies — filter by kanji search | Query `kanji=食べ` | `controller.findAll(req, res)` | 200 + LIKE search results |
+| UT-018 | GET /api/vocabularies — pagination | Query `page=2&limit=10` | `controller.findAll(req, res)` | 200 + page 2, 10 items |
+| UT-019 | GET /api/vocabularies/:id — success | Existing vocab | `controller.findById(req, res)` | 200 + vocabulary detail + relations + logs + reports |
+| UT-020 | GET /api/vocabularies/:id — not found | Non-existent id | `controller.findById(req, res)` | 404 NOT_FOUND |
+| UT-021 | GET /api/vocabularies/:id — soft deleted | Vocab with status='Delete' | `controller.findById(req, res)` | 404 SOFT_DELETED |
+| UT-022 | PATCH /api/vocabularies/:id/reports/:reportId — resolve | Valid status='resolved' | `controller.resolveReport(req, res)` | 200 + report status updated |
+| UT-023 | PATCH /api/vocabularies/:id/reports/:reportId — dismiss | Valid status='dismissed' | `controller.resolveReport(req, res)` | 200 + report status updated |
+| UT-024 | PATCH /api/vocabularies/:id/reports/:reportId — invalid status | Invalid status='invalid' | `controller.resolveReport(req, res)` | 400 INVALID_STATUS |
+| UT-025 | PATCH /api/vocabularies/:id/reports/:reportId — not found | Non-existent report | `controller.resolveReport(req, res)` | 404 NOT_FOUND |
+| UT-026 | GET /api/vocabularies/:id/analytics — success | Existing vocab | `controller.getAnalytics(req, res)` | 200 + analytics data |
+| UT-027 | GET /api/vocabularies/:id/analytics — not found | Non-existent vocab | `controller.getAnalytics(req, res)` | 404 NOT_FOUND |
 
-| Test ID | Method | Scenario | Arrange | Act | Assert |
-|---------|--------|----------|--------|-----|--------|
-| BU-001 | listVocabularies() | List with no filters | Insert 5 vocabularies | Call with {} filters | Returns all 5 vocabs, pagination correct |
-| BU-002 | listVocabularies() | List with status filter | Insert 3 publish, 2 hide | Call with {status: 'publish'} | Returns 3 vocabs with publish status |
-| BU-003 | listVocabularies() | List with pagination | Insert 25 vocabs | Call with {limit: 10, page: 2} | Returns vocabs 11-20, pagination.pages = 3 |
-| BU-004 | listVocabularies() | List with search keyword | Insert vocab "日本", "世界" | Call with {search: '日本'} | Returns only "日本" |
-| BU-005 | listVocabularies() | List with date range | Insert vocabs from Jan-May | Call with {dateFrom, dateTo} | Returns vocabs within range |
-| BU-006 | getVocabulary() | Get with relations | Create vocab with tags, synonyms | Call with id | Returns vocab with all relations populated |
-| BU-007 | createVocabulary() | Create valid vocab | Provide valid DTO | Call createVocabulary() | Returns created vocab with id, version = 1 |
-| BU-008 | createVocabulary() | Create with tags | Provide tags in DTO | Call createVocabulary() | Tags inserted into vocabulary_tags table |
-| BU-009 | createVocabulary() | Create with related words | Provide relatedWordIds | Call createVocabulary() | Links created in vocabulary_related_words |
-| BU-010 | createVocabulary() | Duplicate check fails | Existing vocab (にほん, nihon) | Try to create same | Returns 409 Conflict error |
-| BU-011 | createVocabulary() | Missing required field | No meaning_vi | Call createVocabulary() | Returns validation error |
-| BU-012 | updateVocabulary() | Update single field | Existing vocab, change meaning | Call updateVocabulary() | Vocab updated, version incremented, changelog created |
-| BU-013 | updateVocabulary() | Update tags | Change tags | Call updateVocabulary() | Old tags deleted, new tags inserted |
-| BU-014 | updateVocabulary() | Update with duplicate check | Change hiragana to existing | Call updateVocabulary() | Returns 409 Conflict |
-| BU-015 | updateVocabulary() | Version increment | vocab.version = 1 | Call updateVocabulary() | vocab.version = 2 |
-| BU-016 | updateVocabulary() | Changelog creation | Any field changes | Call updateVocabulary() | New changelog entry created with description |
-| BU-017 | deleteVocabulary() | Soft delete | Existing vocab, status = publish | Call deleteVocabulary() | status changed to 'deleted', changelog created |
-| BU-018 | deleteVocabulary() | Non-existent vocab | id = 999 | Call deleteVocabulary() | Returns 404 Not Found |
-| BU-019 | exportCsv() | Export all | Multiple vocabs | Call exportCsv() | Returns CSV string with all vocab data |
-| BU-020 | exportCsv() | Export with filters | vocabs with status=publish | Call exportCsv({status:'publish'}) | CSV contains only publish vocabs |
+#### Authorization Tests
 
-**VocabulariesRepository Tests**
-
-| Test ID | Method | Scenario | Arrange | Act | Assert |
-|---------|--------|----------|--------|-----|--------|
-| BR-001 | create() | Insert vocabulary | Valid vocab object | Call create() | Returns created record with id |
-| BR-002 | findById() | Find with relations | Created vocab with tags | Call findById(id) | Returns vocab with tags array populated |
-| BR-003 | update() | Update with version | Existing vocab | Call update() | Version counter incremented |
-| BR-004 | findByHiraganaRomaji() | Duplicate check | Existing (にほん, nihon) | Call findByHiraganaRomaji() | Returns the existing vocab |
-| BR-005 | delete() | Soft delete | Existing vocab | Call delete(id) | status = 'deleted', data preserved |
-
-**VocabulariesValidation Tests**
-
-| Test ID | Schema | Field | Valid Input | Invalid Input | Expected Error |
-|---------|--------|-------|-------------|---------------|-----------------|
-| BV-001 | createVocabularySchema | meaning_vi | "日本" | "" | Required error |
-| BV-002 | createVocabularySchema | meaning_vi | "a".repeat(500) | "a".repeat(501) | Max length error |
-| BV-003 | createVocabularySchema | hiragana | "にほん" | "nihon" (no hiragana) | Japanese charset error |
-| BV-004 | createVocabularySchema | level | "N5" | "N0" | Invalid enum error |
-| BV-005 | createVocabularySchema | media_url | "https://example.com/img.jpg" | "not-a-url" | URL format error |
-| BV-006 | createVocabularySchema | tags | ["tag1"] | ["tag1", "tag2", "tag3", "tag4", "tag5", "tag6", "tag7", "tag8", "tag9", "tag10", "tag11"] | Max 10 items error |
+| TC ID | Test Case | Setup | Action | Assert |
+|-------|-----------|-------|--------|--------|
+| AUTH-001 | Non-admin cannot create | User role='user' | POST /api/vocabularies | 403 Forbidden |
+| AUTH-002 | Non-admin cannot update | User role='user' | PUT /api/vocabularies/:id | 403 Forbidden |
+| AUTH-003 | Non-admin cannot delete | User role='user' | DELETE /api/vocabularies/:id | 403 Forbidden |
+| AUTH-004 | Admin can resolve reports | Admin role='admin' | PATCH /api/vocabularies/:id/reports/:reportId | 200 OK |
+| AUTH-005 | Unauthenticated access | No token | GET /api/vocabularies | 401 Unauthorized |
 
 ---
 
-### 1.2 Backend Integration Tests
+### 1.2 Frontend Tests
 
-**API Endpoint Tests**
+#### VocabularyListPage — Unit Tests
 
-| Test ID | Endpoint | Method | Scenario | Setup | Expected | Notes |
-|---------|----------|--------|----------|-------|----------|-------|
-| BI-001 | /api/admin/vocabularies | GET | List vocabs (admin) | Auth: admin, Insert 5 vocabs | 200 OK, 5 items | Auth required |
-| BI-002 | /api/admin/vocabularies | GET | List vocabs (non-admin) | Auth: user role | 403 Forbidden | Role check |
-| BI-003 | /api/admin/vocabularies | GET | List vocabs (no auth) | No auth header | 401 Unauthorized | Auth required |
-| BI-004 | /api/admin/vocabularies | GET | List with filters | Auth: admin, query params | 200 OK, filtered items | Filtering works |
-| BI-005 | /api/admin/vocabularies | POST | Create vocab | Auth: admin, valid body | 201 Created, id assigned | Auto-increment |
-| BI-006 | /api/admin/vocabularies | POST | Create duplicate | Auth: admin, duplicate hiragana | 409 Conflict | Unique constraint |
-| BI-007 | /api/admin/vocabularies/:id | GET | Get single | Auth: admin, existing id | 200 OK, with relations | Includes changelog, reports |
-| BI-008 | /api/admin/vocabularies/:id | GET | Get non-existent | Auth: admin, id=999 | 404 Not Found | Proper error |
-| BI-009 | /api/admin/vocabularies/:id | PUT | Update vocab | Auth: admin, valid body | 200 OK, version incremented | Changelog created |
-| BI-010 | /api/admin/vocabularies/:id | PUT | Update non-existent | Auth: admin, id=999 | 404 Not Found | Proper error |
-| BI-011 | /api/admin/vocabularies/:id | DELETE | Delete vocab | Auth: admin, existing id | 200 OK, soft delete | Status = 'deleted' |
-| BI-012 | /api/admin/vocabularies/export/csv | GET | Export CSV | Auth: admin, multiple vocabs | 200 OK, CSV content | Content-Type correct |
+| TC ID | Test Case | Arrange | Act | Assert |
+|-------|-----------|---------|-----|--------|
+| FE-UT-001 | Display vocabulary list | Mock `fetchVocabularies` returns data | Mount VocabularyListPage | Table renders with correct data |
+| FE-UT-002 | Empty state | Mock returns empty array | Mount VocabularyListPage | Shows "No vocabulary found" message |
+| FE-UT-003 | Error state | Mock returns error | Mount VocabularyListPage | Shows error message + Retry button |
+| FE-UT-004 | Filter by kanji | Mock data with '食べる' | Input '食べ' in filter | Table filters to matching items |
+| FE-UT-005 | Filter by level | Mock data with N3 items | Select 'N3' in level filter | Table filters to N3 items only |
+| FE-UT-006 | Filter by status | Mock data with Publish items | Select 'Publish' in status filter | Table filters to Publish items only |
+| FE-UT-007 | Reset filters | All filters applied | Click "Reset" button | All filters cleared, full list shown |
+| FE-UT-008 | Pagination | 50 items in mock | Click page 2 | Shows items 21-40 |
+| FE-UT-009 | Navigate to create | Mounted | Click "Create New" button | Router navigates to `/vocabularies/create` |
+| FE-UT-0010 | Navigate to edit | Mounted with data | Click "Edit" on first row | Router navigates to `/vocabularies/1/edit` |
+| FE-UT-0011 | Delete confirmation | Mounted with data | Click "Delete" → Confirm | API called, list refreshed |
+| FE-UT-0012 | Delete cancel | Mounted with data | Click "Delete" → Cancel | API NOT called, list unchanged |
 
----
+#### VocabularyFormPage — Unit Tests
 
-### 1.3 Frontend Unit Tests (Vue Components)
+| TC ID | Test Case | Arrange | Act | Assert |
+|-------|-----------|---------|-----|--------|
+| FE-UT-013 | Create mode init | Mounted in create mode | Component mounted | Form empty, default status='Publish' |
+| FE-UT-014 | Edit mode pre-fill | Mock `fetchVocabulary` returns data | Mounted in edit mode | Form pre-filled with data |
+| FE-UT-015 | Edit mode not found | Mock returns 404 | Mounted in edit mode | Shows error + Back to List button |
+| FE-UT-016 | Valid form submission | Fill form with valid data | Click "Save" | API called with correct data |
+| FE-UT-017 | Invalid form - required fields | Empty form | Click "Save" | Validation errors shown, API NOT called |
+| FE-UT-018 | Invalid form - kanji only numbers | Input '123' in kanji | Click "Save" | Validation error on kanji field |
+| FE-UT-019 | Invalid form - meaning too long | Input 1001 chars in meaning | Click "Save" | Validation error on meaning field |
+| FE-UT-020 | Invalid form - too many tags | Input 11 tags | Click "Save" | Validation error on tags field |
+| FE-UT-021 | Invalid form - invalid URL | Input 'not-a-url' in media_url | Click "Save" | Validation error on media_url field |
+| FE-UT-022 | Success submission | Valid form | Click "Save" | Success toast shown, navigate to list |
+| FE-UT-023 | Failed submission | Valid form, API returns error | Click "Save" | Error toast shown, stay on page |
+| FE-UT-024 | Cancel with unsaved changes | Modify form | Click "Cancel" | Confirm dialog shown |
+| FE-UT-025 | Cancel without changes | No modifications | Click "Cancel" | Navigate back directly |
+| FE-UT-026 | Cancel with changes - cancel dialog | Modify form, confirm dialog open | Click "Hủy" in dialog | Dialog closed, stay on page |
+| FE-UT-027 | Cancel with changes - confirm | Modify form, confirm dialog open | Click "Đóng" in dialog | Navigate back |
+| FE-UT-028 | Tab navigation - to Audit | Mounted | Click "Audit" tab | TabAudit component visible |
+| FE-UT-029 | Tab navigation - to Analytics | Mounted | Click "Analytics" tab | TabAnalytics component visible |
+| FE-UT-030 | Relation MultiSelect renders | Mounted | Check TabInfo | 3 MultiSelect components rendered |
+| FE-UT-031 | Relation options loaded | Mounted | Check MultiSelect options | Options populated from API |
 
-**VocabularyListPage Tests**
+#### TabInfo — Form Validation Tests
 
-| Test ID | Component | Method | Scenario | Arrange | Act | Assert |
-|---------|-----------|--------|----------|--------|-----|--------|
-| FU-001 | VocabularyListPage | onMounted() | Initial load | Mock store.fetchVocabularies | Mount component | fetchVocabularies called |
-| FU-002 | VocabularyListPage | handleFilterChange() | Apply filters | Create filter object | Emit filter-change | Store.fetchVocabularies called with filters |
-| FU-003 | VocabularyListPage | handlePageChange() | Change page | Initial page 1 | Click page 2 | fetchVocabularies called with page 2 |
-| FU-004 | VocabularyListPage | handleEdit() | Click edit | Render table, mock router | Click edit row | router.push called with id |
-| FU-005 | VocabularyListPage | handleDelete() | Delete with confirm | Render table | Click delete, confirm | deleteVocabulary called |
-| FU-006 | VocabularyListPage | handleDelete() | Delete reject | Delete dialog open | Click reject | deleteVocabulary NOT called |
-| FU-007 | VocabularyListPage | handleExportCsv() | Export all | Mock exportCsv | Click export button | Trigger file download |
-| FU-008 | VocabularyListPage | render() | Empty state | Store.vocabularies = [] | Mount component | Show "No vocabularies" message |
-| FU-009 | VocabularyListPage | render() | Error state | Store.error = "API error" | Mount component | Show error toast |
+| TC ID | Test Case | Arrange | Act | Assert |
+|-------|-----------|---------|-----|--------|
+| FE-UT-032 | Kanji field required | Empty form | Click "Save" | Error: "Kanji là bắt buộc" |
+| FE-UT-033 | Kanji field min length | Input 0 chars in kanji | Click "Save" | Error: "Kanji phải có ít nhất 1 ký tự" |
+| FE-UT-034 | Kanji field max length | Input 256 chars in kanji | Click "Save" | Error: "Kanji tối đa 255 ký tự" |
+| FE-UT-035 | Kanji field no numbers only | Input '12345' in kanji | Click "Save" | Error: "Kanji không được chỉ chứa số" |
+| FE-UT-036 | Hiragana valid hiragana | Input 'たべる' in hiragana | Click "Save" | No error on hiragana field |
+| FE-UT-037 | Hiragana invalid chars | Input 'たべ1る' in hiragana | Click "Save" | Error: "Hiragana chỉ chứa ký tự Nhật" |
+| FE-UT-038 | Hiragana max length | Input 256 chars in hiragana | Click "Save" | Error: "Hiragana tối đa 255 ký tự" |
+| FE-UT-039 | Romaji valid | Input 'taberu' in romaji | Click "Save" | No error on romaji field |
+| FE-UT-040 | Romaji invalid chars | Input 'tabe1u' in romaji | Click "Save" | Error: "Romaji chỉ chứa a-z" |
+| FE-UT-041 | Romaji max length | Input 256 chars in romaji | Click "Save" | Error: "Romaji tối đa 255 ký tự" |
+| FE-UT-042 | Meaning_vi required | Empty form | Click "Save" | Error: "Nghĩa tiếng Việt là bắt buộc" |
+| FE-UT-043 | Meaning_vi min length | Input '' in meaning_vi | Click "Save" | Error: "Nghĩa tiếng Việt phải có ít nhất 1 ký tự" |
+| FE-UT-044 | Meaning_vi max length | Input 1001 chars in meaning_vi | Click "Save" | Error: "Nghĩa tiếng Việt tối đa 1000 ký tự" |
+| FE-UT-045 | On_yomi max length | Input 256 chars in on_yomi | Click "Save" | Error: "Âm hán việt tối đa 255 ký tự" |
+| FE-UT-046 | Level valid enum | Select 'N3' in level | Click "Save" | No error on level field |
+| FE-UT-047 | Level invalid value | Select 'N99' in level | Click "Save" | Error: "Cấp độ không hợp lệ" |
+| FE-UT-048 | Media_url valid http | Input 'https://example.com/audio.mp3' | Click "Save" | No error on media_url field |
+| FE-UT-049 | Media_url valid https | Input 'https://example.com/image.png' | Click "Save" | No error on media_url field |
+| FE-UT-050 | Media_url invalid format | Input 'not a url' in media_url | Click "Save" | Error: "Media URL không hợp lệ" |
+| FE-UT-051 | Media_url empty string | Input '' in media_url | Click "Save" | No error (empty allowed) |
+| FE-UT-052 | Note max length | Input 2001 chars in note | Click "Save" | Error: "Note tối đa 2000 ký tự" |
+| FE-UT-053 | Tags empty array | Input no tags | Click "Save" | No error (tags optional) |
+| FE-UT-054 | Tags exactly 10 | Input 10 tags | Click "Save" | No error (max 10 allowed) |
+| FE-UT-055 | Tags 11 items | Input 11 tags | Click "Save" | Error: "Tối đa 10 tags" |
+| FE-UT-056 | Tags single tag too long | Input tag 51 chars | Click "Save" | Error: "Mỗi tag tối đa 50 ký tự" |
+| FE-UT-057 | Tags valid single | Input ['JLPT-N3'] | Click "Save" | No error |
+| FE-UT-058 | Tags valid multiple | Input ['JLPT-N3', 'động từ', 'thông dụng'] | Click "Save" | No error |
+| FE-UT-059 | Status valid Publish | Select 'Publish' | Click "Save" | No error |
+| FE-UT-060 | Status valid Hide | Select 'Hide' | Click "Save" | No error |
+| FE-UT-061 | Status valid Delete | Select 'Delete' | Click "Save" | No error |
+| FE-UT-062 | All required fields valid | Fill kanji + meaning_vi | Click "Save" | Form valid, API called |
+| FE-UT-063 | All fields valid with relations | Fill all + select relations | Click "Save" | API called with relations array |
+| FE-UT-064 | Duplicate kanji+meaning client check | Fill existing kanji+meaning | Click "Save" | Error: "Từ vựng này đã tồn tại" |
+| FE-UT-065 | Form dirty state on input | Mount create form, type in kanji | Check dirty state | Form dirty = true |
+| FE-UT-066 | Form pristine state no input | Mount create form, no input | Check dirty state | Form dirty = false |
+| FE-UT-067 | Save button disabled when invalid | Empty form | Check button state | Save button disabled |
+| FE-UT-068 | Save button enabled when valid | Valid form | Check button state | Save button enabled |
+| FE-UT-069 | Save button disabled while submitting | Valid form, mock loading | Click "Save" | Save button disabled + spinner |
+| FE-UT-070 | MultiSelect related renders | Mounted | Check VocabRelationSelect | Component renders with label |
+| FE-UT-071 | MultiSelect synonyms renders | Mounted | Check VocabRelationSelect | Component renders with label |
+| FE-UT-072 | MultiSelect antonyms renders | Mounted | Check VocabRelationSelect | Component renders with label |
+| FE-UT-073 | MultiSelect excludes self | Edit vocab id=5, open related select | Check options | Vocab id=5 not in options |
+| FE-UT-074 | MultiSelect pre-selected values | Edit vocab with existing relations | Check MultiSelect | Existing relation IDs selected |
+| FE-UT-075 | TabInfo form reset on create | Mounted in create mode | Click "Cancel" → Confirm | Form reset to empty |
 
-**VocabularyFormPage Tests**
+#### Composable Tests — `useVocabularies.test.ts`
 
-| Test ID | Component | Method | Scenario | Arrange | Act | Assert |
-|---------|-----------|--------|----------|--------|-----|--------|
-| FU-010 | VocabularyFormPage | onMounted() | Create mode | route.params.id undefined | Mount | Form empty, formDirty = false |
-| FU-011 | VocabularyFormPage | onMounted() | Edit mode | route.params.id = 1 | Mount | fetchVocabulary called, form populated |
-| FU-012 | VocabularyFormPage | handleSave() | Create valid | Fill form with valid data | Click Save | POST API called, success toast |
-| FU-013 | VocabularyFormPage | handleSave() | Missing required field | Form with empty meaning_vi | Click Save | Show validation error |
-| FU-014 | VocabularyFormPage | handleSave() | Update | Edit existing vocab | Click Save | PUT API called |
-| FU-015 | VocabularyFormPage | handleCancel() | Cancel pristine | formDirty = false | Click Cancel | Navigate to list (no confirm) |
-| FU-016 | VocabularyFormPage | handleCancel() | Cancel dirty | formDirty = true | Click Cancel | Show confirm dialog |
-| FU-017 | VocabularyFormPage | handleCancel() | Confirm discard | Dirty form, show dialog | Click Discard | Navigate to list |
-| FU-018 | VocabularyFormPage | handleDelete() | Delete confirm | Edit mode form | Click Delete | Show confirm dialog |
-| FU-019 | VocabularyFormPage | handleDelete() | Confirm delete | Delete dialog open | Click confirm | DELETE API called, navigate to list |
-| FU-020 | VocabularyFormPage | handleFormInput() | Field change | Form rendered | Type in input | formDirty = true |
-| FU-021 | VocabularyInformationTab | handleRelatedWordsSelect() | Select related word | MultiSelect rendered with options | Select item | Self-reference filtered out |
-| FU-022 | VocabularyAuditTab | render() | Display changelog | Pass changeLogs array | Render tab | Table shows all changelogs |
-| FU-023 | VocabularyAnalyticsTab | render() | Display counts | learnCount=156, favoriteCount=45 | Render tab | Show correct counts |
-
-**Composable Tests**
-
-| Test ID | Composable | Function | Scenario | Arrange | Act | Assert |
-|---------|-----------|----------|----------|--------|-----|--------|
-| FU-024 | useVocabularies | listVocabularies() | API call success | Mock API | Call with filters | Return data array |
-| FU-025 | useVocabularies | getVocabulary() | API call | Mock API | Call with id | Return vocabulary object |
-| FU-026 | useVocabularies | createVocabulary() | API call | Mock API | Call with DTO | Return created vocab |
-| FU-027 | useVocabularies | exportCsv() | API call | Mock API | Call with filters | Return Blob |
-
-**Store Tests**
-
-| Test ID | Store | Action | Scenario | Arrange | Act | Assert |
-|---------|-------|--------|----------|--------|-----|--------|
-| FU-028 | useVocabulariesStore | fetchVocabularies() | Fetch success | Mock API | Call action | vocabularies array updated |
-| FU-029 | useVocabulariesStore | fetchVocabularies() | Fetch error | Mock API error | Call action | error state set, loading = false |
-| FU-030 | useVocabulariesStore | updateVocabulary() | Update | Mock API | Call action | currentVocabulary updated |
-| FU-031 | useVocabulariesStore | setFormDirty() | Set dirty | Initial state | Call action | formDirty = true |
-
----
-
-### 1.4 Frontend E2E Tests (Playwright)
-
-| Test ID | Scenario | Steps | Expected Result |
-|---------|----------|-------|-----------------|
-| E2E-001 | View vocabulary list | 1. Login as admin<br/>2. Navigate to /vocabularies | List page loads with table |
-| E2E-002 | Filter by status | 1. On list page<br/>2. Select status filter<br/>3. Click Apply | Table updates showing filtered results |
-| E2E-003 | Create vocabulary | 1. Click Create button<br/>2. Fill form fields<br/>3. Click Save | Form submits, success toast, redirect to list |
-| E2E-004 | Edit vocabulary | 1. Click Edit on row<br/>2. Change a field<br/>3. Click Save | Updates save, version increments |
-| E2E-005 | Discard unsaved | 1. Edit form<br/>2. Change field<br/>3. Click Cancel<br/>4. Confirm Discard | Form closes without saving |
-| E2E-006 | Delete vocabulary | 1. Click Delete<br/>2. Confirm | Vocabulary deleted, removed from list |
-| E2E-007 | Export CSV | 1. On list page<br/>2. Click Export CSV | CSV file downloaded |
-| E2E-008 | View audit history | 1. Open form (edit)<br/>2. Click Audit tab | Shows changelog with all versions |
-| E2E-009 | View analytics | 1. Open form<br/>2. Click Analytics tab | Shows learn count and favorite count |
-| E2E-010 | Authorization check | 1. Login as regular user<br/>2. Try to access /vocabularies | Redirect to 403 Forbidden or list (role check) |
+| TC ID | Test Case | Arrange | Act | Assert |
+|-------|-----------|---------|-----|--------|
+| COMP-UT-001 | fetchVocabularies success | Mock api service | `useVocabularies().fetchVocabularies({})` | Returns paginated result |
+| COMP-UT-002 | fetchVocabularies with filters | Mock api service | `useVocabularies().fetchVocabularies({ level: 'N3' })` | API called with correct params |
+| COMP-UT-003 | fetchVocabulary success | Mock api service | `useVocabularies().fetchVocabulary(1)` | Returns vocabulary detail |
+| COMP-UT-004 | createVocabulary success | Mock api service | `useVocabularies().createVocabulary(dto)` | Returns created vocabulary |
+| COMP-UT-005 | updateVocabulary success | Mock api service | `useVocabularies().updateVocabulary(1, dto)` | Returns updated vocabulary |
+| COMP-UT-006 | deleteVocabulary success | Mock api service | `useVocabularies().deleteVocabulary(1)` | API called, no return |
+| COMP-UT-007 | fetchRelationOptions success | Mock api service | `useVocabularies().fetchRelationOptions()` | Returns vocab list options |
+| COMP-UT-008 | fetchAnalytics success | Mock api service | `useVocabularies().fetchAnalytics(1)` | Returns analytics data |
 
 ---
 
 ## 2. Performance Considerations
 
-### 2.1 Frontend Performance
+### 2.1 Database
 
-| Metric | Target | Implementation |
-|--------|--------|-----------------|
-| **Page Load Time** | < 2s | Lazy-load related words dropdowns (paginated load instead of all at once) |
-| **Form Response** | < 100ms | Debounce validation, use shallowRef for large lists |
-| **List Pagination** | < 500ms | Use virtual scrolling for large tables (PrimeVue DataTable) |
-| **Search/Filter** | < 1s | Debounce search input (300ms), server-side filtering |
-| **Export CSV** | < 3s | Generate client-side for small datasets, server-side for large |
-| **Bundle Size** | No increase | Use tree-shaking, code-split components |
+| Concern | Target | Strategy |
+|---------|--------|----------|
+| List page load time | < 200ms for 1000 vocabularies | Indexes on `kanji`, `level`, `status`, `created_by` |
+| Filter query performance | < 300ms with all filters | Composite index on `(status, level)` |
+| Relation query | < 100ms per vocabulary | Index on `vocab_id`, `target_vocab_id` |
+| Change log query | < 200ms per vocabulary | Index on `vocab_id` |
+| Pagination | O(1) per page | Use `LIMIT` + `OFFSET` with reasonable page size |
 
-### 2.2 Backend Performance
+### 2.2 Frontend
 
-| Metric | Target | Implementation |
-|--------|--------|-----------------|
-| **List API** | < 200ms | Pagination (max 50 items), database indexes on level, status, created_by, created_at |
-| **Get Detail** | < 300ms | Eager load relations (tags, related words, changelog, reports) |
-| **Create** | < 500ms | Batch insert tags/relations, single transaction |
-| **Update** | < 500ms | Batch update links, create changelog in same transaction |
-| **CSV Export** | < 2s | Stream response, no memory buffering |
-| **Database Connections** | Pool 10-20 | Use connection pooling (default in Express/MySQL) |
-
-### 2.3 Database Optimization
-
-| Technique | Purpose |
-|-----------|---------|
-| **Indexes** | CREATE INDEX on level, status, created_by, created_at for filtering |
-| **Pagination** | LIMIT/OFFSET for list endpoint, max 50 items |
-| **Eager Loading** | SELECT with JOINs for related words, synonyms, antonyms |
-| **Lazy Loading** | Load changelog/reports only on demand (separate API call in edit mode) |
-| **Connection Pooling** | Reuse connections, max pool size 20 |
+| Concern | Target | Strategy |
+|---------|--------|----------|
+| List page initial load | < 1s | Lazy load route, skeleton loading |
+| Filter debounce | 300ms | Debounce filter input |
+| Relation MultiSelect options | < 500ms | Cache in store, load once |
+| Form validation | < 50ms | Zod synchronous validation |
+| Tab switching | < 50ms | Lazy load TabAudit/TabAnalytics data |
 
 ---
 
 ## 3. Security Considerations
 
-### 3.1 Authentication & Authorization
-
-| Requirement | Implementation |
-|-------------|-----------------|
-| **Role-Based Access** | All endpoints require JWT + admin role verification |
-| **Token Validation** | Verify JWT signature and expiration |
-| **Rate Limiting** | 100 req/min per user (prevent brute force) |
-| **CORS** | Allow only domain specified in config |
-| **CSRF Protection** | Use SameSite=Strict cookies (if applicable) |
-
-### 3.2 Data Validation
-
-| Validation | Implementation |
-|-----------|-----------------|
-| **Input Sanitization** | Remove HTML tags from meaning_vi, note fields |
-| **Field Length Validation** | Enforce max length limits (500 chars for meaning, etc.) |
-| **Enum Validation** | Only allow specified status/level values |
-| **URL Validation** | Validate media_url is valid HTTP/HTTPS URL |
-| **File Upload** | Not implemented in MVP, but future: validate file type/size |
-
-### 3.3 Data Protection
-
-| Requirement | Implementation |
-|-------------|-----------------|
-| **SQL Injection** | Use parameterized queries (Knex/ORM) |
-| **XSS Prevention** | Escape/sanitize all user input before DB insert |
-| **Password Hashing** | Not applicable (no password field in vocabularies) |
-| **Sensitive Data Logging** | Never log full payloads, only request metadata |
-| **Soft Delete** | Keep deleted records for audit trail |
-
-### 3.4 API Security
-
-| Header | Value | Purpose |
-|--------|-------|---------|
-| `Authorization` | Bearer `<token>` | Require valid JWT |
-| `Content-Type` | application/json | Validate request format |
-| `X-Request-ID` | UUID | Track requests for logging |
-| `Strict-Transport-Security` | max-age=31536000 | Force HTTPS |
-
----
-
-## 4. Accessibility (a11y)
-
-### 4.1 Keyboard Navigation
-
-| Component | Requirement |
-|-----------|-------------|
-| **Form Fields** | Tab order: top-to-bottom, Shift+Tab to go back |
-| **Buttons** | Space/Enter to activate, visible focus ring |
-| **Dropdowns** | Arrow keys to navigate, Enter to select |
-| **MultiSelect** | Arrow keys, Space to toggle item, Ctrl+A for select all |
-| **DataTable** | Arrow keys for navigation, 'a' for actions menu |
-| **Dialogs** | Tab loops within dialog, Escape to close |
-
-### 4.2 Screen Reader Support
-
-| Element | Implementation |
-|---------|-----------------|
-| **Page Titles** | Each page has unique, descriptive `<title>` |
-| **Headings** | Proper heading hierarchy (h1 → h2 → h3) |
-| **Form Labels** | `<label for="field-id">` for each input |
-| **ARIA Attributes** | aria-label for icon buttons, aria-live for toasts |
-| **Error Messages** | Associated with field via aria-describedby |
-| **Tables** | `<thead>`, `<tbody>`, scope="col" for column headers |
-| **Icons** | Use aria-hidden="true" for decorative icons |
-
-### 4.3 Visual Accessibility
-
-| Requirement | Implementation |
-|-------------|-----------------|
-| **Color Contrast** | Minimum 4.5:1 for text (WCAG AA) |
-| **Font Size** | Minimum 14px for body text, 16px for inputs |
-| **Focus Indicators** | Clear visible focus ring (2px outline) |
-| **Error Display** | Use color + icon + text (not color alone) |
-| **Status Badges** | Include text label alongside color |
-
----
-
-## 5. Logging & Audit
-
-### 5.1 Application Logging
-
-| Event | Log Level | Details | Purpose |
-|-------|-----------|---------|---------|
-| Create vocabulary | INFO | vocabulary_id, meaning_vi, created_by, timestamp | Audit trail |
-| Update vocabulary | INFO | vocabulary_id, changed_fields, updated_by, timestamp | Audit trail |
-| Delete vocabulary | INFO | vocabulary_id, deleted_by, timestamp | Audit trail |
-| API Error | ERROR | endpoint, status, error_code, request_id | Debugging |
-| Authorization Failure | WARN | endpoint, user_id, reason | Security audit |
-| Validation Error | INFO | endpoint, field_errors | Debugging |
-| Export CSV | INFO | export_count, filtered_by, timestamp | Usage tracking |
-
-### 5.2 Change Log Table
-
-The `vocabulary_change_logs` table stores all modifications:
-
-| Field | Purpose |
-|-------|---------|
-| `id` | Unique identifier |
-| `vocabulary_id` | Foreign key to vocabulary |
-| `version` | Version number (matches vocab.version) |
-| `changed_fields` | Comma-separated list of changed field names |
-| `change_description` | Human-readable description (e.g., "meaning_vi updated from 'X' to 'Y'") |
-| `changed_by` | User ID who made the change |
-| `created_at` | Timestamp of change |
-
-**Example Entry:**
-```
-id: 5
-vocabulary_id: 1
-version: 3
-changed_fields: "meaning_vi, note"
-change_description: "meaning_vi updated from 'Japan' to 'Japan (country)'. note updated from empty to 'East Asia'"
-changed_by: 5
-created_at: 2026-06-04 15:30:00
-```
-
-### 5.3 Report Tracking
-
-The `vocabulary_reports` table tracks user-submitted reports:
-
-| Field | Purpose |
-|-------|---------|
-| `id` | Unique identifier |
-| `vocabulary_id` | Which vocabulary was reported |
-| `reporter_id` | User who submitted report |
-| `report_type` | Type: incorrect_meaning, offensive_content, duplicate, other |
-| `report_reason` | User's description |
-| `status` | pending, resolved, rejected |
-| `created_at` | When reported |
-| `resolved_at` | When resolved/rejected |
-
-**Admin View in Audit Tab:**
-- Shows all reports for a vocabulary
-- Displays: Type, Reason, Status, Reporter Name, Date
-- Admins can mark as resolved/rejected (future feature)
-
-### 5.4 Logging Best Practices
-
-```typescript
-// DO: Log with context
-logger.info('vocabulary.updated', {
-  vocabulary_id: 1,
-  changed_fields: ['meaning_vi', 'note'],
-  changed_by: 5,
-  request_id: 'uuid'
-});
-
-// DON'T: Log sensitive data
-logger.error('vocabulary.create_failed', {
-  // ❌ Don't include full request body
-  // payload: req.body
-  // ✅ Do include only relevant metadata
-  endpoint: '/api/admin/vocabularies',
-  status: 500,
-  request_id: 'uuid'
-});
-```
-
-### 5.5 Error Tracking
-
-| Error Scenario | Log Level | Action |
-|----------------|-----------|--------|
-| Duplicate vocabulary error | WARN | Log user action, suggest edit existing |
-| Validation error | INFO | Log field validation failure |
-| Database connection error | ERROR | Alert ops team, retry logic |
-| Authorization failure | WARN | Log failed attempt, check for abuse |
-| API timeout | ERROR | Retry, log timeout threshold exceeded |
-
----
+| Concern | Severity | Mitigation |
+|---------|----------|------------|
+| SQL Injection | Critical | Parameterized queries (Knex.js/TypeORM) |
+| XSS via kanji/meaning | High | Vue auto-escaping, no `v-html` on user input |
+| Unauthorized access | Critical | Admin role middleware on all write endpoints |
+| Mass assignment | Medium | Explicit DTO validation, no raw request body to DB |
+| Relation injection | Medium | Validate relation IDs exist, prevent self-reference |
+| Tag injection | Low | Max 10 tags, 50 chars each, sanitize input |
+| API rate limiting | Medium | Rate limiter on `/api/vocabularies` endpoints |
+| Soft delete bypass | High | All queries filter `status != 'Delete'` except admin |
+| CSRF | Medium | CSRF token for state-changing requests |

@@ -1,11 +1,4 @@
----
-title: Admin Vocabulary Management - Backend Specification
-version: 1.0
-author: Admin Team
-date: 2026-06-04
----
-
-# Admin Vocabulary Management - Backend Specification
+# Vocabulary Management — Backend Specification
 
 > Related: [00-index.md](./00-index.md) | [02-frontend.md](./02-frontend.md) | [03-behavior.md](./03-behavior.md) | [04-quality.md](./04-quality.md)
 
@@ -15,616 +8,383 @@ date: 2026-06-04
 
 ### 1.1 Database Schema
 
-```sql
--- vocabularies (NEW)
-CREATE TABLE IF NOT EXISTS `vocabularies` (
+#### Bảng `vocabularies`
+
+```
+CREATE TABLE `vocabularies` (
   `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  `meaning_vi` VARCHAR(500) NOT NULL COMMENT 'Nghĩa tiếng Việt',
-  `hiragana` VARCHAR(100) NOT NULL COMMENT 'Hira/Kana',
-  `romaji` VARCHAR(100) NOT NULL COMMENT 'Romaji',
-  `kanji` VARCHAR(100) COMMENT 'Kanji (nếu có)',
-  `han_viet` VARCHAR(100) COMMENT 'Âm Hán Việt',
-  `level` ENUM('N5', 'N4', 'N3', 'N2', 'N1', 'other') NOT NULL DEFAULT 'N5' COMMENT 'Mức độ JLPT',
-  `media_url` VARCHAR(500) COMMENT 'URL hình ảnh/âm thanh',
-  `note` TEXT COMMENT 'Ghi chú thêm',
-  `status` ENUM('publish', 'hide', 'deleted') NOT NULL DEFAULT 'hide' COMMENT 'Trạng thái hiển thị',
-  `version` INT NOT NULL DEFAULT 1 COMMENT 'Version counter',
-  `learn_count` INT NOT NULL DEFAULT 0 COMMENT 'Số lần học',
-  `favorite_count` INT NOT NULL DEFAULT 0 COMMENT 'Số lần yêu thích',
-  `created_by` INT UNSIGNED NOT NULL,
-  `updated_by` INT UNSIGNED,
+  `kanji` VARCHAR(255) NOT NULL COMMENT 'Kanji form',
+  `hiragana` VARCHAR(255) NULL COMMENT 'Hira/Kana form',
+  `romaji` VARCHAR(255) NULL COMMENT 'Romaji form',
+  `meaning_vi` TEXT NOT NULL COMMENT 'Nghĩa tiếng Việt',
+  `on_yomi` VARCHAR(255) NULL COMMENT 'Âm hán việt',
+  `level` ENUM('N5','N4','N3','N2','N1') NULL COMMENT 'Cấp độ JLPT',
+  `media_url` VARCHAR(500) NULL COMMENT 'Media URL (audio/image)',
+  `note` TEXT NULL COMMENT 'Ghi chú',
+  `tags` JSON NULL COMMENT 'Tags dạng JSON array ["tag1","tag2"]',
+  `status` ENUM('Publish','Hide','Delete') NOT NULL DEFAULT 'Publish' COMMENT 'Status',
+  `learn_count` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Số lần học',
+  `favorite_count` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Số lần yêu thích',
+  `created_by` INT UNSIGNED NULL COMMENT 'User ID người tạo',
+  `updated_by` INT UNSIGNED NULL COMMENT 'User ID người cập nhật',
+  `version` INT UNSIGNED NOT NULL DEFAULT 1 COMMENT 'Version cho audit',
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX `idx_vocabularies_level` (`level`),
-  INDEX `idx_vocabularies_status` (`status`),
-  INDEX `idx_vocabularies_created_by` (`created_by`),
-  INDEX `idx_vocabularies_created_at` (`created_at`),
-  FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON DELETE RESTRICT,
-  FOREIGN KEY (`updated_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- vocabulary_tags (NEW)
-CREATE TABLE IF NOT EXISTS `vocabulary_tags` (
-  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  `vocabulary_id` INT UNSIGNED NOT NULL,
-  `tag` VARCHAR(100) NOT NULL COMMENT 'Tag mỗi từ vựng (e.g. "N5-basic", "hiragana")',
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY `uk_vocabulary_tag` (`vocabulary_id`, `tag`),
-  FOREIGN KEY (`vocabulary_id`) REFERENCES `vocabularies`(`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- vocabulary_related_words (NEW)
-CREATE TABLE IF NOT EXISTS `vocabulary_related_words` (
-  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  `vocabulary_id` INT UNSIGNED NOT NULL,
-  `related_vocabulary_id` INT UNSIGNED NOT NULL,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY `uk_vocabulary_related` (`vocabulary_id`, `related_vocabulary_id`),
-  FOREIGN KEY (`vocabulary_id`) REFERENCES `vocabularies`(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`related_vocabulary_id`) REFERENCES `vocabularies`(`id`) ON DELETE CASCADE,
-  CHECK (`vocabulary_id` <> `related_vocabulary_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- vocabulary_synonyms (NEW)
-CREATE TABLE IF NOT EXISTS `vocabulary_synonyms` (
-  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  `vocabulary_id` INT UNSIGNED NOT NULL,
-  `synonym_vocabulary_id` INT UNSIGNED NOT NULL,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY `uk_vocabulary_synonym` (`vocabulary_id`, `synonym_vocabulary_id`),
-  FOREIGN KEY (`vocabulary_id`) REFERENCES `vocabularies`(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`synonym_vocabulary_id`) REFERENCES `vocabularies`(`id`) ON DELETE CASCADE,
-  CHECK (`vocabulary_id` <> `synonym_vocabulary_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- vocabulary_antonyms (NEW)
-CREATE TABLE IF NOT EXISTS `vocabulary_antonyms` (
-  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  `vocabulary_id` INT UNSIGNED NOT NULL,
-  `antonym_vocabulary_id` INT UNSIGNED NOT NULL,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY `uk_vocabulary_antonym` (`vocabulary_id`, `antonym_vocabulary_id`),
-  FOREIGN KEY (`vocabulary_id`) REFERENCES `vocabularies`(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`antonym_vocabulary_id`) REFERENCES `vocabularies`(`id`) ON DELETE CASCADE,
-  CHECK (`vocabulary_id` <> `antonym_vocabulary_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- vocabulary_change_logs (NEW)
-CREATE TABLE IF NOT EXISTS `vocabulary_change_logs` (
-  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  `vocabulary_id` INT UNSIGNED NOT NULL,
-  `changed_fields` JSON COMMENT 'Danh sách field đã thay đổi: {"field": "old_value", "new_value"}',
-  `changed_by` INT UNSIGNED NOT NULL,
-  `change_description` TEXT COMMENT 'Mô tả thay đổi (e.g. "meaning_vi updated from X to Y")',
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  INDEX `idx_vocab_changelog_vocab_id` (`vocabulary_id`),
-  INDEX `idx_vocab_changelog_created_at` (`created_at`),
-  FOREIGN KEY (`vocabulary_id`) REFERENCES `vocabularies`(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`changed_by`) REFERENCES `users`(`id`) ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- vocabulary_reports (NEW)
-CREATE TABLE IF NOT EXISTS `vocabulary_reports` (
-  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  `vocabulary_id` INT UNSIGNED NOT NULL,
-  `reporter_id` INT UNSIGNED NOT NULL,
-  `report_type` ENUM('incorrect_meaning', 'offensive_content', 'duplicate', 'other') NOT NULL,
-  `report_reason` TEXT,
-  `status` ENUM('pending', 'resolved', 'rejected') NOT NULL DEFAULT 'pending',
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  `resolved_at` TIMESTAMP NULL,
-  INDEX `idx_vocab_reports_vocab_id` (`vocabulary_id`),
-  INDEX `idx_vocab_reports_status` (`status`),
-  FOREIGN KEY (`vocabulary_id`) REFERENCES `vocabularies`(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`reporter_id`) REFERENCES `users`(`id`) ON DELETE RESTRICT
+  INDEX `idx_vocab_kanji` (`kanji`),
+  INDEX `idx_vocab_level` (`level`),
+  INDEX `idx_vocab_status` (`status`),
+  INDEX `idx_vocab_created_by` (`created_by`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
 
-### 1.2 TypeScript Models
+#### Bảng `vocab_relations`
 
-Models defined in `models/vocabularies.model.ts`:
+```
+CREATE TABLE `vocab_relations` (
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `vocab_id` INT UNSIGNED NOT NULL COMMENT 'Từ vựng chính',
+  `target_vocab_id` INT UNSIGNED NOT NULL COMMENT 'Từ vựng liên quan',
+  `relation_type` ENUM('related','synonym','antonym') NOT NULL COMMENT 'Loại quan hệ',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`vocab_id`) REFERENCES `vocabularies`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`target_vocab_id`) REFERENCES `vocabularies`(`id`) ON DELETE CASCADE,
+  INDEX `idx_vocab_rel_vocab` (`vocab_id`),
+  INDEX `idx_vocab_rel_target` (`target_vocab_id`),
+  INDEX `idx_vocab_rel_type` (`relation_type`),
+  UNIQUE KEY `uk_vocab_relation` (`vocab_id`, `target_vocab_id`, `relation_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
 
-- `Vocabulary` - Main vocabulary record (id, meaning_vi, hiragana, romaji, kanji, han_viet, level, media_url, note, status, version, learn_count, favorite_count, created_by, updated_by, created_at, updated_at, tags[], relatedWords[], synonyms[], antonyms[])
-- `VocabularyTag` - Tag entry (id, vocabulary_id, tag)
-- `VocabularyRelatedWord` - Related word link (id, vocabulary_id, related_vocabulary_id)
-- `VocabularySynonym` - Synonym link (id, vocabulary_id, synonym_vocabulary_id)
-- `VocabularyAntonym` - Antonym link (id, vocabulary_id, antonym_vocabulary_id)
-- `VocabularyChangeLog` - Audit log entry (id, vocabulary_id, changed_fields, changed_by, change_description, created_at)
-- `VocabularyReport` - User report (id, vocabulary_id, reporter_id, report_type, report_reason, status, created_at, resolved_at)
-- `VocabularyFilters` - Filter parameters (status, level, tag, keyword, created_by, dateRange)
-- `CreateVocabularyDto` - Request DTO for create
-- `UpdateVocabularyDto` - Request DTO for update
-- `VocabularyDetailDto` - Response DTO with full audit/analytics (for form page)
+#### Bảng `vocab_change_logs`
+
+```
+CREATE TABLE `vocab_change_logs` (
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `vocab_id` INT UNSIGNED NOT NULL COMMENT 'Từ vựng bị thay đổi',
+  `field_name` VARCHAR(100) NOT NULL COMMENT 'Trường bị thay đổi',
+  `old_value` TEXT NULL COMMENT 'Giá trị cũ',
+  `new_value` TEXT NULL COMMENT 'Giá trị mới',
+  `changed_by` INT UNSIGNED NOT NULL COMMENT 'User ID người thay đổi',
+  `change_reason` VARCHAR(500) NULL COMMENT 'Lý do thay đổi',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`vocab_id`) REFERENCES `vocabularies`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`changed_by`) REFERENCES `users`(`id`) ON DELETE SET NULL,
+  INDEX `idx_vocab_changelog_vocab` (`vocab_id`),
+  INDEX `idx_vocab_changelog_field` (`field_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+#### Bảng `vocab_reports`
+
+```
+CREATE TABLE `vocab_reports` (
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `vocab_id` INT UNSIGNED NOT NULL COMMENT 'Từ vựng bị báo cáo',
+  `report_text` TEXT NOT NULL COMMENT 'Nội dung báo cáo',
+  `status` ENUM('pending','resolved','dismissed') NOT NULL DEFAULT 'pending',
+  `reported_by` INT UNSIGNED NOT NULL COMMENT 'User ID người báo cáo',
+  `resolved_by` INT UNSIGNED NULL COMMENT 'Admin ID xử lý',
+  `resolved_at` TIMESTAMP NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (`vocab_id`) REFERENCES `vocabularies`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`reported_by`) REFERENCES `users`(`id`) ON DELETE RESTRICT,
+  FOREIGN KEY (`resolved_by`) REFERENCES `users`(`id`) ON DELETE SET NULL,
+  INDEX `idx_vocab_report_vocab` (`vocab_id`),
+  INDEX `idx_vocab_report_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+### 1.2 TypeScript Models (server/src/models/)
+
+#### `vocabularies.model.ts`
+
+**DB Row Types:**
+
+- `VocabularyRow` — toàn bộ cột trong bảng vocabularies
+- `VocabRelationRow` — toàn bộ cột trong bảng vocab_relations
+- `VocabChangeLogRow` — toàn bộ cột trong bảng vocab_change_logs
+- `VocabReportRow` — toàn bộ cột trong bảng vocab_reports
+
+**Filter Types:**
+
+- `VocabularyFilter` — các trường filter cho list: `kanji?`, `level?`, `status?`, `tag?`, `createdBy?`
+
+**DTO Types:**
+
+- `CreateVocabularyDto` — dữ liệu tạo mới (kanji, hiragana, romaji, meaning_vi, on_yomi, level, media_url, note, tags, status, relationIds)
+- `UpdateVocabularyDto` — dữ liệu cập nhật (tất cả optional, relationIds để replace toàn bộ)
+- `VocabularyResponse` — response trả về client (bao gồm relations)
+- `VocabRelationDto` — thông tin quan hệ (id, kanji, hiragana, level)
+- `VocabChangeLogDto` — thông tin change log
+- `VocabReportDto` — thông tin báo cáo
+
+**Enum Types:**
+
+- `VocabularyStatus` — `'Publish' | 'Hide' | 'Delete'`
+- `VocabLevel` — `'N5' | 'N4' | 'N3' | 'N2' | 'N1'`
+- `VocabRelationType` — `'related' | 'synonym' | 'antonym'`
+- `VocabReportStatus` — `'pending' | 'resolved' | 'dismissed'`
 
 ---
 
 ## 2. API Endpoints
 
-### 2.1 Authorization
+### 2.1 GET `/api/vocabularies`
 
-All endpoints require:
-1. Valid JWT token in `Authorization: Bearer <token>` header
-2. Role validation: Only `admin` role can access
-3. Rate limiting: Standard 100 req/min per user
+Lấy danh sách từ vựng có phân trang và filter.
 
----
+**Request Query Parameters:**
 
-### V-001 — GET `/api/admin/vocabularies`
-**List all vocabularies with pagination, filtering, and export**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `page` | number | No | Số trang (default: 1) |
+| `limit` | number | No | Số item/trang (default: 20, max: 100) |
+| `sort` | string | No | Trường sort (default: 'created_at') |
+| `order` | string | No | 'asc' hoặc 'desc' (default: 'desc') |
+| `kanji` | string | No | Search theo Kanji (LIKE) |
+| `level` | string | No | Filter theo cấp độ JLPT |
+| `status` | string | No | Filter theo status |
+| `tag` | string | No | Filter theo tag (JSON contains) |
+| `createdBy` | number | No | Filter theo created_by |
 
-**Required Role:** `admin`
+**Response 200:**
 
-Request:
-```http
-GET /api/admin/vocabularies?page=1&limit=20&status=publish&level=N5&tag=basic&search=日本&created_by=5&dateFrom=2026-01-01&dateTo=2026-06-04&export=false
-Authorization: Bearer <token>
 ```
-
-Query Parameters:
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `page` | number | No | 1 | Page number |
-| `limit` | number | No | 20 | Items per page (10/20/50 allowed) |
-| `status` | string | No | — | Filter by status: `publish`, `hide`, `deleted` |
-| `level` | string | No | — | Filter by level: N5/N4/N3/N2/N1/other |
-| `tag` | string | No | — | Filter by tag (exact match) |
-| `search` | string | No | — | Search in meaning_vi, hiragana, romaji |
-| `created_by` | number | No | — | Filter by creator user_id |
-| `dateFrom` | string | No | — | Filter created_at >= date (ISO 8601) |
-| `dateTo` | string | No | — | Filter created_at <= date (ISO 8601) |
-| `export` | boolean | No | false | If true, return CSV format instead of JSON |
-
-Flow:
-1. Verify JWT token
-2. Verify admin role
-3. Validate query parameters
-4. Build WHERE clause with filters
-5. Query database with pagination
-6. If export=true, return CSV; else return JSON with pagination metadata
-
-Response (200 OK):
-```json
 {
-  "data": [
-    {
-      "id": 1,
-      "meaning_vi": "日本",
-      "hiragana": "にほん",
-      "romaji": "nihon",
-      "kanji": "日本",
-      "han_viet": "Nhật Bản",
-      "level": "N5",
-      "media_url": null,
-      "note": "đất nước",
-      "status": "publish",
-      "version": 1,
-      "learn_count": 156,
-      "favorite_count": 45,
-      "created_by": 5,
-      "updated_by": null,
-      "created_at": "2026-01-15T10:30:00Z",
-      "updated_at": "2026-01-15T10:30:00Z",
-      "createdByUser": { "id": 5, "name": "Admin User", "email": "admin@example.com" },
-      "tags": ["N5-basic", "country"]
-    }
-  ],
-  "pagination": {
-    "page": 1,
-    "limit": 20,
-    "total": 145,
-    "pages": 8
+  success: true,
+  data: {
+    items: VocabularyResponse[],
+    pagination: { page, limit, total, totalPages }
   }
 }
 ```
 
-CSV Export Format:
-```csv
-ID,Meaning (VI),Hiragana,Romaji,Kanji,Han Viet,Level,Status,Created By,Created At,Learn Count,Favorite Count
-1,日本,にほん,nihon,日本,Nhật Bản,N5,publish,Admin User,2026-01-15,156,45
-```
-
-Errors:
-| Status | Code | Message |
-|--------|------|---------|
-| 400 | `INVALID_QUERY_PARAMS` | Invalid query parameters |
-| 401 | `UNAUTHORIZED` | Not authenticated |
-| 403 | `FORBIDDEN` | Only admin role allowed |
-| 500 | `SERVER_ERROR` | Database query error |
+**Errors:** 400 (invalid params)
 
 ---
 
-### V-002 — GET `/api/admin/vocabularies/:id`
-**Get single vocabulary with full details (audit, analytics, related words)**
+### 2.2 GET `/api/vocabularies/:id`
 
-**Required Role:** `admin`
+Lấy chi tiết 1 từ vựng bao gồm relations, change logs, reports.
 
-Request:
-```http
-GET /api/admin/vocabularies/1
-Authorization: Bearer <token>
+**Response 200:**
+
 ```
-
-Flow:
-1. Verify JWT token
-2. Verify admin role
-3. Fetch vocabulary from database (with relations)
-4. Fetch change logs
-5. Fetch reports (without resolver details)
-6. Return complete DTO
-
-Response (200 OK):
-```json
 {
-  "data": {
-    "id": 1,
-    "meaning_vi": "日本",
-    "hiragana": "にほん",
-    "romaji": "nihon",
-    "kanji": "日本",
-    "han_viet": "Nhật Bản",
-    "level": "N5",
-    "media_url": null,
-    "note": "đất nước",
-    "status": "publish",
-    "version": 2,
-    "learn_count": 156,
-    "favorite_count": 45,
-    "created_by": 5,
-    "updated_by": 5,
-    "created_at": "2026-01-15T10:30:00Z",
-    "updated_at": "2026-03-20T14:45:00Z",
-    "createdByUser": { "id": 5, "name": "Admin User", "email": "admin@example.com" },
-    "updatedByUser": { "id": 5, "name": "Admin User", "email": "admin@example.com" },
-    "tags": ["N5-basic", "country"],
-    "relatedWords": [
-      { "id": 2, "meaning_vi": "世界", "hiragana": "せかい", "romaji": "sekai" },
-      { "id": 3, "meaning_vi": "国", "hiragana": "くに", "romaji": "kuni" }
-    ],
-    "synonyms": [
-      { "id": 10, "meaning_vi": "日本国", "hiragana": "にほんこく", "romaji": "nihonkoku" }
-    ],
-    "antonyms": [],
-    "changeLogs": [
-      {
-        "id": 1,
-        "version": 1,
-        "changed_fields": "meaning_vi, hiragana, romaji",
-        "change_description": "Initial creation",
-        "changed_by": 5,
-        "changedByUser": { "id": 5, "name": "Admin User" },
-        "created_at": "2026-01-15T10:30:00Z"
-      },
-      {
-        "id": 2,
-        "version": 2,
-        "changed_fields": "note",
-        "change_description": "note updated from '国' to '国 - country'",
-        "changed_by": 5,
-        "changedByUser": { "id": 5, "name": "Admin User" },
-        "created_at": "2026-03-20T14:45:00Z"
-      }
-    ],
-    "reports": [
-      {
-        "id": 1,
-        "report_type": "incorrect_meaning",
-        "report_reason": "Should include 日本国 as alternate meaning",
-        "status": "pending",
-        "reporter": { "id": 10, "name": "User Name" },
-        "created_at": "2026-05-10T08:20:00Z",
-        "resolved_at": null
-      }
-    ]
+  success: true,
+  data: {
+    vocabulary: VocabularyResponse,
+    relations: {
+      related: VocabRelationDto[],
+      synonyms: VocabRelationDto[],
+      antonyms: VocabRelationDto[]
+    },
+    changeLogs: VocabChangeLogDto[],
+    reports: VocabReportDto[]
   }
 }
 ```
 
-Errors:
-| Status | Code | Message |
-|--------|------|---------|
-| 401 | `UNAUTHORIZED` | Not authenticated |
-| 403 | `FORBIDDEN` | Only admin role allowed |
-| 404 | `NOT_FOUND` | Vocabulary not found |
-| 500 | `SERVER_ERROR` | Database query error |
+**Errors:** 404 (not found), 404 (soft deleted)
 
 ---
 
-### V-003 — POST `/api/admin/vocabularies`
-**Create a new vocabulary**
+### 2.3 POST `/api/vocabularies`
 
-**Required Role:** `admin`
+Tạo mới từ vựng.
 
-Request:
-```http
-POST /api/admin/vocabularies
-Authorization: Bearer <token>
-Content-Type: application/json
+**Request Body:**
 
-{
-  "meaning_vi": "日本",
-  "hiragana": "にほん",
-  "romaji": "nihon",
-  "kanji": "日本",
-  "han_viet": "Nhật Bản",
-  "level": "N5",
-  "media_url": null,
-  "note": "đất nước",
-  "status": "hide",
-  "tags": ["N5-basic", "country"],
-  "relatedWordIds": [2, 3],
-  "synonymIds": [10],
-  "antonymIds": []
-}
 ```
-
-Request Body Rules:
-- `meaning_vi` - required, max 500 chars
-- `hiragana` - required, max 100 chars
-- `romaji` - required, max 100 chars
-- `kanji` - optional, max 100 chars
-- `han_viet` - optional, max 100 chars
-- `level` - required, enum: N5/N4/N3/N2/N1/other
-- `media_url` - optional, valid URL
-- `note` - optional, max 2000 chars
-- `status` - required, enum: publish/hide/deleted
-- `tags` - optional, array of strings (max 10)
-- `relatedWordIds` - optional, array of vocab IDs
-- `synonymIds` - optional, array of vocab IDs
-- `antonymIds` - optional, array of vocab IDs
-
-Flow:
-1. Verify JWT token
-2. Verify admin role
-3. Validate request body (Zod schema)
-4. Check if vocabulary with same (hiragana, romaji) combination exists
-5. Insert vocabulary record
-6. Insert tags (if any)
-7. Insert related word links (if any)
-8. Insert synonym links (if any)
-9. Insert antonym links (if any)
-10. Create initial change log entry
-11. Return created vocabulary with ID
-
-Response (201 Created):
-```json
 {
-  "data": {
-    "id": 100,
-    "meaning_vi": "日本",
-    ...
-    "version": 1,
-    "created_at": "2026-06-04T15:30:00Z",
-    "updated_at": "2026-06-04T15:30:00Z"
+  kanji: string (required),
+  hiragana?: string,
+  romaji?: string,
+  meaning_vi: string (required),
+  on_yomi?: string,
+  level?: VocabLevel,
+  media_url?: string,
+  note?: string,
+  tags?: string[],
+  status?: VocabularyStatus,
+  relations?: {
+    related?: number[],
+    synonyms?: number[],
+    antonyms?: number[]
   }
 }
 ```
 
-Errors:
-| Status | Code | Message |
-|--------|------|---------|
-| 400 | `VALIDATION_ERROR` | Validation failed (with detailed field errors) |
-| 401 | `UNAUTHORIZED` | Not authenticated |
-| 403 | `FORBIDDEN` | Only admin role allowed |
-| 409 | `CONFLICT` | Vocabulary with same hiragana/romaji already exists |
-| 500 | `SERVER_ERROR` | Database insert error |
+**Response 201:**
 
----
-
-### V-004 — PUT `/api/admin/vocabularies/:id`
-**Update vocabulary (increments version, creates change log)**
-
-**Required Role:** `admin`
-
-Request:
-```http
-PUT /api/admin/vocabularies/1
-Authorization: Bearer <token>
-Content-Type: application/json
-
+```
 {
-  "meaning_vi": "日本 (updated)",
-  "note": "đất nước - updated",
-  "status": "publish",
-  "tags": ["N5-basic", "country", "new-tag"],
-  "relatedWordIds": [2, 3, 5],
-  "synonymIds": [10, 11],
-  "antonymIds": []
+  success: true,
+  data: { id: number, vocabulary: VocabularyResponse }
 }
 ```
 
-Request Body Rules:
-- All fields same as create, but all optional (only include changed fields)
+**Errors:** 400 (validation), 409 (duplicate kanji + meaning_vi), 401/403 (auth)
 
-Flow:
-1. Verify JWT token
-2. Verify admin role
-3. Fetch current vocabulary
-4. Validate request body
-5. Detect changed fields
-6. Update vocabulary record (version++, updated_by = current_user)
-7. Update tags (delete old, insert new)
-8. Update related words links (delete old, insert new)
-9. Update synonym links (delete old, insert new)
-10. Update antonym links (delete old, insert new)
-11. Create change log entry with detailed description of changes
-12. Return updated vocabulary
+---
 
-Response (200 OK):
-```json
+### 2.4 PUT `/api/vocabularies/:id`
+
+Cập nhật từ vựng. Tự động tăng version và tạo change log.
+
+**Request Body:**
+
+```
 {
-  "data": {
-    "id": 1,
-    "meaning_vi": "日本 (updated)",
-    "version": 3,
-    "updated_by": 5,
-    "updated_at": "2026-06-04T16:00:00Z",
-    ...
+  kanji?: string,
+  hiragana?: string,
+  romaji?: string,
+  meaning_vi?: string,
+  on_yomi?: string,
+  level?: VocabLevel,
+  media_url?: string,
+  note?: string,
+  tags?: string[],
+  status?: VocabularyStatus,
+  relations?: {
+    related?: number[],
+    synonyms?: number[],
+    antonyms?: number[]
   }
 }
 ```
 
-Errors:
-| Status | Code | Message |
-|--------|------|---------|
-| 400 | `VALIDATION_ERROR` | Validation failed |
-| 401 | `UNAUTHORIZED` | Not authenticated |
-| 403 | `FORBIDDEN` | Only admin role allowed |
-| 404 | `NOT_FOUND` | Vocabulary not found |
-| 409 | `CONFLICT` | Vocabulary with same hiragana/romaji already exists (another record) |
-| 500 | `SERVER_ERROR` | Database update error |
+**Response 200:**
 
----
-
-### V-005 — DELETE `/api/admin/vocabularies/:id`
-**Soft delete vocabulary (sets status = 'deleted')**
-
-**Required Role:** `admin`
-
-Request:
-```http
-DELETE /api/admin/vocabularies/1
-Authorization: Bearer <token>
 ```
-
-Flow:
-1. Verify JWT token
-2. Verify admin role
-3. Fetch vocabulary
-4. Set status = 'deleted'
-5. Create change log: "Vocabulary deleted by Admin User"
-6. Return success response
-
-Response (200 OK):
-```json
 {
-  "message": "Vocabulary deleted successfully"
+  success: true,
+  data: { vocabulary: VocabularyResponse, version: number }
 }
 ```
 
-Errors:
-| Status | Code | Message |
-|--------|------|---------|
-| 401 | `UNAUTHORIZED` | Not authenticated |
-| 403 | `FORBIDDEN` | Only admin role allowed |
-| 404 | `NOT_FOUND` | Vocabulary not found |
-| 500 | `SERVER_ERROR` | Database update error |
+**Errors:** 400 (validation), 404 (not found), 404 (soft deleted), 401/403 (auth)
 
 ---
 
-### V-006 — GET `/api/admin/vocabularies/export/csv`
-**Export vocabularies as CSV file**
+### 2.5 DELETE `/api/vocabularies/:id`
 
-**Required Role:** `admin`
+Soft delete (set status = 'Delete').
 
-Request:
-```http
-GET /api/admin/vocabularies/export/csv?status=publish&level=N5&dateFrom=2026-01-01
-Authorization: Bearer <token>
+**Response 200:**
+
+```
+{
+  success: true,
+  data: { id: number, status: 'Delete' }
+}
 ```
 
-Query Parameters: Same as V-001 listing endpoint
+**Errors:** 404 (not found), 401/403 (auth)
 
-Flow:
-1. Verify JWT token
-2. Verify admin role
-3. Apply filters
-4. Generate CSV content
-5. Return file with header: `Content-Type: text/csv; charset=utf-8`
+---
 
-Response (200 OK):
+### 2.6 PATCH `/api/vocabularies/:id/reports/:reportId`
+
+Admin xử lý báo cáo (update status).
+
+**Request Body:**
+
 ```
-Content-Type: text/csv; charset=utf-8
-Content-Disposition: attachment; filename="vocabularies_2026-06-04.csv"
-
-ID,Meaning (VI),Hiragana,Romaji,Kanji,Han Viet,Level,Status,Created By,Created At,Learn Count,Favorite Count
-1,日本,にほん,nihon,日本,Nhật Bản,N5,publish,Admin User,2026-01-15T10:30:00Z,156,45
+{
+  status: 'resolved' | 'dismissed'
+}
 ```
 
-Errors:
-| Status | Code | Message |
-|--------|------|---------|
-| 401 | `UNAUTHORIZED` | Not authenticated |
-| 403 | `FORBIDDEN` | Only admin role allowed |
-| 500 | `SERVER_ERROR` | Export generation error |
+**Response 200:**
+
+```
+{
+  success: true,
+  data: { report: VocabReportDto }
+}
+```
+
+**Errors:** 400 (invalid status), 404 (not found), 401/403 (auth)
+
+---
+
+### 2.7 GET `/api/vocabularies/:id/analytics`
+
+Lấy thống kê analytics (read-only).
+
+**Response 200:**
+
+```
+{
+  success: true,
+  data: {
+    learnCount: number,
+    favoriteCount: number,
+    reportCount: number,
+    relationCount: number
+  }
+}
+```
+
+**Errors:** 404 (not found)
 
 ---
 
 ## 3. Validation Rules
 
-### Client-Side Validation (Zod)
+### 3.1 Client-side Validation
 
-```typescript
-const createVocabularySchema = z.object({
-  meaning_vi: z.string().min(1).max(500),
-  hiragana: z.string().min(1).max(100),
-  romaji: z.string().min(1).max(100),
-  kanji: z.string().max(100).optional(),
-  han_viet: z.string().max(100).optional(),
-  level: z.enum(['N5', 'N4', 'N3', 'N2', 'N1', 'other']),
-  media_url: z.string().url().optional(),
-  note: z.string().max(2000).optional(),
-  status: z.enum(['publish', 'hide', 'deleted']),
-  tags: z.array(z.string()).max(10).optional(),
-  relatedWordIds: z.array(z.number().positive()).optional(),
-  synonymIds: z.array(z.number().positive()).optional(),
-  antonymIds: z.array(z.number().positive()).optional(),
-});
-```
+| Field | Rules |
+|-------|-------|
+| `kanji` | Required, 1-255 chars, không chỉ số |
+| `hiragana` | Optional, 1-255 chars, chỉ Hiragana/Katakana |
+| `romaji` | Optional, 1-255 chars, chỉ a-z |
+| `meaning_vi` | Required, 1-1000 chars |
+| `on_yomi` | Optional, 1-255 chars |
+| `level` | Optional, must be one of N5/N4/N3/N2/N1 |
+| `media_url` | Optional, valid URL format |
+| `note` | Optional, max 2000 chars |
+| `tags` | Optional, array of strings, max 10 tags, mỗi tag max 50 chars |
+| `status` | Optional, default 'Publish', must be Publish/Hide/Delete |
+| `relations` | Optional, array of valid vocab IDs |
 
-### Server-Side Validation
+### 3.2 Server-side Validation
 
-- `meaning_vi` - required, 1-500 chars, no HTML tags
-- `hiragana` - required, 1-100 chars, Japanese hiragana/katakana only
-- `romaji` - required, 1-100 chars, alphanumeric + dash
-- `level` - required, only enum values
-- `media_url` - valid HTTP/HTTPS URL if provided
-- `tags` - max 10 tags per vocabulary
-- `relatedWordIds` - check vocabulary IDs exist in database
-- `synonymIds` - check vocabulary IDs exist in database
-- `antonymIds` - check vocabulary IDs exist in database
-- Cross-field: vocabulary_id <> related_vocabulary_id (no self-reference)
+Tất cả validation client-side đều được duplicate ở server-side bằng Zod schemas.
 
-### Business Rules
+**Business Rules:**
 
-- Duplicate check: Combination of (hiragana, romaji) must be unique (except for deleted records)
-- Related words count: No limit, but UI will paginate in dropdown
-- Status transition: No restrictions (can go publish → hide → deleted → publish)
-- Version management: Auto-increment on every update
-- Deletion: Soft delete only (status = 'deleted'), keep data for audit
+- Không cho phép tạo mới nếu `kanji + meaning_vi` đã tồn tại (trừ khi edit)
+- `level` chỉ được set khi `status !== 'Delete'`
+- Không cho phép self-reference trong relations (vocab không thể quan hệ với chính nó)
+- Không cho phép tạo circular reference trong relations
+- `tags` max 10 tags
+- `media_url` phải là URL hợp lệ nếu có
 
 ---
 
 ## 4. Error Handling
 
-### Standard Error Response Format
+### 4.1 Standard Error Format
 
 ```json
 {
-  "error": {
-    "code": "ERROR_CODE",
-    "message": "Human readable message",
-    "details": {
-      "field": "optional field-level errors"
-    }
-  }
+  "error": "Error message",
+  "code": "ERROR_CODE"
 }
 ```
 
-### Error Scenarios
+### 4.2 Error Scenarios
 
-| Scenario | Status | Code | Message |
-|----------|--------|------|---------|
-| Invalid JWT | 401 | `UNAUTHORIZED` | Invalid or expired token |
-| Missing JWT | 401 | `UNAUTHORIZED` | No authorization header |
-| Non-admin role | 403 | `FORBIDDEN` | Only admin role can access this resource |
-| Invalid query params | 400 | `INVALID_QUERY_PARAMS` | Query parameter validation failed |
-| Required field missing | 400 | `VALIDATION_ERROR` | Field 'X' is required |
-| Invalid enum value | 400 | `VALIDATION_ERROR` | 'X' is not a valid level (must be N5/N4/N3/N2/N1/other) |
-| Invalid URL format | 400 | `VALIDATION_ERROR` | Field 'media_url' must be a valid URL |
-| Duplicate vocabulary | 409 | `CONFLICT` | Vocabulary with hiragana 'にほん' and romaji 'nihon' already exists |
-| Vocabulary not found | 404 | `NOT_FOUND` | Vocabulary with id 999 not found |
-| Related vocabulary not found | 400 | `VALIDATION_ERROR` | Related vocabulary with id 999 not found |
-| Database error | 500 | `SERVER_ERROR` | Internal server error (with request ID for logging) |
-
----
+| HTTP Code | Error Code | Description |
+|-----------|-----------|-------------|
+| 400 | `VALIDATION_ERROR` | Dữ liệu đầu vào không hợp lệ |
+| 400 | `INVALID_RELATION` | Relation không hợp lệ (self-reference, circular) |
+| 401 | `UNAUTHORIZED` | Chưa đăng nhập |
+| 403 | `FORBIDDEN` | Không có quyền Admin |
+| 404 | `NOT_FOUND` | Từ vựng không tồn tại |
+| 404 | `SOFT_DELETED` | Từ vựng đã bị xóa |
+| 409 | `DUPLICATE_VOCAB` | Kanji + Nghĩa đã tồn tại |
+| 500 | `INTERNAL_ERROR` | Lỗi server |

@@ -39,13 +39,18 @@ const statusOptions = [
   { label: 'Delete', value: 'Delete' },
 ];
 
-// Debounced search handler (300ms)
-const debouncedSearch = useDebounceFn(() => {
+// Search handler (immediate, not debounced)
+function handleSearch(): void {
   emit('search', {
     kanji: kanji.value || undefined,
     level: level.value ?? null,
     status: status.value ?? null,
   });
+}
+
+// Debounced search handler (300ms) - for auto-search on input change
+const debouncedSearch = useDebounceFn(() => {
+  handleSearch();
 }, 300);
 
 // Watch for changes and trigger debounced search
@@ -117,6 +122,13 @@ function handleReset(): void {
       icon="pi pi-refresh"
       severity="secondary"
       @click="handleReset"
+    />
+
+    <!-- Search Button -->
+    <Button
+      :label="t('vocab.btn.search')"
+      icon="pi pi-search"
+      @click="handleSearch"
     />
   </div>
 </template>

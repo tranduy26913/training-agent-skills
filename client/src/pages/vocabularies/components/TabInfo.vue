@@ -38,6 +38,105 @@ const statusOptions = [
   { label: 'Delete', value: 'Delete' },
 ];
 
+// Validation patterns
+const HIRAGANA_KATAKANA_REGEX = /^[\u3040-\u309F\u30A0-\u30FF\u31F0-\u31FF]*$/;
+const ROMAJI_REGEX = /^[a-z\s]*$/;
+const URL_REGEX = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
+
+// Validate individual fields
+function validateKanji(value: string | null | undefined): string | null {
+  if (!value?.trim()) {
+    return t('vocab.validation.kanji_required');
+  }
+  if (value.trim().length > 255) {
+    return t('vocab.validation.kanji_max_length');
+  }
+  if (/^\d+$/.test(value.trim())) {
+    return t('vocab.validation.kanji_numbers_only');
+  }
+  return null;
+}
+
+function validateHiragana(value: string | null | undefined): string | null {
+  if (!value) {
+    return null; // Optional field
+  }
+  if (value.length > 255) {
+    return t('vocab.validation.hiragana_max_length');
+  }
+  if (!HIRAGANA_KATAKANA_REGEX.test(value)) {
+    return t('vocab.validation.hiragana_invalid_chars');
+  }
+  return null;
+}
+
+function validateRomaji(value: string | null | undefined): string | null {
+  if (!value) {
+    return null; // Optional field
+  }
+  if (value.length > 255) {
+    return t('vocab.validation.romaji_max_length');
+  }
+  if (!ROMAJI_REGEX.test(value)) {
+    return t('vocab.validation.romaji_invalid_chars');
+  }
+  return null;
+}
+
+function validateMeaningVi(value: string | null | undefined): string | null {
+  if (!value?.trim()) {
+    return t('vocab.validation.meaning_required');
+  }
+  if (value.trim().length > 1000) {
+    return t('vocab.validation.meaning_max_length');
+  }
+  return null;
+}
+
+function validateOnYomi(value: string | null | undefined): string | null {
+  if (!value) {
+    return null; // Optional field
+  }
+  if (value.length > 255) {
+    return t('vocab.validation.on_yomi_max_length');
+  }
+  return null;
+}
+
+function validateMediaUrl(value: string | null | undefined): string | null {
+  if (!value) {
+    return null; // Optional field
+  }
+  if (value && !URL_REGEX.test(value)) {
+    return t('vocab.validation.media_url_invalid');
+  }
+  return null;
+}
+
+function validateNote(value: string | null | undefined): string | null {
+  if (!value) {
+    return null; // Optional field
+  }
+  if (value.length > 2000) {
+    return t('vocab.validation.note_max_length');
+  }
+  return null;
+}
+
+function validateTags(value: string[] | null | undefined): string | null {
+  if (!value || value.length === 0) {
+    return null; // Optional field
+  }
+  if (value.length > 10) {
+    return t('vocab.validation.tags_max_count');
+  }
+  const invalidTag = value.find((tag) => tag.length > 50);
+  if (invalidTag) {
+    return t('vocab.validation.tags_max_length');
+  }
+  return null;
+}
+
 // Update form field
 function updateField<K extends keyof CreateVocabularyDto>(field: K, value: CreateVocabularyDto[K]): void {
   emit('update:formData', { ...props.formData, [field]: value });
@@ -225,7 +324,7 @@ function updateField<K extends keyof CreateVocabularyDto>(field: K, value: Creat
           :model-value="formData.related_ids || []"
           relation-type="related"
           :label="t('vocab.label.related')"
-          :exclude-ids="isEdit ? [formData.id as number] : undefined"
+          :exclude-ids="isEdit && formData.id ? [formData.id] : undefined"
           @update:model-value="(v) => updateField('related_ids', v)"
         />
 
@@ -233,7 +332,7 @@ function updateField<K extends keyof CreateVocabularyDto>(field: K, value: Creat
           :model-value="formData.synonym_ids || []"
           relation-type="synonym"
           :label="t('vocab.label.synonyms')"
-          :exclude-ids="isEdit ? [formData.id as number] : undefined"
+          :exclude-ids="isEdit && formData.id ? [formData.id] : undefined"
           @update:model-value="(v) => updateField('synonym_ids', v)"
         />
 
@@ -241,7 +340,7 @@ function updateField<K extends keyof CreateVocabularyDto>(field: K, value: Creat
           :model-value="formData.antonym_ids || []"
           relation-type="antonym"
           :label="t('vocab.label.antonyms')"
-          :exclude-ids="isEdit ? [formData.id as number] : undefined"
+          :exclude-ids="isEdit && formData.id ? [formData.id] : undefined"
           @update:model-value="(v) => updateField('antonym_ids', v)"
         />
       </div>

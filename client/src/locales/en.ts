@@ -342,6 +342,7 @@ export default {
       reset: 'Reset',
       search: 'Search',
       resolve: 'Resolve',
+      create: 'Create New',
     },
     tab: {
       info: 'Information',
@@ -350,7 +351,19 @@ export default {
     },
     validation: {
       kanji_required: 'Kanji is required',
+      kanji_max_length: 'Kanji must be at most 255 characters',
+      kanji_numbers_only: 'Kanji cannot contain only numbers',
+      hiragana_max_length: 'Hiragana must be at most 255 characters',
+      hiragana_invalid_chars: 'Hiragana can only contain Japanese characters',
+      romaji_max_length: 'Romaji must be at most 255 characters',
+      romaji_invalid_chars: 'Romaji can only contain a-z characters',
       meaning_required: 'Vietnamese meaning is required',
+      meaning_max_length: 'Vietnamese meaning must be at most 1000 characters',
+      on_yomi_max_length: 'On\'yomi must be at most 255 characters',
+      media_url_invalid: 'Media URL must be a valid URL format',
+      note_max_length: 'Note must be at most 2000 characters',
+      tags_max_count: 'Maximum 10 tags allowed',
+      tags_max_length: 'Each tag must be at most 50 characters',
     },
     helper: {
       tags: 'Separate tags with commas (max 10 tags)',

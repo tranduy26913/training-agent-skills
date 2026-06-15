@@ -337,6 +337,7 @@ export default {
       reset: 'リセット',
       search: '検索',
       resolve: '解決',
+      create: '新規作成',
     },
     tab: {
       info: '情報',
@@ -345,7 +346,19 @@ export default {
     },
     validation: {
       kanji_required: '漢字は必須です',
+      kanji_max_length: '漢字は最大 255 文字です',
+      kanji_numbers_only: '漢字は数字のみを含めることはできません',
+      hiragana_max_length: 'ひらがなは最大 255 文字です',
+      hiragana_invalid_chars: 'ひらがなは日本語文字のみ含められます',
+      romaji_max_length: 'ローマ字は最大 255 文字です',
+      romaji_invalid_chars: 'ローマ字は a-z のみ含められます',
       meaning_required: 'ベトナム語の意味は必須です',
+      meaning_max_length: 'ベトナム語の意味は最大 1000 文字です',
+      on_yomi_max_length: '音読みは最大 255 文字です',
+      media_url_invalid: 'メディア URL が無効です',
+      note_max_length: 'メモは最大 2000 文字です',
+      tags_max_count: 'タグは最大 10 個までです',
+      tags_max_length: '各タグは最大 50 文字です',
     },
     helper: {
       tags: 'タグはカンマで区切ってください（最大 10 個）',

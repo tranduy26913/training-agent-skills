@@ -226,7 +226,10 @@ export const userRoutes: RouteRecordRaw[] = [
 5. Create  products.routes.ts
 6. Import  routes in client/src/router/routes.ts
 7. Add     server/src/modules/products/  (backend module)
-8. Create  shared/src/types/product.types.ts
+8. Create  products.controller.ts, products.service.ts, products.repository.ts,
+           products.routes.ts, products.validation.ts
+9. Create  products.controller.test.ts  # Unit + Integration test bằng Vitest, chỉ test trên controller
+10. Create shared/src/types/product.types.ts
 ```
 
 ---
@@ -251,20 +254,23 @@ server/
 │   ├── modules/                  # ★ FEATURE MODULES ★
 │   │   ├── auth/
 │   │   │   ├── auth.controller.ts
+│   │   │   ├── auth.controller.test.ts   # Unit + Integration test bằng Vitest, chỉ test trên controller
 │   │   │   ├── auth.service.ts
 │   │   │   ├── auth.routes.ts
 │   │   │   ├── auth.validation.ts
 │   │   │   └── auth.middleware.ts
 │   │   │
 │   │   ├── users/
-│   │   │   ├── user.controller.ts
-│   │   │   ├── user.service.ts
-│   │   │   ├── user.repository.ts
-│   │   │   ├── user.routes.ts
-│   │   │   └── user.validation.ts
+│   │   │   ├── users.controller.ts
+│   │   │   ├── users.controller.test.ts   # Unit + Integration test bằng Vitest, chỉ test trên controller
+│   │   │   ├── users.service.ts
+│   │   │   ├── users.repository.ts
+│   │   │   ├── users.routes.ts
+│   │   │   └── users.validation.ts
 │   │   │
 │   │   └── settings/
 │   │       ├── settings.controller.ts
+│   │       ├── settings.controller.test.ts   # Unit + Integration test bằng Vitest, chỉ test trên controller
 │   │       ├── settings.service.ts
 │   │       ├── settings.repository.ts
 │   │       ├── settings.routes.ts
@@ -288,12 +294,16 @@ server/
 │   │   ├── token.util.ts        # JWT sign/verify helpers
 │   │   └── logger.util.ts      # Winston logger instance
 │   │
-│   └── types/                   # Server-only types
-│       ├── express.d.ts         # Extended Request (user, etc.)
-│       └── environment.d.ts     # process.env type augmentation
+│   ├── types/                   # Server-only types
+│   │   ├── express.d.ts         # Extended Request (user, etc.)
+│   │   └── environment.d.ts     # process.env type augmentation
+│   │
+│   └── __tests__/               # Cross-module or shared test utilities
+│       └── setup.ts             # Global test setup (DB connection, seed, etc.)
 │
 ├── package.json
 ├── tsconfig.json
+├── vitest.config.mts            # Vitest config (exclude dist/)
 └── nodemon.json
 ```
 
@@ -315,6 +325,44 @@ graph TD
 | **Controller** | Parse request, call service, send response | Extract query params → call service → `res.json()` |
 | **Service** | Business logic, orchestration | Validate business rules, call repository, transform data |
 | **Repository** | Raw SQL queries via `mysql2` | `SELECT`, `INSERT`, `UPDATE`, `DELETE` |
+
+### 3.2.1 Test files per module
+
+Mỗi module backend chỉ có **duy nhất một file test** cạnh controller:
+
+```
+server/src/modules/<feature>/
+├── <feature>.controller.ts
+└── <feature>.controller.test.ts   # Unit + Integration test bằng Vitest, chỉ test trên controller
+```
+
+| File | Loại test | DB | Mục đích |
+|---|---|---|---|
+| `<feature>.controller.test.ts` | Integration (mặc định) | **Real test DB** | Test HTTP endpoint đầy đủ: routing, middleware, auth, validation, response |
+| `<feature>.controller.test.ts` | Unit (khi cần) | Mock boundary | Test controller với mock external service/gateway trong cùng file |
+
+Ví dụ module `users`:
+
+```
+server/src/modules/users/
+├── users.controller.ts
+├── users.controller.test.ts   # Unit + Integration bằng Vitest, chỉ test controller
+├── users.service.ts
+├── users.repository.ts
+├── users.routes.ts
+└── users.validation.ts
+```
+
+#### Controller test checklist
+
+- [ ] Import `describe`, `it`, `expect`, `beforeAll`, `beforeEach`, `afterEach`, `afterAll`, `vi` từ `vitest`
+- [ ] Load `.env` để trỏ đúng `app_db_test`
+- [ ] Dùng `supertest` với Express `app` thật
+- [ ] Tạo JWT token thật qua `signToken()`
+- [ ] Tạo test data trực tiếp qua `pool.query` (không mock)
+- [ ] Dọn dẹp data trong `beforeEach` / `afterEach`
+- [ ] Đóng `pool.end()` trong `afterAll`
+- [ ] Assert cả HTTP response lẫn trạng thái DB sau khi gọi API
 
 ### 3.3 Route Registration
 

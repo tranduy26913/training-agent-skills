@@ -37,6 +37,12 @@ const menuItems: MenuItem[] = [
     roles: ['admin'],
   },
   {
+    labelKey: 'sidebar.vocabularies',
+    icon: 'pi pi-book',
+    to: '/vocabularies',
+    roles: ['admin'],
+  },
+  {
     labelKey: 'sidebar.notebooklm',
     icon: 'pi pi-book',
     to: '/notebooklm',

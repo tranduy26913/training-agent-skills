@@ -1,106 +1,95 @@
----
-title: Admin Vocabulary Management
-version: 1.0
-author: Admin Team
-date: 2026-06-04
----
+# Vocabulary Management — Design Specification
 
-# Admin Vocabulary Management
-
-## Executive Summary
-
-Tính năng Admin Vocabulary Management cung cấp cho quản trị viên công cụ quản lý từ vựng tiếng Nhật toàn diện. Quản trị viên có thể xem danh sách từ vựng với bộ lọc và phân trang, tạo mới từ vựng với thông tin chi tiết (nghĩa, cách đọc, mức độ, v.v.), xem lịch sử thay đổi, phân tích số liệu học tập, và xuất dữ liệu. Tính năng này cải thiện khả năng quản lý nội dung học tập và theo dõi chất lượng từ vựng.
+> Related: [01-backend.md](./01-backend.md) | [02-frontend.md](./02-frontend.md) | [03-behavior.md](./03-behavior.md) | [04-quality.md](./04-quality.md)
 
 ---
 
-## Changelog
+## 1. Executive Summary
 
-| Version | Date | Author | Summary |
+Tính năng **Vocabulary Management** cho phép Admin quản lý toàn bộ từ vựng tiếng Nhật trong hệ thống: tạo, chỉnh sửa, xem danh sách, kiểm tra lịch sử thay đổi, báo cáo và phân tích sử dụng.
+
+---
+
+## 2. Changelog
+
+| Version | Date | Author | Changes |
 |---------|------|--------|---------|
-| 1.0 | 2026-06-04 | Admin Team | Initial design - All-in-One Form approach with unified create/edit page |
+| 1.0 | 2026-06-11 | Admin | Initial spec creation |
 
 ---
 
-## 1. Objective & Scope
+## 3. Objective & Scope
 
 ### Purpose
 
-Cung cấp giao diện quản lý từ vựng tiếng Nhật cho admin, cho phép tạo, chỉnh sửa, xóa từ vựng với thông tin đa chiều (thông tin cơ bản, lịch sử thay đổi, phân tích).
+Cung cấp giao diện quản lý từ vựng tiếng Nhật cho Admin, bao gồm danh sách từ vựng, form tạo/chỉnh sửa với 3 tab (Thông tin, Audit, Analytics), và các tính năng filter, phân trang.
 
 ### In Scope
 
-- Trang danh sách từ vựng (VocabularyListPage) với bộ lọc theo: Status, Mức độ (N5/N4/...), Tag, Tìm kiếm từ khóa, Người tạo, Khoảng thời gian
-- Trang tạo/chỉnh sửa từ vựng (VocabularyFormPage) với 3 tab: Thông tin, Audit, Analytics
-  - Tab Thông tin: Nghĩa, Hira/Kana, Romaji, Kanji, Âm Hán Việt, Mức độ, Media URL, Note, Tag, Từ liên quan, Từ đồng nghĩa, Từ trái nghĩa, Status
-  - Tab Audit: Created By, Updated By, Version, CreatedAt, UpdatedAt, Change Log, Report Info (đọc-chỉ)
-  - Tab Analytics: Learn Count, Favorite Count (đọc-chỉ)
-- Hành động bulk: Xuất CSV
-- Hành động trên item: Xem, Chỉnh sửa, Xóa
+- Page List: hiển thị danh sách từ vựng với filter và phân trang
+- Page Create/Edit: form 3 tab (Thông tin, Audit, Analytics)
+- Backend API: CRUD, filter, pagination, validation
+- Database: 5 bảng (vocabularies, vocab_relations, vocab_change_logs, vocab_reports, tags JSON)
+- Quan hệ từ vựng: từ liên quan, đồng nghĩa, trái nghĩa (self-referencing)
+- Báo cáo từ user (vocab_reports)
+- Thống kê: learn count, favorite count (read-only)
 
 ### Out of Scope
 
-- Import từ vựng từ file
-- MultiSelect với tìm kiếm và phân trang cho từ liên quan/đồng nghĩa/trái nghĩa (MVP: load toàn bộ từ database)
-- Thay đổi dữ liệu trong Tab Audit/Analytics (chỉ đọc)
-- Tính năng rollback version
-- I18n cho nội dung từ vựng (chỉ hỗ trợ tiếng Nhật)
+- Frontend user-facing vocabulary display (đã có module khác)
+- Multi-language translations (chỉ tiếng Việt + tiếng Nhật)
+- Bulk import/export
+- AI-assisted vocabulary creation
+- Workflow chuyển đổi status (Draft → Publish)
 
 ---
 
-## 2. Architecture Overview
+## 4. Architecture Overview
 
-```
-┌─────────────────────────────────────────────────────────┐
-│              Vue.js 3 Frontend (Client)                 │
-│                                                          │
-│  VocabularyListPage        VocabularyFormPage           │
-│  ├── VocabularyTable       ├── Tab 1: Information      │
-│  ├── VocabularyFilters     ├── Tab 2: Audit (RO)       │
-│  └── Actions               └── Tab 3: Analytics (RO)   │
-│                                                          │
-│  Store: useVocabulariesStore (Pinia)                   │
-│  Composable: useVocabularies (API calls)               │
-└──────────────────────┬──────────────────────────────────┘
-                       │ HTTP/REST
-                       ↓
-┌──────────────────────────────────────────────────────────┐
-│         Express.js Backend API (Node.js)                │
-│                                                          │
-│  VocabulariesController                                 │
-│  ├── list()      → service.listVocabularies()          │
-│  ├── get()       → service.getVocabulary()             │
-│  ├── create()    → service.createVocabulary()          │
-│  ├── update()    → service.updateVocabulary()          │
-│  ├── delete()    → service.deleteVocabulary()          │
-│  └── export()    → service.exportVocabularies()        │
-│                                                          │
-│  VocabulariesService (Business logic)                   │
-│  VocabulariesRepository (Data access)                   │
-│  VocabulariesValidation (Zod schemas)                  │
-└──────────────────────┬──────────────────────────────────┘
-                       │ SQL
-                       ↓
-┌──────────────────────────────────────────────────────────┐
-│         MySQL Database                                   │
-│                                                          │
-│  - vocabularies (main table)                            │
-│  - vocabulary_related_words (junction)                  │
-│  - vocabulary_synonyms (junction)                       │
-│  - vocabulary_antonyms (junction)                       │
-│  - vocabulary_reports (user reports)                    │
-│  - vocabulary_change_logs (audit trail)                │
-└──────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph Frontend
+        ListPage[ListPage.vue]
+        FormPage[FormPage.vue]
+        TabInfo[Tab Thông tin]
+        TabAudit[Tab Audit]
+        TabAnalytics[Tab Analytics]
+    end
+
+    subgraph Backend
+        Routes[vocabularies.routes.ts]
+        Controller[vocabularies.controller.ts]
+        Service[vocabularies.service.ts]
+        Repository[vocabularies.repository.ts]
+        Validation[vocabularies.validation.ts]
+    end
+
+    subgraph Database
+        Vocab[vocabularies]
+        Relations[vocab_relations]
+        ChangeLogs[vocab_change_logs]
+        Reports[vocab_reports]
+    end
+
+    ListPage --> Routes
+    FormPage --> Routes
+    Routes --> Controller
+    Controller --> Service
+    Service --> Repository
+    Repository --> Vocab
+    Repository --> Relations
+    Repository --> ChangeLogs
+    Repository --> Reports
 ```
 
 ---
 
-## 3. Spec File Index
+## 5. Spec File Index
 
-| File | Description |
-|------|-------------|
-| [01-backend.md](./01-backend.md) | DB schema, TypeScript DTOs, API endpoints, validation rules, error handling |
-| [02-frontend.md](./02-frontend.md) | File structure, wireframes, component tree, screen items, composables, stores, TS types |
-| [03-behavior.md](./03-behavior.md) | Page events & handlers, UI states, confirm dialogs, navigation flows, sequence diagrams |
-| [04-quality.md](./04-quality.md) | Unit tests, integration tests, performance, security, accessibility, logging & audit |
-
----
+| File | Description | Owning Concern |
+|------|-------------|----------------|
+| [00-index.md](./00-index.md) | Executive summary, objective & scope, changelog, architecture | Overall design |
+| [01-backend.md](./01-backend.md) | DB schema, API endpoints, validation rules, error handling | Backend |
+| [02-frontend.md](./02-frontend.md) | Wireframes, component tree, screen specs, composable/store | Frontend |
+| [03-behavior.md](./03-behavior.md) | Page events, UI states, confirm dialogs, navigation flows | Behavior |
+| [04-quality.md](./04-quality.md) | Unit tests, integration tests, performance, security | Quality |

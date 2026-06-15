@@ -105,15 +105,75 @@ watch(() => props.vocabularyId, async (id) => {
 function validateForm(): boolean {
   formErrors.value = {};
   
-  if (!formData.value.kanji?.trim()) {
-    formErrors.value.kanji = t('vocab.validation.kanji_required');
-  }
+  const kanjiError = validateField('kanji', formData.value.kanji);
+  if (kanjiError) formErrors.value.kanji = kanjiError;
   
-  if (!formData.value.meaning_vi?.trim()) {
-    formErrors.value.meaning_vi = t('vocab.validation.meaning_required');
-  }
+  const hiraganaError = validateField('hiragana', formData.value.hiragana);
+  if (hiraganaError) formErrors.value.hiragana = hiraganaError;
+  
+  const romajiError = validateField('romaji', formData.value.romaji);
+  if (romajiError) formErrors.value.romaji = romajiError;
+  
+  const meaningError = validateField('meaning_vi', formData.value.meaning_vi);
+  if (meaningError) formErrors.value.meaning_vi = meaningError;
+  
+  const onYomiError = validateField('on_yomi', formData.value.on_yomi);
+  if (onYomiError) formErrors.value.on_yomi = onYomiError;
+  
+  const mediaUrlError = validateField('media_url', formData.value.media_url);
+  if (mediaUrlError) formErrors.value.media_url = mediaUrlError;
+  
+  const noteError = validateField('note', formData.value.note);
+  if (noteError) formErrors.value.note = noteError;
+  
+  const tagsError = validateField('tags', formData.value.tags);
+  if (tagsError) formErrors.value.tags = tagsError;
   
   return Object.keys(formErrors.value).length === 0;
+}
+
+// Validate individual field
+function validateField(field: string, value: any): string | null {
+  switch (field) {
+    case 'kanji':
+      if (!value?.trim()) return t('vocab.validation.kanji_required');
+      if (value.trim().length > 255) return t('vocab.validation.kanji_max_length');
+      if (/^\d+$/.test(value.trim())) return t('vocab.validation.kanji_numbers_only');
+      return null;
+    case 'hiragana':
+      if (!value) return null;
+      if (value.length > 255) return t('vocab.validation.hiragana_max_length');
+      if (!/^[\u3040-\u309F\u30A0-\u30FF\u31F0-\u31FF]*$/.test(value)) return t('vocab.validation.hiragana_invalid_chars');
+      return null;
+    case 'romaji':
+      if (!value) return null;
+      if (value.length > 255) return t('vocab.validation.romaji_max_length');
+      if (!/^[a-z\s]*$/.test(value)) return t('vocab.validation.romaji_invalid_chars');
+      return null;
+    case 'meaning_vi':
+      if (!value?.trim()) return t('vocab.validation.meaning_required');
+      if (value.trim().length > 1000) return t('vocab.validation.meaning_max_length');
+      return null;
+    case 'on_yomi':
+      if (!value) return null;
+      if (value.length > 255) return t('vocab.validation.on_yomi_max_length');
+      return null;
+    case 'media_url':
+      if (!value) return null;
+      if (value && !/^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(value)) return t('vocab.validation.media_url_invalid');
+      return null;
+    case 'note':
+      if (!value) return null;
+      if (value.length > 2000) return t('vocab.validation.note_max_length');
+      return null;
+    case 'tags':
+      if (!value || value.length === 0) return null;
+      if (value.length > 10) return t('vocab.validation.tags_max_count');
+      if (value.some((tag: string) => tag.length > 50)) return t('vocab.validation.tags_max_length');
+      return null;
+    default:
+      return null;
+  }
 }
 
 // Handle form submission

@@ -1,11 +1,4 @@
----
-title: Admin Vocabulary Management - Frontend Specification
-version: 1.0
-author: Admin Team
-date: 2026-06-04
----
-
-# Admin Vocabulary Management - Frontend Specification
+# Vocabulary Management — Frontend Specification
 
 > Related: [00-index.md](./00-index.md) | [01-backend.md](./01-backend.md) | [03-behavior.md](./03-behavior.md) | [04-quality.md](./04-quality.md)
 
@@ -14,24 +7,29 @@ date: 2026-06-04
 ## 1. File Structure
 
 ```
-client/src/pages/vocabularies/
-├── VocabularyListPage.vue          # List page with table, filters, pagination, bulk actions
-├── VocabularyFormPage.vue          # Create/Edit page with 3 tabs (All-in-One Form)
-├── components/
-│   ├── VocabularyTable.vue         # Reusable table component
-│   ├── VocabularyFilters.vue       # Filter panel (Status, Level, Tag, Search, etc.)
-│   ├── VocabularyInformationTab.vue # Tab 1: Information form (editable)
-│   ├── VocabularyAuditTab.vue      # Tab 2: Audit trail (read-only)
-│   └── VocabularyAnalyticsTab.vue  # Tab 3: Analytics (read-only)
-├── composables/
-│   └── useVocabularies.ts          # API calls for CRUD and export
-├── vocabularies.routes.ts           # Route definitions
-
-client/src/stores/
-├── vocabularies.store.ts            # Pinia store for vocabulary state
-
-client/src/types/
-├── vocabularies.types.ts            # TypeScript types and interfaces
+client/src/
+├── pages/
+│   └── vocabularies/                    # Vocabulary page module
+│       ├── vocabularies.routes.ts       # Route definitions
+│       ├── VocabularyListPage.vue       # List page
+│       ├── VocabularyFormPage.vue       # Create/Edit form page (3 tabs)
+│       ├── components/
+│       │   ├── VocabularyTable.vue      # DataTable wrapper
+│       │   ├── VocabularyFilter.vue     # Filter form
+│       │   ├── VocabularyForm.vue       # Main form (3 tabs)
+│       │   ├── TabInfo.vue              # Tab 1: Thông tin
+│       │   ├── TabAudit.vue             # Tab 2: Audit
+│       │   ├── TabAnalytics.vue         # Tab 3: Analytics
+│       │   └── VocabRelationSelect.vue  # MultiSelect for relations
+│       ├── composables/
+│       │   └── useVocabularies.ts       # API composable
+│       └── vocabularies.types.ts        # TS types
+├── services/
+│   └── vocabularies.service.ts          # API client
+├── stores/
+│   └── vocabularies.store.ts            # Pinia store (optional)
+└── types/
+    └── vocabularies.types.ts            # Shared TS types
 ```
 
 ---
@@ -40,533 +38,272 @@ client/src/types/
 
 ### 2.1 Application Layout
 
-```
-┌────────────────────────────────────────────────────────┐
-│ DefaultLayout (Sidebar + Header + Content)             │
-├────────────────────────────────────────────────────────┤
-│                                                         │
-│  Page Routing:                                         │
-│  ├── /vocabularies          → VocabularyListPage      │
-│  ├── /vocabularies/create   → VocabularyFormPage      │
-│  └── /vocabularies/:id/edit → VocabularyFormPage      │
-│                                                         │
-└────────────────────────────────────────────────────────┘
-```
+Sử dụng `DefaultLayout.vue` (sidebar + header + content) như các trang admin khác.
 
 ### 2.2 Component Tree
 
 ```
 VocabularyListPage
-├── Header (Title + Create Button)
-├── VocabularyFilters
-│   ├── FilterGroup (Status, Level, Tag)
-│   ├── FilterGroup (Search, Created By)
-│   ├── FilterGroup (Date Range)
-│   └── FilterActions (Clear, Apply)
+├── VocabularyFilter
 ├── VocabularyTable
-│   ├── PrimeVue DataTable
-│   │   ├── Column (ID, Hiragana, Romaji, Level, Status, Tags, Created At)
-│   │   ├── RowActions (View, Edit, Delete)
-│   │   └── SelectCheckbox (for bulk export)
-│   └── Pagination (10/20/50 items per page)
-├── BulkActions (Export CSV Button)
-└── ConfirmDialog (for delete confirmation)
+│   ├── DataTable (PrimeVue)
+│   ├── Column (kanji, hiragana, level, status, actions)
+│   └── Pagination
+└── AppDialog (confirm delete)
 
 VocabularyFormPage
-├── TabView (PrimeVue TabView)
-│   ├── TabPanel (Information)
-│   │   └── VocabularyInformationTab
-│   │       ├── TextInput (meaning_vi, hiragana, romaji, kanji, han_viet)
-│   │       ├── Dropdown (level, status)
-│   │       ├── FileUpload (media_url)
-│   │       ├── Textarea (note)
-│   │       ├── MultiSelect (tags)
-│   │       ├── MultiSelect (relatedWords)
-│   │       ├── MultiSelect (synonyms)
-│   │       ├── MultiSelect (antonyms)
-│   │       └── ActionButtons (Save, Cancel)
-│   ├── TabPanel (Audit)
-│   │   └── VocabularyAuditTab (read-only)
-│   │       ├── Display (Created By, Updated By, Version, Dates)
-│   │       ├── Table (Change Log)
-│   │       └── Table (Report Info)
-│   └── TabPanel (Analytics)
-│       └── VocabularyAnalyticsTab (read-only)
-│           ├── Display (Learn Count, Favorite Count)
-│           └── Charts (optional)
-└── ConfirmDialog (for discard unsaved changes)
+├── TabView (PrimeVue)
+│   ├── TabPanel: Thông tin
+│   │   └── VocabularyForm
+│   │       ├── TabInfo
+│   │       │   ├── FormItem (kanji, hiragana, romaji, meaning_vi)
+│   │       │   ├── FormItem (on_yomi, level, media_url)
+│   │       │   ├── FormItem (note)
+│   │       │   ├── VocabRelationSelect (related, synonyms, antonyms)
+│   │       │   └── FormItem (tags, status)
+│   │       ├── TabAudit
+│   │       │   └── TabAudit (read-only info)
+│   │       └── TabAnalytics
+│   │           └── TabAnalytics (read-only stats)
+│   └── FormActions
+│       ├── Button (Save)
+│       └── Button (Cancel)
 ```
 
-### 2.3 VocabularyListPage Wireframe
+### 2.3 Wireframes
+
+#### VocabularyListPage
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│ Vocabularies                              [+ Create] Button │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│ Filters:                                                     │
-│  Status: [___________▼] Level: [___________▼]               │
-│  Tag: [___________▼]    Search: [search box___________]    │
-│  Created By: [___________▼]  Date: [from] - [to]           │
-│  [Clear All]  [Apply Filters]                              │
-│                                                              │
-├─────────────────────────────────────────────────────────────┤
-│ [Checkbox] ID │ Hiragana  │ Romaji │ Level │ Status │ ...  │
-├─────────────────────────────────────────────────────────────┤
-│ [ ]      1    │ にほん    │ nihon  │ N5    │ publish│ ...  │
-│ [ ]      2    │ せかい    │ sekai  │ N4    │ hide   │ ...  │
-│ ...                                                          │
-├─────────────────────────────────────────────────────────────┤
-│ [Export Selected as CSV] Button                             │
-│ Showing 1-20 of 145 | [< Prev] 1 2 3 ... 8 [Next >]       │
-│ Items per page: [20 ▼]                                     │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│  VOCABULARY MANAGEMENT                              │
+├─────────────────────────────────────────────────────┤
+│  [+ Create New]  [Filter ▼]                         │
+├─────────────────────────────────────────────────────┤
+│  Filter: [Kanji____] [Level ▼] [Status ▼] [Search] │
+├─────────────────────────────────────────────────────┤
+│  ┌───┬────────┬─────────┬──────┬────────┬────────┐ │
+│  │ # │ Kanji  │ Hiragana│Level │ Status │ Actions│ │
+│  ├───┼────────┼─────────┼──────┼────────┼────────┤ │
+│  │ 1 │ 食べる │ たべる  │  N3  │ Publish│ ✏️ 🗑️ │ │
+│  │ 2 │ 飲む   │ のむ    │  N4  │ Publish│ ✏️ 🗑️ │ │
+│  │ ...│...     │ ...     │ ...  │ ...    │ ...   │ │
+│  └───┴────────┴─────────┴──────┴────────┴────────┘ │
+│                     [◀ 1 2 3 ▶]                     │
+└─────────────────────────────────────────────────────┘
 ```
 
-### 2.4 VocabularyFormPage Wireframe (All-in-One Form)
+#### VocabularyFormPage (Create/Edit)
 
 ```
-┌────────────────────────────────────────────────────────────┐
-│ Vocabulary Management (Create / Edit: にほん)              │
-├────────────────────────────────────────────────────────────┤
-│                                                             │
-│ [Information]  [Audit]  [Analytics]                       │
-│                                                             │
-│ ┌──────────────────────────────────────────────────────┐  │
-│ │ TAB 1: INFORMATION (editable)                        │  │
-│ │                                                       │  │
-│ │ Meaning (VI):    [日本_________________________]     │  │
-│ │ Hiragana:        [にほん_______________________]     │  │
-│ │ Romaji:          [nihon________________________]     │  │
-│ │ Kanji:           [日本_________________________]     │  │
-│ │ Han Viet:        [Nhật Bản_____________________]     │  │
-│ │ Level:           [N5____________▼]                  │  │
-│ │ Media URL:       [Choose File...]                   │  │
-│ │ Note:            [                                  │  │
-│ │                  多行テキスト                       │  │
-│ │                  ]                                  │  │
-│ │ Tags:            [N5-basic, country____________]    │  │
-│ │ Related Words:   [Select from list:                │  │
-│ │                  ☑ せかい ☑ 国 ☐ ...]              │  │
-│ │ Synonyms:        [☑ 日本国 ☐ ...]                  │  │
-│ │ Antonyms:        [☐ ...]                           │  │
-│ │ Status:          [publish______▼]                  │  │
-│ │                                                     │  │
-│ │ [Save]  [Cancel]  [Delete]                         │  │
-│ └──────────────────────────────────────────────────────┘  │
-│                                                             │
-│ ┌──────────────────────────────────────────────────────┐  │
-│ │ TAB 2: AUDIT (read-only)                             │  │
-│ │                                                       │  │
-│ │ Created By:   Admin User (2026-01-15 10:30:00)      │  │
-│ │ Updated By:   Admin User (2026-03-20 14:45:00)      │  │
-│ │ Version:      3                                      │  │
-│ │                                                       │  │
-│ │ Change Log:                                          │  │
-│ │ Version │ Fields Changed │ Description │ By │ Date   │  │
-│ │ 1       │ meaning, hira  │ Initial...  │    │ ...    │  │
-│ │ 2       │ note           │ note upd... │    │ ...    │  │
-│ │ 3       │ status         │ status...   │    │ ...    │  │
-│ │                                                       │  │
-│ │ Reports:                                             │  │
-│ │ [1 pending report] - "Incorrect meaning"             │  │
-│ └──────────────────────────────────────────────────────┘  │
-│                                                             │
-│ ┌──────────────────────────────────────────────────────┐  │
-│ │ TAB 3: ANALYTICS (read-only)                         │  │
-│ │                                                       │  │
-│ │ Learn Count:     156 times                           │  │
-│ │ Favorite Count:  45 times                            │  │
-│ │                                                       │  │
-│ │ [Optional: Charts/Graphs]                            │  │
-│ └──────────────────────────────────────────────────────┘  │
-│                                                             │
-└────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│  < Back  CREATE VOCABULARY                         │
+├─────────────────────────────────────────────────────┤
+│  [Thông tin] [Audit] [Analytics]                    │
+├─────────────────────────────────────────────────────┤
+│  ┌─────────────────────────────────────────────┐   │
+│  │ Kanji *          [____________]             │   │
+│  │ Hiragana/Kana    [____________]             │   │
+│  │ Romaji           [____________]             │   │
+│  │ Nghĩa TV *       [____________]             │   │
+│  │ Âm hán việt      [____________]             │   │
+│  │ Cấp độ           [N3 ▼]                     │   │
+│  │ Media URL        [____________]             │   │
+│  │ Note             [____________]             │   │
+│  │ Tags             [tag1, tag2 ___]           │   │
+│  │ Status           [Publish ▼]                │   │
+│  │                                                     │
+│  │ Từ liên quan       [MultiSelect ▼]              │   │
+│  │ Từ đồng nghĩa      [MultiSelect ▼]              │   │
+│  │ Từ trái nghĩa      [MultiSelect ▼]              │   │
+│  └─────────────────────────────────────────────┘   │
+│                              [Save]  [Cancel]       │
+└─────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## 3. Screen Item Specifications
 
-### 3.1 VocabularyListPage Screen Items
+### 3.1 VocabularyListPage
 
 | # | ItemName | Control | Type | Required | Validation | Placeholder | DisplayText | Description | Notes |
-|---|----------|---------|------|----------|-----------|-------------|-------------|-------------|-------|
-| 1 | **VocabularyListPage** | | | | | | | **Component** | Page container |
-| 2 | Page Title | Label | string | Yes | — | — | `vocab.list.title` | "Vocabularies" heading | Static text |
-| 3 | Create Button | Button | — | Yes | — | — | `vocab.list.createBtn` | "Create Vocabulary" button | Navigate to VocabularyFormPage (create mode) |
-| 4 | **VocabularyFilters** | | | | | | | **Component** | Filter panel |
-| 5 | Status Filter | Dropdown | string | No | — | `vocab.filter.statusPlaceholder` | `vocab.filter.status` | Filter by status enum | Select: Publish, Hide, Deleted |
-| 6 | Level Filter | Dropdown | string | No | — | `vocab.filter.levelPlaceholder` | `vocab.filter.level` | Filter by JLPT level | Select: N5/N4/N3/N2/N1/other |
-| 7 | Tag Filter | MultiSelect | string[] | No | — | `vocab.filter.tagPlaceholder` | `vocab.filter.tag` | Filter by tag (load from DB) | Load all unique tags from database |
-| 8 | Keyword Search | TextInput | string | No | Max 200 chars | `vocab.filter.searchPlaceholder` | `vocab.filter.search` | Search meaning, hiragana, romaji | Real-time or on Apply |
-| 9 | Created By Filter | Dropdown | number | No | — | `vocab.filter.createdByPlaceholder` | `vocab.filter.createdBy` | Filter by creator (admin user list) | Load admin users from DB |
-| 10 | Date From | DatePicker | date | No | — | `vocab.filter.dateFromPlaceholder` | `vocab.filter.dateFrom` | Filter from date | ISO 8601 format |
-| 11 | Date To | DatePicker | date | No | — | `vocab.filter.dateToPlaceholder` | `vocab.filter.dateTo` | Filter to date | ISO 8601 format |
-| 12 | Clear Filters Button | Button | — | No | — | — | `vocab.filter.clearBtn` | Clear all filters | Reset all filter values |
-| 13 | Apply Filters Button | Button | — | Yes | — | — | `vocab.filter.applyBtn` | Apply filters | Trigger fetch with current filters, reset page to 1 |
-| 14 | **VocabularyTable** | | | | | | | **Component** | Data table |
-| 15 | Checkbox Column | Checkbox | boolean | No | — | — | — | Select rows for bulk actions | Allow multi-select |
-| 16 | ID Column | Label | number | — | — | — | `vocab.table.id` | Display vocabulary ID | Sortable |
-| 17 | Hiragana Column | Label | string | — | — | — | `vocab.table.hiragana` | Display hiragana reading | Sortable |
-| 18 | Romaji Column | Label | string | — | — | — | `vocab.table.romaji` | Display romaji reading | Sortable |
-| 19 | Level Column | Label | string | — | — | — | `vocab.table.level` | Display JLPT level | Sortable |
-| 20 | Status Column | Badge | string | — | — | — | `vocab.table.status` | Display status (publish/hide/deleted) | Color-coded |
-| 21 | Tags Column | Label | string[] | — | — | — | `vocab.table.tags` | Display tags as comma-separated | Truncate if > 30 chars |
-| 22 | Created At Column | Label | date | — | — | — | `vocab.table.createdAt` | Display creation date (formatted) | Sortable |
-| 23 | Actions Menu | Button | — | — | — | — | — | 3-dot menu with View/Edit/Delete | Row action button |
-| 24 | View Action | MenuItem | — | — | — | — | `vocab.table.view` | Open vocabulary detail (read-only form) | Navigate to VocabularyFormPage (view mode) |
-| 25 | Edit Action | MenuItem | — | — | — | — | `vocab.table.edit` | Edit vocabulary | Navigate to VocabularyFormPage (edit mode) |
-| 26 | Delete Action | MenuItem | — | — | — | — | `vocab.table.delete` | Delete vocabulary (soft delete) | Show confirmation dialog |
-| 27 | **Pagination** | | | | | | | **Component** | Pagination controls |
-| 28 | Current Page Info | Label | string | — | — | — | — | "Showing X-Y of Z" | Display pagination info |
-| 29 | Items Per Page | Dropdown | number | No | — | — | `vocab.pagination.itemsPerPage` | Select: 10, 20, 50 | Trigger re-fetch with new limit |
-| 30 | Previous Button | Button | — | No | — | — | `vocab.pagination.prev` | Previous page | Disable on first page |
-| 31 | Page Numbers | Button Group | number | No | — | — | — | Page number buttons | Highlight current page |
-| 32 | Next Button | Button | — | No | — | — | `vocab.pagination.next` | Next page | Disable on last page |
-| 33 | Export CSV Button | Button | — | No | — | — | `vocab.list.exportBtn` | Export selected as CSV | Export selected rows or all based on selection |
-| 34 | ConfirmDialog | Dialog | — | — | — | — | — | Delete confirmation | See 03-behavior.md for dialog content |
+|---|----------|---------|------|----------|------------|-------------|-------------|-------------|-------|
+| 1 | **VocabularyListPage** | — | — | — | — | — | — | — | **Component** |
+| 2 | Title | Label | string | — | — | — | `vocab.title.list` | Tiêu đề trang | — |
+| 3 | Create Button | Button | — | — | — | — | `vocab.btn.create` | Nút tạo mới | Navigate to `/vocabularies/create` |
+| 4 | Filter Kanji | TextInput | string | No | — | `vocab.placeholder.kanji` | — | Filter theo Kanji | Debounce 300ms |
+| 5 | Filter Level | Dropdown | string | No | — | `vocab.placeholder.level` | — | Filter theo JLPT level | Options: N5-N1 |
+| 6 | Filter Status | Dropdown | string | No | — | `vocab.placeholder.status` | — | Filter theo status | Options: Publish/Hide/Delete |
+| 7 | Search Button | Button | — | — | — | — | `vocab.btn.search` | Nút tìm kiếm | Apply filters |
+| 8 | Reset Button | Button | — | — | — | — | `vocab.btn.reset` | Nút reset filter | Clear all filters |
+| 9 | VocabularyTable | Component | — | — | — | — | — | Bảng danh sách từ vựng | — |
+| 10 | Column Kanji | DataTableColumn | string | — | — | — | `vocab.col.kanji` | Cột Kanji | Click to navigate |
+| 11 | Column Hiragana | DataTableColumn | string | — | — | — | `vocab.col.hiragana` | Cột Hiragana | — |
+| 12 | Column Level | DataTableColumn | string | — | — | — | `vocab.col.level` | Cột Level | Badge color by level |
+| 13 | Column Status | DataTableColumn | string | — | — | — | `vocab.col.status` | Cột Status | Badge color by status |
+| 14 | Actions | DataTableColumn | — | — | — | — | `vocab.col.actions` | Cột hành động | Edit/Delete buttons |
+| 15 | Pagination | Pagination | — | — | — | — | — | Phân trang | Page/limit controls |
 
----
-
-### 3.2 VocabularyFormPage Screen Items
+### 3.2 VocabularyFormPage — Tab Thông tin
 
 | # | ItemName | Control | Type | Required | Validation | Placeholder | DisplayText | Description | Notes |
-|---|----------|---------|------|----------|-----------|-------------|-------------|-------------|-------|
-| 1 | **VocabularyFormPage** | | | | | | | **Component** | Form container (create/edit mode) |
-| 2 | Page Title | Label | string | Yes | — | — | `vocab.form.title.create` or `vocab.form.title.edit` | "Create Vocabulary" or "Edit: [hiragana]" | Dynamic based on mode |
-| 3 | **TabView** | | | | | | | **Component** | 3-tab interface |
-| 4 | **VocabularyInformationTab** | | | | | | | **Component** | Tab 1: Editable form |
-| 5 | Meaning (VI) Input | TextInput | string | Yes | Max 500, no HTML | `vocab.form.meaningViPlaceholder` | `vocab.form.meaningVi` | Vietnamese translation | Required, trimmed on submit |
-| 6 | Hiragana Input | TextInput | string | Yes | Max 100, hiragana only | `vocab.form.hiraganaPlaceholder` | `vocab.form.hiragana` | Hiragana/Katakana reading | Required, Japanese characters |
-| 7 | Romaji Input | TextInput | string | Yes | Max 100, alphanumeric + dash | `vocab.form.romajiPlaceholder` | `vocab.form.romaji` | Romaji romanization | Required, latin characters |
-| 8 | Kanji Input | TextInput | string | No | Max 100 | `vocab.form.kanjiPlaceholder` | `vocab.form.kanji` | Kanji characters | Optional |
-| 9 | Han Viet Input | TextInput | string | No | Max 100 | `vocab.form.hanVietPlaceholder` | `vocab.form.hanViet` | Sino-Vietnamese reading | Optional |
-| 10 | Level Dropdown | Dropdown | string | Yes | Enum validation | — | `vocab.form.level` | Select from N5/N4/N3/N2/N1/other | Required enum |
-| 11 | Media URL Input | FileUpload or TextInput | string | No | Valid URL if provided | `vocab.form.mediaUrlPlaceholder` | `vocab.form.mediaUrl` | Image/audio file URL | Optional, validate URL format |
-| 12 | Note Textarea | Textarea | string | No | Max 2000 chars | `vocab.form.notePlaceholder` | `vocab.form.note` | Additional notes | Optional, multi-line |
-| 13 | Tags MultiSelect | MultiSelect | string[] | No | Max 10 items | `vocab.form.tagsPlaceholder` | `vocab.form.tags` | Tag list (comma-separated or selected) | Allow add new tags or select from existing |
-| 14 | Related Words MultiSelect | MultiSelect | Vocabulary[] | No | Check IDs exist | `vocab.form.relatedWordsPlaceholder` | `vocab.form.relatedWords` | Select related vocabulary items | Load all vocabularies (except self) |
-| 15 | Synonyms MultiSelect | MultiSelect | Vocabulary[] | No | Check IDs exist | `vocab.form.synonymsPlaceholder` | `vocab.form.synonyms` | Select synonym vocabulary items | Load all vocabularies (except self) |
-| 16 | Antonyms MultiSelect | MultiSelect | Vocabulary[] | No | Check IDs exist | `vocab.form.antonymsPlaceholder` | `vocab.form.antonyms` | Select antonym vocabulary items | Load all vocabularies (except self) |
-| 17 | Status Dropdown | Dropdown | string | Yes | Enum validation | — | `vocab.form.status` | Select: publish, hide, deleted | Required enum |
-| 18 | Save Button | Button | — | Yes | — | — | `vocab.form.saveBtn` | Save vocabulary | Validate form, POST/PUT to API |
-| 19 | Cancel Button | Button | — | Yes | — | — | `vocab.form.cancelBtn` | Cancel and go back | Show confirmation if form is dirty |
-| 20 | Delete Button | Button | — | No | — | — | `vocab.form.deleteBtn` | Delete vocabulary (soft delete) | Only show in edit mode; confirm before delete |
-| 21 | **VocabularyAuditTab** | | | | | | | **Component** | Tab 2: Read-only audit info |
-| 22 | Created By Display | Label | string | — | — | — | `vocab.form.createdBy` | "Created by: Admin User" | Read-only, display user name + link |
-| 23 | Created At Display | Label | string | — | — | — | `vocab.form.createdAt` | "Created: 2026-01-15 10:30:00" | Read-only, formatted timestamp |
-| 24 | Updated By Display | Label | string | — | — | — | `vocab.form.updatedBy` | "Updated by: Admin User" | Read-only, display user name (null if no update) |
-| 25 | Updated At Display | Label | string | — | — | — | `vocab.form.updatedAt` | "Updated: 2026-03-20 14:45:00" | Read-only, formatted timestamp |
-| 26 | Version Display | Label | number | — | — | — | `vocab.form.version` | "Version: 3" | Read-only, integer |
-| 27 | Change Log Table | DataTable | ChangeLog[] | — | — | — | `vocab.form.changeLog` | Table with: Version, Fields Changed, Description, Changed By, Date | Read-only table, sortable by date |
-| 28 | Reports Table | DataTable | Report[] | — | — | — | `vocab.form.reports` | Table with: Type, Reason, Status, Reporter, Reported At | Read-only table, show 5 latest by default |
-| 29 | **VocabularyAnalyticsTab** | | | | | | | **Component** | Tab 3: Read-only analytics |
-| 30 | Learn Count Display | Label | number | — | — | — | `vocab.form.learnCount` | "Learned: 156 times" | Read-only, integer |
-| 31 | Favorite Count Display | Label | number | — | — | — | `vocab.form.favoriteCount` | "Favorited: 45 times" | Read-only, integer |
-| 32 | ConfirmDialog (Save) | Dialog | — | — | — | — | — | Unsaved changes confirmation | See 03-behavior.md |
-| 33 | ConfirmDialog (Delete) | Dialog | — | — | — | — | — | Delete confirmation | See 03-behavior.md |
+|---|----------|---------|------|----------|------------|-------------|-------------|-------------|-------|
+| 1 | **TabInfo** | — | — | — | — | — | — | — | **Component** |
+| 2 | Kanji | TextInput | string | Yes | 1-255 chars, không chỉ số | `vocab.placeholder.kanji` | `vocab.label.kanji` | Trường Kanji | Required |
+| 3 | Hiragana/Kana | TextInput | string | No | 1-255 chars | `vocab.placeholder.hiragana` | `vocab.label.hiragana` | Trường Hira/Kana | — |
+| 4 | Romaji | TextInput | string | No | 1-255 chars, a-z | `vocab.placeholder.romaji` | `vocab.label.romaji` | Trường Romaji | — |
+| 5 | Nghĩa TV | Textarea | string | Yes | 1-1000 chars | `vocab.placeholder.meaning` | `vocab.label.meaning_vi` | Nghĩa tiếng Việt | Required, rows=3 |
+| 6 | Âm hán việt | TextInput | string | No | 1-255 chars | `vocab.placeholder.on_yomi` | `vocab.label.on_yomi` | Trường On'yomi | — |
+| 7 | Cấp độ | Dropdown | string | No | Must be N5/N4/N3/N2/N1 | `vocab.placeholder.level` | `vocab.label.level` | JLPT Level | Options: N5-N1 |
+| 8 | Media URL | TextInput | string | No | Valid URL | `vocab.placeholder.media_url` | `vocab.label.media_url` | URL media | — |
+| 9 | Note | Textarea | string | No | Max 2000 chars | `vocab.placeholder.note` | `vocab.label.note` | Ghi chú | rows=3 |
+| 10 | Tags | TagInput | string[] | No | Max 10 tags, 50 chars/tag | `vocab.placeholder.tags` | `vocab.label.tags` | Tags | Comma-separated |
+| 11 | Status | Dropdown | string | No | Publish/Hide/Delete | `vocab.placeholder.status` | `vocab.label.status` | Trạng thái | Default: Publish |
+| 12 | **VocabRelationSelect** | — | — | — | — | — | — | — | **Component** |
+| 13 | Từ liên quan | MultiSelect | number[] | No | Valid vocab IDs | `vocab.placeholder.relations` | `vocab.label.related` | Từ liên quan | Load from DB |
+| 14 | Từ đồng nghĩa | MultiSelect | number[] | No | Valid vocab IDs | `vocab.placeholder.synonyms` | `vocab.label.synonyms` | Từ đồng nghĩa | Load from DB |
+| 15 | Từ trái nghĩa | MultiSelect | number[] | No | Valid vocab IDs | `vocab.placeholder.antonyms` | `vocab.label.antonyms` | Từ trái nghĩa | Load from DB |
+| 16 | Save Button | Button | — | — | — | — | `vocab.btn.save` | Nút lưu | Submit form |
+| 17 | Cancel Button | Button | — | — | — | — | `vocab.btn.cancel` | Nút hủy | Navigate back |
+
+### 3.3 VocabularyFormPage — Tab Audit
+
+| # | ItemName | Control | Type | Required | Validation | Placeholder | DisplayText | Description | Notes |
+|---|----------|---------|------|----------|------------|-------------|-------------|-------------|-------|
+| 1 | **TabAudit** | — | — | — | — | — | — | — | **Component** |
+| 2 | Created By | Label | string | — | — | — | `vocab.label.created_by` | Người tạo | Read-only |
+| 3 | Updated By | Label | string | — | — | — | `vocab.label.updated_by` | Người cập nhật | Read-only |
+| 4 | Version | Label | number | — | — | — | `vocab.label.version` | Phiên bản | Read-only |
+| 5 | Created At | Label | date | — | — | — | `vocab.label.created_at` | Ngày tạo | Format: DD/MM/YYYY HH:mm |
+| 6 | Updated At | Label | date | — | — | — | — | Ngày cập nhật | Format: DD/MM/YYYY HH:mm |
+| 7 | **ChangeLogTable** | — | — | — | — | — | — | — | **Component** |
+| 8 | Change Log Table | DataTable | — | — | — | — | `vocab.label.change_log` | Bảng lịch sử thay đổi | Read-only |
+| 9 | **ReportTable** | — | — | — | — | — | — | — | **Component** |
+| 10 | Report Info Table | DataTable | — | — | — | — | `vocab.label.reports` | Bảng báo cáo | Read-only |
+| 11 | Resolve Report Button | Button | — | — | — | — | `vocab.btn.resolve` | Nút xử lý báo cáo | Show confirm dialog |
+
+### 3.4 VocabularyFormPage — Tab Analytics
+
+| # | ItemName | Control | Type | Required | Validation | Placeholder | DisplayText | Description | Notes |
+|---|----------|---------|------|----------|------------|-------------|-------------|-------------|-------|
+| 1 | **TabAnalytics** | — | — | — | — | — | — | — | **Component** |
+| 2 | Learn Count | StatCard | number | — | — | — | `vocab.label.learn_count` | Số lần học | Read-only |
+| 3 | Favorite Count | StatCard | number | — | — | — | `vocab.label.favorite_count` | Số lần yêu thích | Read-only |
+| 4 | Report Count | StatCard | number | — | — | — | `vocab.label.report_count` | Số báo cáo | Read-only |
+| 5 | Relation Count | StatCard | number | — | — | — | `vocab.label.relation_count` | Số quan hệ | Read-only |
 
 ---
 
 ## 4. Component Details
 
-### 4.1 VocabularyTable Component
+### 4.1 VocabRelationSelect
 
 **Props:**
-```typescript
-interface VocabularyTableProps {
-  vocabularies: Vocabulary[];
-  loading: boolean;
-  pagination: PaginationInfo;
-  sortField?: string;
-  sortOrder?: 1 | -1;
-}
-```
+
+- `modelValue: number[]` — Mảng ID từ vựng đã chọn
+- `relationType: 'related' | 'synonym' | 'antonym'` — Loại quan hệ
+- `label: string` — Nhãn hiển thị
+- `excludeIds?: number[]` — Các ID cần loại trừ (tránh circular reference)
 
 **Emits:**
-```typescript
-interface VocabularyTableEmits {
-  'edit': (id: number) => void;
-  'delete': (id: number) => void;
-  'page-change': (page: number) => void;
-  'limit-change': (limit: number) => void;
-  'sort-change': (field: string, order: 1 | -1) => void;
-  'selection-change': (ids: number[]) => void;
-}
-```
+
+- `update:modelValue: (ids: number[]) => void`
+
+**Description:** MultiSelect component để chọn từ vựng liên quan/đồng nghĩa/trái nghĩa. Load data từ API `/api/vocabularies?limit=1000`.
 
 ---
 
-### 4.2 VocabularyFilters Component
+### 4.2 VocabularyTable
 
 **Props:**
-```typescript
-interface VocabularyFiltersProps {
-  loading?: boolean;
-}
-```
+
+- `items: VocabularyResponse[]` — Danh sách từ vựng
+- `loading: boolean` — Trạng thái loading
+- `pagination: PaginationInfo` — Thông tin phân trang
 
 **Emits:**
-```typescript
-interface VocabularyFiltersEmits {
-  'filter-change': (filters: VocabularyFilters) => void;
-  'clear-filters': () => void;
-}
-```
+
+- `edit: (id: number) => void`
+- `delete: (id: number) => void`
+- `page-change: (page: number) => void`
+- `sort: (field: string, order: string) => void`
 
 ---
 
-### 4.3 VocabularyInformationTab Component
+### 4.3 VocabularyFilter
 
 **Props:**
-```typescript
-interface VocabularyInformationTabProps {
-  vocabulary?: Vocabulary | null;
-  loading: boolean;
-  isEditMode: boolean;
-  relatedVocabularies?: Vocabulary[];
-  synonymVocabularies?: Vocabulary[];
-  antonymVocabularies?: Vocabulary[];
-}
-```
+
+- `kanji: string` — Giá trị filter Kanji
+- `level: string` — Giá trị filter Level
+- `status: string` — Giá trị filter Status
 
 **Emits:**
-```typescript
-interface VocabularyInformationTabEmits {
-  'save': (data: CreateVocabularyDto | UpdateVocabularyDto) => void;
-  'cancel': () => void;
-  'delete': () => void;
-  'form-dirty': (isDirty: boolean) => void;
-}
-```
 
----
-
-### 4.4 VocabularyAuditTab Component
-
-**Props:**
-```typescript
-interface VocabularyAuditTabProps {
-  vocabulary: Vocabulary;
-  changeLogs: VocabularyChangeLog[];
-  reports: VocabularyReport[];
-  loading?: boolean;
-}
-```
-
-**Emits:** None (read-only)
-
----
-
-### 4.5 VocabularyAnalyticsTab Component
-
-**Props:**
-```typescript
-interface VocabularyAnalyticsTabProps {
-  learnCount: number;
-  favoriteCount: number;
-  loading?: boolean;
-}
-```
-
-**Emits:** None (read-only)
+- `search: (filters: VocabularyFilter) => void`
+- `reset: () => void`
 
 ---
 
 ## 5. Composable
 
-### useVocabularies
+### `useVocabularies.ts`
 
-```typescript
-interface UseVocabularies {
-  // API calls
-  listVocabularies(filters: VocabularyFilters): Promise<ListResponse>;
-  getVocabulary(id: number): Promise<VocabularyDetailDto>;
-  createVocabulary(data: CreateVocabularyDto): Promise<Vocabulary>;
-  updateVocabulary(id: number, data: UpdateVocabularyDto): Promise<Vocabulary>;
-  deleteVocabulary(id: number): Promise<void>;
-  exportCsv(filters: VocabularyFilters): Promise<Blob>;
-  getAllVocabularies(): Promise<Vocabulary[]>; // For multiselect dropdowns
-}
-```
+**Responsibilities:**
 
----
+- API calls: `fetchVocabularies()`, `fetchVocabulary()`, `createVocabulary()`, `updateVocabulary()`, `deleteVocabulary()`
+- Form validation using Zod schemas
+- Relation loading for MultiSelect
+- Analytics data fetching
 
-## 6. Store (Pinia)
+**Exports:**
 
-### useVocabulariesStore
-
-State:
-```typescript
-{
-  vocabularies: Vocabulary[];
-  currentVocabulary: Vocabulary | null;
-  pagination: PaginationInfo;
-  filters: VocabularyFilters;
-  loading: boolean;
-  loadingDetail: boolean;
-  error: string | null;
-  formDirty: boolean;
-}
-```
-
-Actions:
-```typescript
-{
-  fetchVocabularies(filters?: VocabularyFilters): Promise<void>;
-  fetchVocabulary(id: number): Promise<void>;
-  createVocabulary(data: CreateVocabularyDto): Promise<Vocabulary>;
-  updateVocabulary(id: number, data: UpdateVocabularyDto): Promise<Vocabulary>;
-  deleteVocabulary(id: number): Promise<void>;
-  exportCsv(filters: VocabularyFilters): Promise<Blob>;
-  setFilters(filters: VocabularyFilters): void;
-  setFormDirty(dirty: boolean): void;
-  reset(): void;
-}
-```
-
-Getters:
-```typescript
-{
-  totalVocabularies: () => number;
-  hasVocabularies: () => boolean;
-  isLastPage: () => boolean;
-  filteredCount: () => number;
-}
-```
+- `fetchVocabularies(filters: VocabularyFilter): Promise<PaginatedResult<VocabularyResponse>>`
+- `fetchVocabulary(id: number): Promise<VocabularyDetail>`
+- `createVocabulary(data: CreateVocabularyDto): Promise<VocabularyResponse>`
+- `updateVocabulary(id: number, data: UpdateVocabularyDto): Promise<VocabularyResponse>`
+- `deleteVocabulary(id: number): Promise<void>`
+- `fetchRelationOptions(excludeIds?: number[]): Promise<VocabRelationDto[]>`
+- `fetchAnalytics(id: number): Promise<AnalyticsData>`
 
 ---
 
-## 7. TypeScript Models
+## 6. Store
 
-See `types/vocabularies.types.ts`:
+**Optional** — Nếu cần state management cho danh sách từ vựng (ví dụ: cache danh sách cho MultiSelect), sử dụng Pinia store.
 
-```typescript
-// Database entities
-interface Vocabulary {
-  id: number;
-  meaning_vi: string;
-  hiragana: string;
-  romaji: string;
-  kanji?: string;
-  han_viet?: string;
-  level: 'N5' | 'N4' | 'N3' | 'N2' | 'N1' | 'other';
-  media_url?: string;
-  note?: string;
-  status: 'publish' | 'hide' | 'deleted';
-  version: number;
-  learn_count: number;
-  favorite_count: number;
-  created_by: number;
-  updated_by?: number;
-  created_at: string;
-  updated_at: string;
-  createdByUser?: User;
-  updatedByUser?: User;
-  tags: string[];
-  relatedWords: Vocabulary[];
-  synonyms: Vocabulary[];
-  antonyms: Vocabulary[];
-}
+### `vocabularies.store.ts`
 
-interface VocabularyChangeLog {
-  id: number;
-  vocabulary_id: number;
-  version: number;
-  changed_fields: string; // "field1, field2, field3"
-  change_description: string;
-  changed_by: number;
-  changedByUser?: User;
-  created_at: string;
-}
+**State:**
 
-interface VocabularyReport {
-  id: number;
-  vocabulary_id: number;
-  report_type: 'incorrect_meaning' | 'offensive_content' | 'duplicate' | 'other';
-  report_reason: string;
-  status: 'pending' | 'resolved' | 'rejected';
-  reporter_id: number;
-  reporter?: User;
-  created_at: string;
-  resolved_at?: string;
-}
+- `relationOptions: VocabRelationDto[]` — Cache danh sách từ vựng cho MultiSelect
+- `loading: boolean`
 
-// Request/Response DTOs
-interface CreateVocabularyDto {
-  meaning_vi: string;
-  hiragana: string;
-  romaji: string;
-  kanji?: string;
-  han_viet?: string;
-  level: string;
-  media_url?: string;
-  note?: string;
-  status: string;
-  tags?: string[];
-  relatedWordIds?: number[];
-  synonymIds?: number[];
-  antonymIds?: number[];
-}
+**Actions:**
 
-interface UpdateVocabularyDto {
-  meaning_vi?: string;
-  hiragana?: string;
-  romaji?: string;
-  kanji?: string;
-  han_viet?: string;
-  level?: string;
-  media_url?: string;
-  note?: string;
-  status?: string;
-  tags?: string[];
-  relatedWordIds?: number[];
-  synonymIds?: number[];
-  antonymIds?: number[];
-}
-
-interface VocabularyFilters {
-  page?: number;
-  limit?: number;
-  status?: string;
-  level?: string;
-  tag?: string;
-  search?: string;
-  created_by?: number;
-  dateFrom?: string;
-  dateTo?: string;
-}
-
-interface PaginationInfo {
-  page: number;
-  limit: number;
-  total: number;
-  pages: number;
-}
-
-interface ListResponse {
-  data: Vocabulary[];
-  pagination: PaginationInfo;
-}
-
-interface VocabularyDetailDto extends Vocabulary {
-  changeLogs: VocabularyChangeLog[];
-  reports: VocabularyReport[];
-}
-```
+- `loadRelationOptions(): Promise<void>`
+- `clearRelationOptions(): void`
 
 ---
 
-## 8. Database Schema Reference
+## 7. TypeScript Types & Interfaces
 
-See [01-backend.md](./01-backend.md#11-database-schema) for:
-- `vocabularies` table definition
-- `vocabulary_tags` table definition
-- `vocabulary_related_words` table definition
-- `vocabulary_synonyms` table definition
-- `vocabulary_antonyms` table definition
-- `vocabulary_change_logs` table definition
-- `vocabulary_reports` table definition
+### `client/src/types/vocabularies.types.ts`
 
----
+**Interfaces:**
+
+- `VocabularyResponse` — Dữ liệu từ vựng trả về từ API
+- `VocabularyDetail` — VocabularyResponse + relations + changeLogs + reports
+- `VocabRelationDto` — `{ id: number; kanji: string; hiragana?: string; level?: string }`
+- `VocabChangeLogDto` — `{ id: number; fieldName: string; oldValue?: string; newValue?: string; changedBy: number; changeReason?: string; createdAt: string }`
+- `VocabReportDto` — `{ id: number; reportText: string; status: 'pending' | 'resolved' | 'dismissed'; reportedBy: number; resolvedBy?: number; createdAt: string }`
+- `AnalyticsData` — `{ learnCount: number; favoriteCount: number; reportCount: number; relationCount: number }`
+- `VocabularyFilter` — `{ kanji?: string; level?: string; status?: string; tag?: string; createdBy?: number; page?: number; limit?: number; sort?: string; order?: string }`
+
+**Enums:**
+
+- `VocabularyStatus` — `'Publish' | 'Hide' | 'Delete'`
+- `VocabLevel` — `'N5' | 'N4' | 'N3' | 'N2' | 'N1'`
+- `VocabRelationType` — `'related' | 'synonym' | 'antonym'`
+- `VocabReportStatus` — `'pending' | 'resolved' | 'dismissed'`

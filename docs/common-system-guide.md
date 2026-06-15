@@ -724,37 +724,108 @@ Không bao giờ để lỗi chưa được xử lý bubble lên tầng HTTP res
 
 ## 9. Testing conventions
 
-### 9.1 Unit tests (Vitest)
+### 9.1 Backend – Vitest trên Controller
 
-- File test đặt cạnh file được test: `users.service.test.ts`
-- Hoặc trong `__tests__/` cùng cấp
-- Test **behavior**, không test implementation detail
-- Mock ở mức module boundary (mock DB calls, mock external API)
+Trên server, **tất cả test (unit + integration) gom chung trong một file duy nhất** cạnh controller:
+
+```
+server/src/modules/<feature>/
+├── <feature>.controller.ts
+└── <feature>.controller.test.ts   # Unit + Integration test bằng Vitest
+```
+
+#### Quy tắc
+
+- Chỉ test thông qua **controller/HTTP endpoint**, không test service hay repository riêng lẻ
+- **Integration test dùng DB thật** (`app_db_test`) là mặc định
+- **Unit test trong cùng file** khi cần mock boundary (external API, file system, v.v.)
+- Mỗi test tự tạo và dọn dẹp dữ liệu của mình (`beforeEach` / `afterEach`)
+- Dùng `supertest` gọi qua Express `app` thật
+- Tạo JWT token thật bằng `signToken()`
+- Không hard-code ID; query/lưu lại ID sau khi insert
+
+#### Template `<feature>.controller.test.ts`
 
 ```typescript
-// Ví dụ test service
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { usersService } from './users.service'
-import { pool } from '@/database/connection'
+import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll, vi } from 'vitest'
+import request from 'supertest'
+import dotenv from 'dotenv'
+import path from 'path'
+import type { ResultSetHeader, RowDataPacket } from 'mysql2/promise'
+import app from '../../app'
+import { pool } from '../../database/connection'
+import { signToken } from '../../utils/token.util'
+import { hashPassword } from '../../utils/hash.util'
 
-vi.mock('@/database/connection', () => ({ pool: { query: vi.fn() } }))
+// テストDBを使用する / Load env to use test database
+dotenv.config({ path: path.resolve(__dirname, '../../../../.env') })
 
-describe('usersService.getUsers', () => {
-  beforeEach(() => vi.clearAllMocks())
+const ADMIN_ID = 1000
+const ADMIN_EMAIL = 'admin@app.com'
 
-  it('returns paginated users', async () => {
-    vi.mocked(pool.query)
-      .mockResolvedValueOnce([[{ id: 1, name: 'Alice' }]] as any)
-      .mockResolvedValueOnce([[{ total: 1 }]] as any)
+function getAdminToken(): string {
+  return signToken({ userId: ADMIN_ID, email: ADMIN_EMAIL, role: 'admin' })
+}
 
-    const result = await usersService.getUsers({ page: 1, limit: 20 })
-    expect(result.data).toHaveLength(1)
-    expect(result.pagination.total).toBe(1)
+async function cleanupUserByEmail(email: string): Promise<void> {
+  const [rows] = await pool.query<RowDataPacket[]>('SELECT id FROM users WHERE email = ?', [email])
+  const user = rows[0] as { id: number } | undefined
+  if (user) {
+    // FK制約を考慮して監査ログを先に削除 / Delete audit logs first due to FK
+    await pool.query('DELETE FROM audit_logs WHERE target_user_id = ? OR admin_id = ?', [user.id, user.id])
+    await pool.query('DELETE FROM users WHERE id = ?', [user.id])
+  }
+}
+
+async function createTestUser(data: { name: string; email: string; role?: string }): Promise<number> {
+  const hashed = await hashPassword('password123')
+  const [result] = await pool.query<ResultSetHeader>(
+    'INSERT INTO users (name, email, password, role, status) VALUES (?, ?, ?, ?, ?)',
+    [data.name, data.email, hashed, data.role ?? 'user', 'active'],
+  )
+  return result.insertId
+}
+
+describe('UsersController Tests', () => {
+  beforeEach(async () => {
+    await cleanupUserByEmail('test@example.com')
+  })
+
+  afterEach(async () => {
+    await cleanupUserByEmail('test@example.com')
+  })
+
+  afterAll(async () => {
+    await pool.end()
+  })
+
+  // Integration test – gọi endpoint thật với DB thật
+  it('should create a new user', async () => {
+    const res = await request(app)
+      .post('/api/users')
+      .set('Authorization', `Bearer ${getAdminToken()}`)
+      .send({ name: 'Test', email: 'test@example.com', role: 'user', status: 'active' })
+      .expect(201)
+
+    expect(res.body.email).toBe('test@example.com')
+    expect(res.body).not.toHaveProperty('password')
+  })
+
+  // Unit test trong cùng file – mock external service nếu cần
+  it('should return 502 when external service is down', async () => {
+    // vi.mock hoặc inject mock gateway tại đây
   })
 })
 ```
 
-### 9.2 Component tests (Vitest + Vue Test Utils)
+#### Lưu ý quan trọng
+
+- `pool.end()` chỉ gọi trong `afterAll` của suite cuối cùng, hoặc dùng global setup/teardown
+- Không dùng `any` cho kết quả query; dùng `RowDataPacket[]` hoặc type model có `RowDataPacket`
+- Luôn import `describe`, `it`, `expect`, ... từ `vitest` để TypeScript nhận diện đúng
+- Nếu test cần nhiều suite dùng chung DB connection, cân nhắc dùng `setupFiles` trong `vitest.config.mts`
+
+### 9.2 Frontend – Component tests (Vitest + Vue Test Utils)
 
 ```typescript
 import { mount } from '@vue/test-utils'
@@ -792,6 +863,25 @@ test('admin can create a new user', async ({ adminPage }) => {
   await adminPage.click('[type=submit]')
   await expect(adminPage.getByText('User created')).toBeVisible()
 })
+```
+
+### 9.4 Chạy test
+
+```bash
+# Backend controller tests
+cd server
+npm test
+
+# Backend test một file cụ thể
+npx vitest run src/modules/users/users.controller.test.ts
+
+# Frontend unit
+cd client
+npm test
+
+# E2E
+cd client
+npx playwright test
 ```
 
 ---
