@@ -4,6 +4,7 @@ import { corsConfig, appConfig } from './config';
 import { authRoutes } from './modules/auth/auth.routes';
 import { usersRoutes } from './modules/users/users.routes';
 import { employeesRoutes } from './modules/employees/employees.routes';
+import { vocabularyRoutes } from './modules/vocabulary/vocabulary.routes';
 import { notebookLmRoutes } from './modules/notebooklm/notebooklm.routes';
 import { notebookLmOperationsRoutes } from './modules/notebooklm/operations.routes';
 import { chatRoutes } from './modules/notebooklm/chat.routes';
@@ -28,6 +29,7 @@ app.use((req, _res, next) => {
 app.use(`${appConfig.apiPrefix}/auth`, authRoutes);
 app.use(`${appConfig.apiPrefix}/users`, usersRoutes);
 app.use(`${appConfig.apiPrefix}/employees`, employeesRoutes);
+app.use(`${appConfig.apiPrefix}/vocabularies`, vocabularyRoutes);
 app.use(`${appConfig.apiPrefix}/notebooklm`, notebookLmRoutes);
 app.use(`${appConfig.apiPrefix}/notebooklm/admin`, notebookLmOperationsRoutes);
 app.use(`${appConfig.apiPrefix}/notebooklm`, chatRoutes);
