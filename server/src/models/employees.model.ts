@@ -1,5 +1,4 @@
 // 従業員モデル定義 / Employees module models and types
-import type { RowDataPacket } from 'mysql2/promise';
 import type { PaginationParams } from './common.model';
 
 // 従業員部署 / Employee department enum
@@ -20,7 +19,7 @@ export type EmployeePosition =
 export type EmployeeStatus = 'active' | 'inactive';
 
 // 従業員データ行 / Employee database row
-export interface EmployeeRow extends RowDataPacket {
+export interface EmployeeRow {
   id: number;
   employee_code: string;
   full_name: string;

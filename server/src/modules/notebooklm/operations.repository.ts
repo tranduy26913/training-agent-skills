@@ -1,8 +1,13 @@
-import type { ResultSetHeader, RowDataPacket } from 'mysql2/promise';
-import { pool } from '../../database/connection';
+// NotebookLM operations data access via Prisma Client.
+// Covers job/job_step listing, the dead-letter queue, and admin audit log
+// writes that reuse the global User/AuditLog models.
+import { prisma } from '../../database/prisma';
 import type { NotebookLmJobStatus, NotebookLmJobType } from '../../models/notebooklm.model';
 
-export interface OperationsJobRow extends RowDataPacket {
+// Row types mirror the previous mysql2 snake_case response shape so the rest
+// of the service / controller layers keep working without changes. Prisma
+// returns camelCase fields; the service uses the snake_case keys below.
+export interface OperationsJobRow {
   id: number;
   type: NotebookLmJobType;
   status: NotebookLmJobStatus;
@@ -14,7 +19,7 @@ export interface OperationsJobRow extends RowDataPacket {
   updated_at: Date;
 }
 
-export interface OperationsJobStepRow extends RowDataPacket {
+export interface OperationsJobStepRow {
   id: number;
   job_id: number;
   step_name: string;
@@ -29,7 +34,7 @@ export interface OperationsJobDetail extends OperationsJobRow {
   steps: OperationsJobStepRow[];
 }
 
-export interface DeadLetterJobRow extends RowDataPacket {
+export interface DeadLetterJobRow {
   id: number;
   original_job_id: number;
   job_type: string;
@@ -47,138 +52,172 @@ export interface ListJobsFilters {
   status?: NotebookLmJobStatus;
 }
 
+// Map a Prisma job row to the snake_case shape used by the service layer.
+function mapJobRow(j: {
+  id: number;
+  type: string;
+  status: string;
+  payload: unknown;
+  retryCount: number;
+  maxRetries: number;
+  errorMessage: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}): OperationsJobRow {
+  return {
+    id: j.id,
+    type: j.type as NotebookLmJobType,
+    status: j.status as NotebookLmJobStatus,
+    payload: j.payload,
+    retry_count: j.retryCount,
+    max_retries: j.maxRetries,
+    error_message: j.errorMessage,
+    created_at: j.createdAt,
+    updated_at: j.updatedAt,
+  };
+}
+
+// Map a Prisma job_step row to the snake_case shape.
+function mapStepRow(s: {
+  id: number;
+  jobId: number;
+  stepName: string;
+  status: string;
+  progressPct: number;
+  detail: string | null;
+  startedAt: Date | null;
+  finishedAt: Date | null;
+}): OperationsJobStepRow {
+  return {
+    id: s.id,
+    job_id: s.jobId,
+    step_name: s.stepName,
+    status: s.status as OperationsJobStepRow['status'],
+    progress_pct: s.progressPct,
+    detail: s.detail,
+    started_at: s.startedAt,
+    finished_at: s.finishedAt,
+  };
+}
+
+// Map a Prisma dead_letter_jobs row to the snake_case shape.
+function mapDeadLetterRow(d: {
+  id: number;
+  originalJobId: number;
+  jobType: string;
+  payload: unknown;
+  failureReason: string | null;
+  note: string | null;
+  movedAt: Date;
+  updatedAt: Date;
+}): DeadLetterJobRow {
+  return {
+    id: d.id,
+    original_job_id: d.originalJobId,
+    job_type: d.jobType,
+    payload: d.payload,
+    failure_reason: d.failureReason,
+    note: d.note,
+    moved_at: d.movedAt,
+    updated_at: d.updatedAt,
+  };
+}
+
 export class NotebookLmOperationsRepository {
+  // List jobs, filtered by type/status, paginated by updated_at desc.
   async listJobs(filters: ListJobsFilters): Promise<OperationsJobRow[]> {
-    const conditions: string[] = [];
-    const params: unknown[] = [];
-
-    if (filters.type) {
-      conditions.push('type = ?');
-      params.push(filters.type);
-    }
-
-    if (filters.status) {
-      conditions.push('status = ?');
-      params.push(filters.status);
-    }
-
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
     const page = filters.page ?? 1;
     const limit = filters.limit ?? 25;
-    const offset = (page - 1) * limit;
+    const skip = (page - 1) * limit;
 
-    const [rows] = await pool.query<OperationsJobRow[]>(
-      `SELECT * FROM \`jobs\`
-       ${whereClause}
-       ORDER BY \`updated_at\` DESC
-       LIMIT ? OFFSET ?`,
-      [...params, limit, offset],
-    );
-
-    return rows;
+    const rows = await prisma.job.findMany({
+      where: {
+        ...(filters.type ? { type: filters.type } : {}),
+        ...(filters.status ? { status: filters.status } : {}),
+      },
+      orderBy: { updatedAt: 'desc' },
+      skip,
+      take: limit,
+    });
+    return rows.map(mapJobRow);
   }
 
+  // Count jobs matching the same filters as listJobs.
   async countJobs(filters: ListJobsFilters): Promise<number> {
-    const conditions: string[] = [];
-    const params: unknown[] = [];
-
-    if (filters.type) {
-      conditions.push('type = ?');
-      params.push(filters.type);
-    }
-
-    if (filters.status) {
-      conditions.push('status = ?');
-      params.push(filters.status);
-    }
-
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-    const [rows] = await pool.query<RowDataPacket[]>(
-      `SELECT COUNT(*) AS total FROM \`jobs\` ${whereClause}`,
-      params,
-    );
-
-    return Number(rows[0]?.total ?? 0);
+    return prisma.job.count({
+      where: {
+        ...(filters.type ? { type: filters.type } : {}),
+        ...(filters.status ? { status: filters.status } : {}),
+      },
+    });
   }
 
+  // Find a single job by id.
   async findJobById(jobId: number): Promise<OperationsJobRow | null> {
-    const [rows] = await pool.query<OperationsJobRow[]>('SELECT * FROM `jobs` WHERE `id` = ? LIMIT 1', [jobId]);
-    return rows[0] ?? null;
+    const j = await prisma.job.findUnique({ where: { id: jobId } });
+    return j ? mapJobRow(j) : null;
   }
 
+  // Find a job with all of its steps.
   async findJobWithStepsById(jobId: number): Promise<OperationsJobDetail | null> {
-    const job = await this.findJobById(jobId);
-    if (!job) {
-      return null;
-    }
-
-    const [steps] = await pool.query<OperationsJobStepRow[]>(
-      `SELECT * FROM \`job_steps\`
-       WHERE \`job_id\` = ?
-       ORDER BY \`id\` ASC`,
-      [jobId],
-    );
-
-    return {
-      ...job,
-      steps,
-    };
+    const j = await prisma.job.findUnique({
+      where: { id: jobId },
+      include: { steps: { orderBy: { id: 'asc' } } },
+    });
+    if (!j) return null;
+    return { ...mapJobRow(j), steps: j.steps.map(mapStepRow) };
   }
 
+  // Retry a job: set status to pending, clear error_message.
   async retryJob(jobId: number): Promise<void> {
-    await pool.query<ResultSetHeader>(
-      `UPDATE \`jobs\`
-       SET \`status\` = 'pending',
-           \`error_message\` = NULL,
-           \`updated_at\` = CURRENT_TIMESTAMP
-       WHERE \`id\` = ?`,
-      [jobId],
-    );
+    await prisma.job.update({
+      where: { id: jobId },
+      data: { status: 'pending', errorMessage: null },
+    });
   }
 
+  // List all dead-letter rows.
   async listDeadLetterJobs(): Promise<DeadLetterJobRow[]> {
-    const [rows] = await pool.query<DeadLetterJobRow[]>(
-      `SELECT * FROM \`dead_letter_jobs\`
-       ORDER BY \`moved_at\` DESC, \`id\` DESC`,
-    );
-
-    return rows;
+    const rows = await prisma.deadLetterJob.findMany({
+      orderBy: [{ movedAt: 'desc' }, { id: 'desc' }],
+    });
+    return rows.map(mapDeadLetterRow);
   }
 
+  // Find a single dead-letter row.
   async findDeadLetterJobById(dlqId: number): Promise<DeadLetterJobRow | null> {
-    const [rows] = await pool.query<DeadLetterJobRow[]>(
-      'SELECT * FROM `dead_letter_jobs` WHERE `id` = ? LIMIT 1',
-      [dlqId],
-    );
-    return rows[0] ?? null;
+    const d = await prisma.deadLetterJob.findUnique({ where: { id: dlqId } });
+    return d ? mapDeadLetterRow(d) : null;
   }
 
+  // Update a dead-letter note.
   async updateDeadLetterJobNote(dlqId: number, note: string): Promise<void> {
-    await pool.query<ResultSetHeader>(
-      'UPDATE `dead_letter_jobs` SET `note` = ?, `updated_at` = CURRENT_TIMESTAMP WHERE `id` = ?',
-      [note, dlqId],
-    );
+    await prisma.deadLetterJob.update({
+      where: { id: dlqId },
+      data: { note },
+    });
   }
 
+  // Purge all dead-letter rows. Returns the count of deleted rows.
   async purgeDeadLetterJobs(): Promise<number> {
-    const [result] = await pool.query<ResultSetHeader>('DELETE FROM `dead_letter_jobs`');
-    return Number(result.affectedRows ?? 0);
+    const result = await prisma.deadLetterJob.deleteMany();
+    return result.count;
   }
 
+  // Append an admin audit log entry.
   async createAuditLog(
     adminId: number,
     targetUserId: number,
     action: 'CREATE' | 'UPDATE' | 'DELETE',
     detail: Record<string, unknown>,
   ): Promise<void> {
-    await pool.query<ResultSetHeader>(
-      `INSERT INTO \`audit_logs\` (
-         \`admin_id\`,
-         \`target_user_id\`,
-         \`action\`,
-         \`changed_fields\`
-       ) VALUES (?, ?, ?, ?)`,
-      [adminId, targetUserId, action, JSON.stringify(detail)],
-    );
+    await prisma.auditLog.create({
+      data: {
+        adminId,
+        targetUserId,
+        action,
+        changedFields: detail as any,
+      },
+    });
   }
 }

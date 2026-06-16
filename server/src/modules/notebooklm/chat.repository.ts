@@ -1,160 +1,148 @@
-// チャットリポジトリ / Chat repository for database access
-import type { ResultSetHeader, RowDataPacket } from 'mysql2/promise';
-import { pool } from '../../database/connection';
+// Chat repository backed by Prisma Client.
+// Public API mirrors the previous mysql2-based repository; the methods that
+// used to return ResultSetHeader (insertId) now return a small adapter with
+// the same shape so existing service code keeps working.
+import { prisma } from '../../database/prisma';
 import type { ListSessionsQuery } from './chat.validation';
 
-// チャットセッション行型 / Chat session row type
-export interface ChatSessionRow extends RowDataPacket {
-  id: number;
-  workspace_id: number;
-  user_id: number;
-  title: string;
-  // [CR-NBLM-LLM-001] LLMプロバイダー / LLM provider for this session
-  llm_provider: 'ollama' | 'mock' | 'gemini';
-  created_at: Date;
-  updated_at: Date;
-}
-
-// チャットメッセージ行型 / Chat message row type
-export interface ChatMessageRow extends RowDataPacket {
-  id: number;
-  session_id: number;
-  role: 'user' | 'assistant';
-  content: string;
-  sources: unknown;
-  job_id: number | null;
-  created_at: Date;
-}
-
-// ワークスペースメンバー行型 / Workspace member row type
-export interface WorkspaceMemberRow extends RowDataPacket {
-  user_id: number;
-  workspace_id: number;
-  role: string;
+// Minimal subset of mysql2's ResultSetHeader so callers reading .insertId
+// continue to work after the Prisma migration.
+export interface InsertResult {
+  insertId: number;
+  affectedRows: number;
 }
 
 export class ChatRepository {
-  // ワークスペースメンバー確認 / Find workspace member for access control
-  async findWorkspaceMember(workspaceId: number, userId: number): Promise<WorkspaceMemberRow | null> {
-    const [rows] = await pool.query<WorkspaceMemberRow[]>(
-      'SELECT * FROM `workspace_members` WHERE `workspace_id` = ? AND `user_id` = ? LIMIT 1',
-      [workspaceId, userId],
-    );
-    return rows[0] ?? null;
+  // Find the workspace member record used for access checks.
+  findWorkspaceMember(workspaceId: number, userId: number) {
+    return prisma.workspaceMember.findFirst({
+      where: { workspaceId, userId },
+    });
   }
 
-  // セッションID検索 / Find chat session by primary key
-  async findSessionById(sessionId: number): Promise<ChatSessionRow | null> {
-    const [rows] = await pool.query<ChatSessionRow[]>(
-      'SELECT * FROM `chat_sessions` WHERE `id` = ? LIMIT 1',
-      [sessionId],
-    );
-    return rows[0] ?? null;
+  // Find a chat session by id.
+  findSessionById(sessionId: number) {
+    return prisma.chatSession.findUnique({ where: { id: sessionId } });
   }
 
-  // ワークスペースのセッション一覧取得 / List sessions for a workspace with pagination
-  async listSessionsForWorkspace(
-    workspaceId: number,
-    filters: ListSessionsQuery,
-  ): Promise<{ data: ChatSessionRow[]; total: number }> {
+  // List chat sessions in a workspace, paginated by updated_at desc.
+  async listSessionsForWorkspace(workspaceId: number, filters: ListSessionsQuery) {
     const page = filters.page ?? 1;
     const limit = filters.limit ?? 20;
-    const offset = (page - 1) * limit;
+    const skip = (page - 1) * limit;
 
-    const [rows] = await pool.query<ChatSessionRow[]>(
-      'SELECT * FROM `chat_sessions` WHERE `workspace_id` = ? ORDER BY `updated_at` DESC LIMIT ? OFFSET ?',
-      [workspaceId, limit, offset],
-    );
+    const [data, total] = await Promise.all([
+      prisma.chatSession.findMany({
+        where: { workspaceId },
+        orderBy: { updatedAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.chatSession.count({ where: { workspaceId } }),
+    ]);
 
-    const [[{ total }]] = await pool.query<any[]>(
-      'SELECT COUNT(*) AS total FROM `chat_sessions` WHERE `workspace_id` = ?',
-      [workspaceId],
-    );
-
-    return { data: rows, total: Number(total ?? 0) };
+    return { data, total };
   }
 
-  // セッション作成 / Insert new chat session
+  // Insert a new chat session. Returns { insertId, affectedRows }.
   async createSession(data: {
-    workspace_id: number;
-    user_id: number;
+    workspaceId: number;
+    userId: number;
     title: string;
-    // [CR-NBLM-LLM-001] LLMプロバイダー / LLM provider selection
-    llm_provider?: 'ollama' | 'mock' | 'gemini';
-  }): Promise<ResultSetHeader> {
-    const [result] = await pool.query<ResultSetHeader>(
-      'INSERT INTO `chat_sessions` (`workspace_id`, `user_id`, `title`, `llm_provider`) VALUES (?, ?, ?, ?)',
-      [data.workspace_id, data.user_id, data.title, data.llm_provider ?? 'ollama'],
-    );
-    return result;
+    llmProvider?: 'ollama' | 'mock' | 'gemini';
+  }): Promise<InsertResult> {
+    const created = await prisma.chatSession.create({
+      data: {
+        workspaceId: data.workspaceId,
+        userId: data.userId,
+        title: data.title,
+        llmProvider: data.llmProvider ?? 'ollama',
+      },
+      select: { id: true },
+    });
+    return { insertId: created.id, affectedRows: 1 };
   }
 
-  // セッション更新 / Update chat session title and provider
+  // Update a chat session's title and provider. Returns the affected count.
   async updateSession(
     sessionId: number,
-    data: {
-      title: string;
-      // [CR-NBLM-LLM-001] LLMプロバイダー / LLM provider selection
-      llm_provider?: 'ollama' | 'mock' | 'gemini';
-    },
-  ): Promise<ResultSetHeader> {
-    const [result] = await pool.query<ResultSetHeader>(
-      'UPDATE `chat_sessions` SET `title` = ?, `llm_provider` = ? WHERE `id` = ?',
-      [data.title, data.llm_provider ?? 'ollama', sessionId],
-    );
-    return result;
+    data: { title: string; llmProvider?: 'ollama' | 'mock' | 'gemini' },
+  ): Promise<InsertResult> {
+    const result = await prisma.chatSession.update({
+      where: { id: sessionId },
+      data: {
+        title: data.title,
+        llmProvider: data.llmProvider ?? 'ollama',
+      },
+      select: { id: true },
+    });
+    return { insertId: result.id, affectedRows: 1 };
   }
 
-  // メッセージ作成 / Insert new chat message
+  // Insert a new chat message.
   async createMessage(data: {
-    session_id: number;
+    sessionId: number;
     role: 'user' | 'assistant';
     content: string;
-    job_id?: number | null;
-  }): Promise<ResultSetHeader> {
-    const [result] = await pool.query<ResultSetHeader>(
-      'INSERT INTO `chat_messages` (`session_id`, `role`, `content`, `job_id`) VALUES (?, ?, ?, ?)',
-      [data.session_id, data.role, data.content, data.job_id ?? null],
-    );
-    return result;
+    jobId?: number | null;
+  }): Promise<InsertResult> {
+    const created = await prisma.chatMessage.create({
+      data: {
+        sessionId: data.sessionId,
+        role: data.role,
+        content: data.content,
+        jobId: data.jobId ?? null,
+      },
+      select: { id: true },
+    });
+    return { insertId: created.id, affectedRows: 1 };
   }
 
-  // セッションのメッセージ一覧 / List all messages for a session ordered by creation time
-  async listMessagesBySession(sessionId: number): Promise<ChatMessageRow[]> {
-    const [rows] = await pool.query<ChatMessageRow[]>(
-      'SELECT * FROM `chat_messages` WHERE `session_id` = ? ORDER BY `created_at` ASC',
-      [sessionId],
-    );
-    return rows;
+  // List messages for a session, ordered by created_at asc.
+  listMessagesBySession(sessionId: number) {
+    return prisma.chatMessage.findMany({
+      where: { sessionId },
+      orderBy: { createdAt: 'asc' },
+    });
   }
 
-  // ジョブ作成 / Insert new job record
+  // Insert a background job. payload is JSON-serialized by Prisma.
   async createJob(data: {
     type: string;
     status: string;
     payload: Record<string, unknown>;
-    max_retries?: number;
-  }): Promise<ResultSetHeader> {
-    const [result] = await pool.query<ResultSetHeader>(
-      'INSERT INTO `jobs` (`type`, `status`, `payload`, `max_retries`) VALUES (?, ?, ?, ?)',
-      [data.type, data.status, JSON.stringify(data.payload), data.max_retries ?? 3],
-    );
-    return result;
+    maxRetries?: number;
+  }): Promise<InsertResult> {
+    const created = await prisma.job.create({
+      data: {
+        type: data.type,
+        status: data.status,
+        payload: data.payload as any,
+        maxRetries: data.maxRetries ?? 3,
+      },
+      select: { id: true },
+    });
+    return { insertId: created.id, affectedRows: 1 };
   }
 
-  // ジョブステップ作成 / Insert a job step record
+  // Insert a job step.
   async createJobStep(data: {
-    job_id: number;
-    step_name: string;
+    jobId: number;
+    stepName: string;
     status?: string;
-    progress_pct?: number;
+    progressPct?: number;
     detail?: string | null;
-  }): Promise<ResultSetHeader> {
-    const [result] = await pool.query<ResultSetHeader>(
-      `INSERT INTO \`job_steps\` (\`job_id\`, \`step_name\`, \`status\`, \`progress_pct\`, \`detail\`)
-       VALUES (?, ?, ?, ?, ?)`,
-      [data.job_id, data.step_name, data.status ?? 'pending', data.progress_pct ?? 0, data.detail ?? null],
-    );
-    return result;
+  }): Promise<InsertResult> {
+    const created = await prisma.jobStep.create({
+      data: {
+        jobId: data.jobId,
+        stepName: data.stepName,
+        status: data.status ?? 'pending',
+        progressPct: data.progressPct ?? 0,
+        detail: data.detail ?? null,
+      },
+      select: { id: true },
+    });
+    return { insertId: created.id, affectedRows: 1 };
   }
 }

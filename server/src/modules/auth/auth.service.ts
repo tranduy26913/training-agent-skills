@@ -1,23 +1,35 @@
-import { pool } from '../../database/connection';
+import { prisma } from '../../database/prisma';
 import { comparePassword, hashPassword } from '../../utils/hash.util';
 import { signToken } from '../../utils/token.util';
 import { ServiceError } from '../../models/common.model';
-import type { User } from '../../models/users.model';
-import type { LoginResponseData } from '../../models/auth.model';
+import type { UserRole } from '../../models/common.model';
+import type { AuthUser, LoginResponseData } from '../../models/auth.model';
 import type { LoginInput, UpdateProfileInput, ChangePasswordInput } from './auth.validation';
 
-// 認証サービス / Authentication service
+// Public user fields returned to clients (no password hash).
+const USER_PUBLIC_SELECT = {
+  id: true,
+  name: true,
+  email: true,
+  role: true,
+  status: true,
+} as const;
+
+// Authentication service backed by Prisma.
 export class AuthService {
-  // ログイン処理 / Login with email and password
+  // Login with email + password. Returns null for unknown email, inactive
+  // accounts, or wrong password (caller decides how to map that to HTTP).
   async login(input: LoginInput): Promise<LoginResponseData | null> {
-    const [rows] = await pool.query<User[]>(
-      'SELECT * FROM `users` WHERE `email` = ? LIMIT 1',
-      [input.email],
-    );
+    const user = await prisma.user.findUnique({
+      where: { email: input.email },
+      select: {
+        ...USER_PUBLIC_SELECT,
+        status: true,
+        password: true,
+      },
+    });
 
-    const user = rows[0];
     if (!user) return null;
-
     if (user.status !== 'active') return null;
 
     const valid = await comparePassword(input.password, user.password);
@@ -26,63 +38,58 @@ export class AuthService {
     const token = signToken({
       userId: user.id,
       email: user.email,
-      role: user.role,
+      role: user.role as UserRole,
     });
 
-    const { password: _, ...userWithoutPassword } = user;
-    return { token, user: userWithoutPassword };
+    const { password, ...userWithoutPassword } = user;
+    const authUser: AuthUser = {
+      id: userWithoutPassword.id,
+      name: userWithoutPassword.name,
+      email: userWithoutPassword.email,
+      role: userWithoutPassword.role as UserRole,
+      status: userWithoutPassword.status,
+    };
+
+    return { token, user: authUser };
   }
 
-  /**
-   * Update profile for the authenticated user.
-   * Only allowed fields are updated: name, birthday, note, avatar.
-   * 認証済みユーザーのプロフィールを更新する。name/birthday/note/avatarのみ更新可能。
-   */
+  // Update the authenticated user's profile. Only name, birthday, note, and
+  // avatar are allowed; other fields are ignored.
   async updateProfile(
     userId: number,
     input: UpdateProfileInput,
-  ): Promise<Omit<User, 'password'>> {
-    const [existing] = await pool.query<User[]>(
-      'SELECT * FROM `users` WHERE `id` = ? LIMIT 1',
-      [userId],
-    );
-
-    if (!existing[0]) {
+  ): Promise<AuthUser> {
+    const existing = await prisma.user.findUnique({ where: { id: userId } });
+    if (!existing) {
       throw new ServiceError('User not found', 404);
     }
 
-    await pool.query(
-      'UPDATE `users` SET `name` = ?, `birthday` = ?, `note` = ?, `avatar` = ?, `updated_at` = NOW() WHERE `id` = ?',
-      [
-        input.name,
-        input.birthday ?? null,
-        input.note ?? null,
-        input.avatar ?? null,
-        userId,
-      ],
-    );
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        name: input.name,
+        birthday: input.birthday ? new Date(input.birthday) : null,
+        note: input.note ?? null,
+        avatar: input.avatar ?? null,
+      },
+    });
 
-    const [updated] = await pool.query<User[]>(
-      'SELECT * FROM `users` WHERE `id` = ? LIMIT 1',
-      [userId],
-    );
-
-    const { password: _, ...userWithoutPassword } = updated[0];
-    return userWithoutPassword;
+    const updated = await prisma.user.findUnique({
+      where: { id: userId },
+      select: USER_PUBLIC_SELECT,
+    });
+    if (!updated) {
+      throw new ServiceError('User not found', 404);
+    }
+    return {
+      ...updated,
+      role: updated.role as UserRole,
+    };
   }
 
-  /**
-   * Change password for the authenticated user.
-   * Verifies currentPassword before updating.
-   * 認証済みユーザーのパスワードを変更する。更新前に現在のパスワードを確認する。
-   */
+  // Change the authenticated user's password after verifying the current one.
   async changePassword(userId: number, input: ChangePasswordInput): Promise<void> {
-    const [rows] = await pool.query<User[]>(
-      'SELECT * FROM `users` WHERE `id` = ? LIMIT 1',
-      [userId],
-    );
-
-    const user = rows[0];
+    const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
       throw new ServiceError('User not found', 404);
     }
@@ -93,10 +100,9 @@ export class AuthService {
     }
 
     const hashed = await hashPassword(input.newPassword);
-
-    await pool.query('UPDATE `users` SET `password` = ?, `updated_at` = NOW() WHERE `id` = ?', [
-      hashed,
-      userId,
-    ]);
+    await prisma.user.update({
+      where: { id: userId },
+      data: { password: hashed },
+    });
   }
 }

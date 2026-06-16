@@ -3,9 +3,6 @@
 // ユーザーロール / User role enum values
 export type UserRole = 'admin' | 'user' | 'moderator';
 
-// ユーザーステータス / User status enum values
-export type UserStatus = 'active' | 'inactive' | 'suspended';
-
 // 監査ログアクション / Audit log action types
 export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE';
 
@@ -33,11 +30,6 @@ export interface PaginationInfo {
 export interface PaginatedResult<T> {
   data: T[];
   pagination: PaginationInfo;
-}
-
-// APIエラーレスポンス / API error response
-export interface ApiErrorResponse {
-  message: string;
 }
 
 // 変更フィールド差分 / Changed fields diff for audit logs

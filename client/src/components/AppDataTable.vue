@@ -128,7 +128,7 @@ function onSort(event: DataTableSortEvent): void {
     >
       <template #body="{ data }">
         <!-- ローディングスケルトン / Loading skeleton -->
-        <Skeleton v-if="loading" height="1.5rem" />
+        <Skeleton v-if="props.loading" height="1.5rem" />
 
         <!-- カスタムスロット / Custom slot #cell-{field} takes precedence -->
         <slot

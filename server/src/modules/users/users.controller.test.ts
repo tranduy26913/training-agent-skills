@@ -2,21 +2,19 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from
 import request from 'supertest';
 import dotenv from 'dotenv';
 import path from 'path';
-import type { ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 import app from '../../app';
-import { pool } from '../../database/connection';
+import { prisma } from '../../database/prisma';
 import { signToken } from '../../utils/token.util';
 import { hashPassword } from '../../utils/hash.util';
 
-// 環境変数を読み込む / Load environment variables from project root
-// これによりテストDB（app_db_test）が使用される / Ensures test database is used
+// Load env from project root so the test DB (app_db_test) is used.
 dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
 
 const ADMIN_ID = 1000;
 const ADMIN_EMAIL = 'admin@app.com';
 const TEST_USER_PASSWORD = 'password123';
 
-// テストで使用する固定メールアドレス / Fixed test emails used across tests
+// Fixed test emails used across tests.
 const TEST_EMAILS = {
   regularUser: 'regularuser.controller@test.com',
   newUser: 'newuser.controller@test.com',
@@ -32,33 +30,29 @@ const TEST_EMAILS = {
   activity: 'activity.controller@test.com',
 };
 
-// 管理者JWTトークンを生成 / Generate admin JWT token
 function getAdminToken(): string {
   return signToken({ userId: ADMIN_ID, email: ADMIN_EMAIL, role: 'admin' });
 }
 
-// 一般ユーザーのJWTトークンを生成 / Generate regular user JWT token
 function getUserToken(userId: number, email: string): string {
   return signToken({ userId, email, role: 'user' });
 }
 
-// メールアドレスでテストユーザーを削除 / Delete test user by email
+// Delete a test user (and its audit logs) by email.
 async function cleanupTestUserByEmail(email: string): Promise<void> {
-  const [rows] = await pool.query<RowDataPacket[]>('SELECT id FROM users WHERE email = ?', [email]);
-  const user = rows[0] as { id: number } | undefined;
+  const user = await prisma.user.findUnique({ where: { email }, select: { id: true } });
   if (user) {
-    // FK制約のため監査ログを先に削除 / Delete audit logs first due to FK constraints
-    await pool.query('DELETE FROM audit_logs WHERE target_user_id = ? OR admin_id = ?', [user.id, user.id]);
-    await pool.query('DELETE FROM users WHERE id = ?', [user.id]);
+    await prisma.auditLog.deleteMany({
+      where: { OR: [{ targetUserId: user.id }, { adminId: user.id }] },
+    });
+    await prisma.user.delete({ where: { id: user.id } });
   }
 }
 
-// 全テストメールのクリーンアップ / Cleanup all known test emails
 async function cleanupAllTestUsers(): Promise<void> {
   await Promise.all(Object.values(TEST_EMAILS).map(cleanupTestUserByEmail));
 }
 
-// DBにテストユーザーを直接作成 / Create test user directly in database
 async function createTestUserDirectly(data: {
   name: string;
   email: string;
@@ -68,19 +62,19 @@ async function createTestUserDirectly(data: {
   birthday?: string | null;
 }): Promise<number> {
   const hashedPassword = await hashPassword(TEST_USER_PASSWORD);
-  const [result] = await pool.query<ResultSetHeader>(
-    'INSERT INTO users (name, email, password, role, status, note, birthday) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    [
-      data.name,
-      data.email,
-      hashedPassword,
-      data.role || 'user',
-      data.status || 'active',
-      data.note ?? null,
-      data.birthday ?? null,
-    ],
-  );
-  return result.insertId;
+  const created = await prisma.user.create({
+    data: {
+      name: data.name,
+      email: data.email,
+      password: hashedPassword,
+      role: data.role || 'user',
+      status: data.status || 'active',
+      note: data.note ?? null,
+      birthday: data.birthday ? new Date(data.birthday) : null,
+    },
+    select: { id: true },
+  });
+  return created.id;
 }
 
 describe('UsersController Integration Tests', () => {
@@ -90,7 +84,7 @@ describe('UsersController Integration Tests', () => {
   beforeAll(async () => {
     adminToken = getAdminToken();
 
-    // 権限不足テスト用の一般ユーザーを作成 / Create regular user for forbidden tests
+    // Regular user for forbidden-access tests.
     await cleanupTestUserByEmail(TEST_EMAILS.regularUser);
     const regularUserId = await createTestUserDirectly({
       name: 'Regular User',
@@ -102,24 +96,21 @@ describe('UsersController Integration Tests', () => {
   });
 
   beforeEach(async () => {
-    // 各テスト前にクリーンアップ / Cleanup before each test
     await cleanupAllTestUsers();
   });
 
   afterEach(async () => {
-    // 各テスト後にクリーンアップ / Cleanup after each test
     await cleanupAllTestUsers();
-    // 管理者のpointsを元に戻す / Reset admin points to default
-    await pool.query<ResultSetHeader>('UPDATE users SET points = 0 WHERE id = ?', [ADMIN_ID]);
+    // Reset admin points to default.
+    await prisma.user.update({ where: { id: ADMIN_ID }, data: { points: 0 } });
   });
 
   afterAll(async () => {
     await cleanupTestUserByEmail(TEST_EMAILS.regularUser);
-    await pool.end();
+    await prisma.$disconnect();
   });
 
   describe('GET /api/users', () => {
-    // I-BE-01: Admin authenticated, no filters → 200 + data[] + pagination
     it('should return paginated users for admin', async () => {
       const res = await request(app)
         .get('/api/users')
@@ -129,15 +120,11 @@ describe('UsersController Integration Tests', () => {
       expect(res.body).toHaveProperty('data');
       expect(res.body).toHaveProperty('pagination');
       expect(Array.isArray(res.body.data)).toBe(true);
-      expect(res.body.pagination).toMatchObject({
-        page: 1,
-        limit: 20,
-      });
+      expect(res.body.pagination).toMatchObject({ page: 1, limit: 20 });
       expect(res.body.pagination.total).toBeGreaterThanOrEqual(0);
       expect(res.body.pagination.pages).toBeGreaterThanOrEqual(0);
     });
 
-    // I-BE-02: Non-admin user → 403
     it('should reject non-admin user with 403', async () => {
       await request(app)
         .get('/api/users')
@@ -145,12 +132,10 @@ describe('UsersController Integration Tests', () => {
         .expect(403);
     });
 
-    // I-BE-03: No auth → 401
     it('should reject unauthenticated request with 401', async () => {
       await request(app).get('/api/users').expect(401);
     });
 
-    // I-BE-04: With search=john&role=admin → 200 + filtered results
     it('should filter by search and role', async () => {
       await createTestUserDirectly({
         name: 'John Controller Admin',
@@ -169,7 +154,6 @@ describe('UsersController Integration Tests', () => {
       expect(res.body.data.some((u: any) => u.email === TEST_EMAILS.john)).toBe(true);
     });
 
-    // I-BE-05: page=2&limit=25 → 200 + correct offset
     it('should return correct pagination for page 2 with limit 25', async () => {
       const res = await request(app)
         .get('/api/users?page=2&limit=25')
@@ -179,13 +163,11 @@ describe('UsersController Integration Tests', () => {
       expect(res.body.pagination.page).toBe(2);
       expect(res.body.pagination.limit).toBe(25);
       expect(Array.isArray(res.body.data)).toBe(true);
-      // テストDBは25件未満を前提 / Assumes test DB has fewer than 25 users
       expect(res.body.data.length).toBe(0);
     });
   });
 
   describe('POST /api/users', () => {
-    // I-BE-06: Valid body, unique email → 201 + UserDto
     it('should create a new user with valid data', async () => {
       const newUser = {
         name: 'New Controller User',
@@ -206,12 +188,11 @@ describe('UsersController Integration Tests', () => {
       expect(res.body.status).toBe(newUser.status);
       expect(res.body).not.toHaveProperty('password');
 
-      // DBに実際に作成されたことを確認 / Verify user was actually created in DB
-      const [rows] = await pool.query<RowDataPacket[]>('SELECT id FROM users WHERE email = ?', [newUser.email]);
-      expect(rows.length).toBe(1);
+      // Verify the user was actually created in the DB.
+      const created = await prisma.user.findUnique({ where: { email: newUser.email } });
+      expect(created).not.toBeNull();
     });
 
-    // I-BE-07: Duplicate email → 409
     it('should reject duplicate email with 409', async () => {
       await createTestUserDirectly({
         name: 'Duplicate User',
@@ -234,7 +215,6 @@ describe('UsersController Integration Tests', () => {
       expect(res.body.message).toContain('Email already exists');
     });
 
-    // I-BE-08: Invalid body (short name) → 400/422
     it('should reject invalid body with short name', async () => {
       const res = await request(app)
         .post('/api/users')
@@ -250,7 +230,6 @@ describe('UsersController Integration Tests', () => {
       expect(res.body.message).toContain('Name must be at least 2 characters');
     });
 
-    // I-BE-09: Birthday in the future → 400/422
     it('should reject future birthday', async () => {
       const futureDate = new Date();
       futureDate.setFullYear(futureDate.getFullYear() + 1);
@@ -273,7 +252,6 @@ describe('UsersController Integration Tests', () => {
   });
 
   describe('GET /api/users/:id', () => {
-    // I-BE-10: Existing user → 200 + UserDto
     it('should return existing user', async () => {
       const userId = await createTestUserDirectly({
         name: 'Get By Id User',
@@ -292,7 +270,6 @@ describe('UsersController Integration Tests', () => {
       expect(res.body).not.toHaveProperty('password');
     });
 
-    // I-BE-11: Non-existent user → 404
     it('should return 404 for non-existent user', async () => {
       const res = await request(app)
         .get('/api/users/999999')
@@ -304,7 +281,6 @@ describe('UsersController Integration Tests', () => {
   });
 
   describe('PUT /api/users/:id', () => {
-    // I-BE-12: Valid update → 200 + updated UserDto
     it('should update user with valid data', async () => {
       const userId = await createTestUserDirectly({
         name: 'Update User',
@@ -329,7 +305,6 @@ describe('UsersController Integration Tests', () => {
       expect(res.body.status).toBe('inactive');
     });
 
-    // I-BE-13: Email conflicts with another user → 409
     it('should reject email conflict with another user', async () => {
       const userId = await createTestUserDirectly({
         name: 'Update User',
@@ -359,7 +334,6 @@ describe('UsersController Integration Tests', () => {
       expect(res.body.message).toContain('Email already exists');
     });
 
-    // I-BE-14: Email same as self → OK
     it('should allow email same as self', async () => {
       const userId = await createTestUserDirectly({
         name: 'Same Email User',
@@ -382,9 +356,8 @@ describe('UsersController Integration Tests', () => {
       expect(res.body.name).toBe('Same Email Updated');
     });
 
-    // I-BE-15: Attempt to set points → 200 + points unchanged
     it('should ignore points field and keep it unchanged', async () => {
-      await pool.query<ResultSetHeader>('UPDATE users SET points = 100 WHERE id = ?', [ADMIN_ID]);
+      await prisma.user.update({ where: { id: ADMIN_ID }, data: { points: 100 } });
 
       const res = await request(app)
         .put(`/api/users/${ADMIN_ID}`)
@@ -404,7 +377,6 @@ describe('UsersController Integration Tests', () => {
   });
 
   describe('DELETE /api/users/:id', () => {
-    // I-BE-16: Delete other user → 200
     it('should delete another user', async () => {
       const userId = await createTestUserDirectly({
         name: 'Delete User',
@@ -420,11 +392,10 @@ describe('UsersController Integration Tests', () => {
 
       expect(res.body.message).toBe('User deleted successfully');
 
-      const [rows] = await pool.query<RowDataPacket[]>('SELECT id FROM users WHERE id = ?', [userId]);
-      expect(rows.length).toBe(0);
+      const after = await prisma.user.findUnique({ where: { id: userId } });
+      expect(after).toBeNull();
     });
 
-    // I-BE-17: Delete self → 400
     it('should reject self-delete with 400', async () => {
       const res = await request(app)
         .delete(`/api/users/${ADMIN_ID}`)
@@ -434,7 +405,6 @@ describe('UsersController Integration Tests', () => {
       expect(res.body.message).toContain('Cannot delete your own account');
     });
 
-    // I-BE-18: Non-existent user → 404
     it('should return 404 for non-existent user', async () => {
       const res = await request(app)
         .delete('/api/users/999999')
@@ -446,7 +416,6 @@ describe('UsersController Integration Tests', () => {
   });
 
   describe('GET /api/users/:id/activity', () => {
-    // I-BE-19: Existing user → 200 + data[]
     it('should return audit logs for existing user', async () => {
       const userId = await createTestUserDirectly({
         name: 'Activity User',
@@ -455,11 +424,14 @@ describe('UsersController Integration Tests', () => {
         status: 'active',
       });
 
-      // 監査ログを直接作成 / Create audit log directly
-      await pool.query<ResultSetHeader>(
-        'INSERT INTO audit_logs (admin_id, target_user_id, action, changed_fields) VALUES (?, ?, ?, ?)',
-        [ADMIN_ID, userId, 'CREATE', null],
-      );
+      await prisma.auditLog.create({
+        data: {
+          adminId: ADMIN_ID,
+          targetUserId: userId,
+          action: 'CREATE',
+          changedFields: undefined,
+        },
+      });
 
       const res = await request(app)
         .get(`/api/users/${userId}/activity`)
@@ -473,7 +445,6 @@ describe('UsersController Integration Tests', () => {
       expect(res.body[0]).toHaveProperty('admin_name');
     });
 
-    // I-BE-20: Non-existent user → 404
     it('should return 404 for non-existent user', async () => {
       const res = await request(app)
         .get('/api/users/999999/activity')
@@ -485,7 +456,6 @@ describe('UsersController Integration Tests', () => {
   });
 
   describe('GET /api/users/check-email', () => {
-    // I-BE-21: Not exists → 200 + {exists:false}
     it('should return exists=false for unused email', async () => {
       const res = await request(app)
         .get('/api/users/check-email?email=unused.controller@test.com')
@@ -495,7 +465,6 @@ describe('UsersController Integration Tests', () => {
       expect(res.body).toEqual({ exists: false });
     });
 
-    // I-BE-22: Exists → 200 + {exists:true}
     it('should return exists=true for existing email', async () => {
       await createTestUserDirectly({
         name: 'Check Email User',
@@ -512,7 +481,6 @@ describe('UsersController Integration Tests', () => {
       expect(res.body).toEqual({ exists: true });
     });
 
-    // I-BE-23: Exists + excludeId = same user → 200 + {exists:false}
     it('should return exists=false when excludeId matches same user', async () => {
       const userId = await createTestUserDirectly({
         name: 'Check Email User',
@@ -529,7 +497,6 @@ describe('UsersController Integration Tests', () => {
       expect(res.body).toEqual({ exists: false });
     });
 
-    // I-BE-24: Missing email param → 400/422
     it('should reject missing email param', async () => {
       const res = await request(app)
         .get('/api/users/check-email')

@@ -1,4 +1,3 @@
-import type { RowDataPacket } from 'mysql2/promise';
 import type { PaginationParams } from './common.model';
 
 export type NotebookLmMemberRole = 'owner' | 'editor' | 'viewer';
@@ -9,7 +8,7 @@ export type NotebookLmJobStepStatus = 'pending' | 'running' | 'done' | 'failed';
 // [CR-NBLM-LLM-001] チャットセッションのLLMプロバイダー型 / LLM provider type for chat sessions
 export type NotebookLmChatLlmProvider = 'ollama' | 'mock' | 'gemini';
 
-export interface NotebookLmWorkspaceRow extends RowDataPacket {
+export interface NotebookLmWorkspaceRow {
   id: number;
   name: string;
   description: string | null;
@@ -20,7 +19,7 @@ export interface NotebookLmWorkspaceRow extends RowDataPacket {
   document_count?: number;
 }
 
-export interface NotebookLmWorkspaceMemberRow extends RowDataPacket {
+export interface NotebookLmWorkspaceMemberRow {
   id: number;
   workspace_id: number;
   user_id: number;
@@ -30,7 +29,7 @@ export interface NotebookLmWorkspaceMemberRow extends RowDataPacket {
   user_email?: string;
 }
 
-export interface NotebookLmDocumentRow extends RowDataPacket {
+export interface NotebookLmDocumentRow {
   id: number;
   workspace_id: number;
   uploaded_by: number;
@@ -43,7 +42,7 @@ export interface NotebookLmDocumentRow extends RowDataPacket {
   updated_at: Date;
 }
 
-export interface NotebookLmJobRow extends RowDataPacket {
+export interface NotebookLmJobRow {
   id: number;
   type: NotebookLmJobType;
   status: NotebookLmJobStatus;
@@ -55,7 +54,7 @@ export interface NotebookLmJobRow extends RowDataPacket {
   updated_at: Date;
 }
 
-export interface NotebookLmJobStepRow extends RowDataPacket {
+export interface NotebookLmJobStepRow {
   id: number;
   job_id: number;
   step_name: string;
@@ -90,7 +89,7 @@ export interface AddNotebookLmMemberInput {
   role: NotebookLmMemberRole;
 }
 
-export interface NotebookLmUserSearchRow extends RowDataPacket {
+export interface NotebookLmUserSearchRow {
   id: number;
   name: string;
   email: string;

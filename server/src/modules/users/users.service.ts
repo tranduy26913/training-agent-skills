@@ -1,14 +1,17 @@
 import { UsersRepository } from './users.repository';
 import { hashPassword } from '../../utils/hash.util';
 import { ServiceError } from '../../models/common.model';
-import type { User, UserFilters, AuditLog } from '../../models/users.model';
+import type { UserFilters, AuditLog } from '../../models/users.model';
 import type { PaginatedResult } from '../../models/common.model';
 import type { CreateUserInput, UpdateUserInput } from './users.validation';
 
-// ServiceErrorを再エクスポート / Re-export for controller usage
+// Re-export ServiceError for controller usage.
 export { ServiceError };
 
-// ユーザーサービス / Users business logic service
+// Public user shape returned by repository (no password hash).
+type PublicUser = NonNullable<Awaited<ReturnType<UsersRepository['findByIdWithoutPassword']>>>;
+
+// Users business logic service.
 export class UsersService {
   private repository: UsersRepository;
 
@@ -16,25 +19,24 @@ export class UsersService {
     this.repository = repository || new UsersRepository();
   }
 
-  // デフォルトパスワード生成 / Generate default password from email
+  // Default password derived from the email local part.
   generatePassword(email: string): string {
     const username = email.split('@')[0];
     return `${username}123`;
   }
 
-  // 変更フィールド差分取得 / Build changed fields diff between old and new data
+  // Compute a diff between the old record and the new payload, used for
+  // the audit log entry on UPDATE.
   buildChangedFields(
-    oldUser: User,
+    oldUser: PublicUser,
     newData: UpdateUserInput,
   ): Record<string, { old: unknown; new: unknown }> | null {
-    // [UPDATE] include note and birthday in tracked fields
     const fields: (keyof UpdateUserInput)[] = ['name', 'email', 'role', 'status', 'note', 'birthday'];
     const changes: Record<string, { old: unknown; new: unknown }> = {};
 
     for (const field of fields) {
-      const oldVal = oldUser[field as keyof User];
+      const oldVal = oldUser[field as keyof PublicUser];
       const newVal = newData[field];
-      // newDataにフィールドが含まれない場合はスキップ / Skip if field not in update input
       if (newVal === undefined) continue;
       if (oldVal !== newVal) {
         changes[field] = { old: oldVal, new: newVal };
@@ -44,14 +46,14 @@ export class UsersService {
     return Object.keys(changes).length > 0 ? changes : null;
   }
 
-  // メール重複チェック / Check if email is already used by another user
+  // Returns true if the email is already used by another user.
   async checkEmailDuplicate(email: string, excludeId?: number): Promise<boolean> {
     const existing = await this.repository.findByEmail(email, excludeId);
     return existing !== null;
   }
 
-  // ユーザー一覧取得 / Get paginated users with filters
-  async getUsers(filters: UserFilters): Promise<PaginatedResult<User>> {
+  // Paginated user list with filters.
+  async getUsers(filters: UserFilters): Promise<PaginatedResult<PublicUser>> {
     const page = filters.page || 1;
     const limit = filters.limit || 20;
     const { data, total } = await this.repository.findAllWithFilters(filters);
@@ -67,8 +69,8 @@ export class UsersService {
     };
   }
 
-  // ユーザー取得 / Get single user by ID
-  async getUser(id: number): Promise<User> {
+  // Fetch a single user, or throw a 404 if missing.
+  async getUser(id: number): Promise<PublicUser> {
     const user = await this.repository.findByIdWithoutPassword(id);
     if (!user) {
       throw new ServiceError('User not found', 404);
@@ -76,8 +78,8 @@ export class UsersService {
     return user;
   }
 
-  // ユーザー作成 / Create a new user
-  async createUser(data: CreateUserInput, adminId: number): Promise<User> {
+  // Create a new user with a default password and write an audit log entry.
+  async createUser(data: CreateUserInput, adminId: number): Promise<PublicUser> {
     const existing = await this.repository.findByEmail(data.email);
     if (existing) {
       throw new ServiceError('Email already exists', 409);
@@ -86,8 +88,7 @@ export class UsersService {
     const password = this.generatePassword(data.email);
     const hashedPassword = await hashPassword(password);
 
-    // [NEW] include note, birthday; last_login_at and points use DB defaults
-    const result = await this.repository.create({
+    const newId = await this.repository.create({
       name: data.name,
       email: data.email,
       role: data.role,
@@ -95,20 +96,20 @@ export class UsersService {
       note: data.note ?? null,
       birthday: data.birthday ?? null,
       password: hashedPassword,
-    } as Partial<User>);
+    });
 
     await this.repository.createAuditLog({
       admin_id: adminId,
-      target_user_id: result.insertId,
+      target_user_id: newId,
       action: 'CREATE',
       changed_fields: null,
     });
 
-    return this.getUser(result.insertId);
+    return this.getUser(newId);
   }
 
-  // ユーザー更新 / Update an existing user
-  async updateUser(id: number, data: UpdateUserInput, adminId: number): Promise<User> {
+  // Update a user, recording which fields actually changed.
+  async updateUser(id: number, data: UpdateUserInput, adminId: number): Promise<PublicUser> {
     const oldUser = await this.getUser(id);
 
     const existing = await this.repository.findByEmail(data.email, id);
@@ -118,7 +119,6 @@ export class UsersService {
 
     const changedFields = this.buildChangedFields(oldUser, data);
 
-    // [NEW] include note, birthday; [NOTE] points is read-only, never updated here
     await this.repository.update(id, {
       name: data.name,
       email: data.email,
@@ -126,7 +126,7 @@ export class UsersService {
       status: data.status,
       note: data.note ?? null,
       birthday: data.birthday ?? null,
-    } as Partial<User>);
+    });
 
     await this.repository.createAuditLog({
       admin_id: adminId,
@@ -138,7 +138,8 @@ export class UsersService {
     return this.getUser(id);
   }
 
-  // ユーザー削除 / Delete a user (cannot delete self)
+  // Delete a user (cannot delete self). Audit log is written first so the
+  // target row still exists when the FK is checked.
   async deleteUser(id: number, adminId: number): Promise<void> {
     if (id === adminId) {
       throw new ServiceError('Cannot delete your own account', 400);
@@ -156,7 +157,7 @@ export class UsersService {
     await this.repository.delete(id);
   }
 
-  // ユーザーアクティビティ取得 / Get audit logs for a user
+  // Audit log list for a target user.
   async getUserActivity(id: number, limit = 20): Promise<AuditLog[]> {
     await this.getUser(id);
     return this.repository.getAuditLogs(id, limit);

@@ -1,116 +1,196 @@
-import { BaseRepository } from '../../database/base.repository';
-import { pool } from '../../database/connection';
-import type { RowDataPacket, ResultSetHeader } from 'mysql2/promise';
-import type { User, UserFilters, AuditLogDTO, AuditLog } from '../../models/users.model';
+// Users + audit-log data access using Prisma Client.
+// Mirrors the public API of the previous mysql2-based repository so the
+// service layer does not need to change.
+import { prisma } from '../../database/prisma';
+import type { Prisma } from '@prisma/client';
+import type { UserFilters, AuditLogDTO, AuditLog } from '../../models/users.model';
+import type { ChangedFields } from '../../models/common.model';
 
-export class UsersRepository extends BaseRepository<User> {
-  constructor() {
-    super('users');
-  }
+// Whitelist of sortable columns to prevent arbitrary field injection.
+const ALLOWED_SORT_FIELDS: Record<string, Prisma.UserOrderByWithRelationInput> = {
+  id: { id: 'asc' },
+  name: { name: 'asc' },
+  email: { email: 'asc' },
+  role: { role: 'asc' },
+  status: { status: 'asc' },
+  created_at: { createdAt: 'asc' },
+  updated_at: { updatedAt: 'asc' },
+};
 
-  // フィルター付きユーザー一覧取得 / Find all users with dynamic filters
-  async findAllWithFilters(filters: UserFilters): Promise<{ data: User[]; total: number }> {
-    const conditions: string[] = [];
-    const params: unknown[] = [];
+// Columns the user-list API exposes (no password hash).
+const USER_PUBLIC_SELECT = {
+  id: true,
+  name: true,
+  email: true,
+  role: true,
+  status: true,
+  avatar: true,
+  lastLoginAt: true,
+  points: true,
+  note: true,
+  birthday: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
+export class UsersRepository {
+  // Build a Prisma where clause from the request filters.
+  private buildWhereClause(filters: UserFilters): Prisma.UserWhereInput {
+    const where: Prisma.UserWhereInput = {};
 
     if (filters.search) {
-      conditions.push('(u.name LIKE ? OR u.email LIKE ?)');
-      params.push(`%${filters.search}%`, `%${filters.search}%`);
+      where.OR = [
+        { name: { contains: filters.search } },
+        { email: { contains: filters.search } },
+      ];
+    }
+    if (filters.role) where.role = filters.role;
+    if (filters.status) where.status = filters.status;
+    if (filters.startDate || filters.endDate) {
+      where.createdAt = {};
+      if (filters.startDate) where.createdAt.gte = new Date(filters.startDate);
+      if (filters.endDate) where.createdAt.lte = new Date(filters.endDate);
     }
 
-    if (filters.role) {
-      conditions.push('u.role = ?');
-      params.push(filters.role);
-    }
+    return where;
+  }
 
-    if (filters.status) {
-      conditions.push('u.status = ?');
-      params.push(filters.status);
-    }
-
-    if (filters.startDate) {
-      conditions.push('u.created_at >= ?');
-      params.push(filters.startDate);
-    }
-
-    if (filters.endDate) {
-      conditions.push('u.created_at <= ?');
-      params.push(filters.endDate);
-    }
-
-    const whereClause = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
+  // Find users with filters, sort, and pagination. Returns rows without the
+  // password field and the total count for the page meta.
+  async findAllWithFilters(filters: UserFilters) {
+    const where = this.buildWhereClause(filters);
     const page = filters.page || 1;
     const limit = filters.limit || 20;
-    const offset = (page - 1) * limit;
+    const skip = (page - 1) * limit;
 
-    // ソート列のホワイトリスト / Whitelist allowed sort columns to prevent SQL injection
-    const ALLOWED_SORT_FIELDS: Record<string, string> = {
-      id: 'u.id',
-      name: 'u.name',
-      email: 'u.email',
-      role: 'u.role',
-      status: 'u.status',
-      created_at: 'u.created_at',
-      updated_at: 'u.updated_at',
-    };
-    const sortColumn = ALLOWED_SORT_FIELDS[filters.sortBy || ''] || 'u.created_at';
-    const sortDir = filters.sortOrder === 'asc' ? 'ASC' : 'DESC';
+    const orderBy =
+      ALLOWED_SORT_FIELDS[filters.sortBy || ''] ??
+      { createdAt: 'desc' as const };
+    if (filters.sortOrder === 'asc') {
+      const key = Object.keys(orderBy)[0] as keyof Prisma.UserOrderByWithRelationInput;
+      (orderBy as any)[key] = 'asc';
+    }
 
-    const [rows] = await pool.query<User[]>(
-      `SELECT u.id, u.name, u.email, u.role, u.status, u.avatar,
-              u.last_login_at, u.points, u.note, u.birthday,
-              u.created_at, u.updated_at
-       FROM \`users\` u ${whereClause} ORDER BY ${sortColumn} ${sortDir} LIMIT ? OFFSET ?`,
-      [...params, limit, offset]
-    );
+    const [data, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        orderBy,
+        skip,
+        take: limit,
+        select: USER_PUBLIC_SELECT,
+      }),
+      prisma.user.count({ where }),
+    ]);
 
-    const [[{ total }]] = await pool.query<RowDataPacket[]>(
-      `SELECT COUNT(*) as total FROM \`users\` u ${whereClause}`,
-      params
-    );
-
-    return { data: rows, total };
+    return { data, total };
   }
 
-  // IDでユーザー取得（パスワード除外） / Find user by ID excluding password
-  async findByIdWithoutPassword(id: number): Promise<User | null> {
-    const [rows] = await pool.query<User[]>(
-      'SELECT id, name, email, role, status, avatar, last_login_at, points, note, birthday, created_at, updated_at FROM `users` WHERE id = ?',
-      [id]
-    );
-    return rows[0] || null;
+  // Find a user by id, excluding the password hash.
+  findByIdWithoutPassword(id: number) {
+    return prisma.user.findUnique({
+      where: { id },
+      select: USER_PUBLIC_SELECT,
+    });
   }
 
-  // メールでユーザー検索 / Find user by email
-  async findByEmail(email: string, excludeId?: number): Promise<User | null> {
-    const query = excludeId
-      ? 'SELECT * FROM `users` WHERE email = ? AND id != ? LIMIT 1'
-      : 'SELECT * FROM `users` WHERE email = ? LIMIT 1';
-    const params = excludeId ? [email, excludeId] : [email];
-
-    const [rows] = await pool.query<User[]>(query, params);
-    return rows[0] || null;
+  // Find a user by email. Optionally exclude an id (used when updating to
+  // ignore the user's own record during duplicate checks).
+  findByEmail(email: string, excludeId?: number) {
+    return prisma.user.findFirst({
+      where: {
+        email,
+        ...(excludeId !== undefined ? { id: { not: excludeId } } : {}),
+      },
+    });
   }
 
-  // 監査ログ作成 / Create audit log entry
+  // Create a new user. Returns the generated id.
+  async create(data: {
+    name: string;
+    email: string;
+    role: string;
+    status: string;
+    password: string;
+    note?: string | null;
+    birthday?: string | null;
+  }): Promise<number> {
+    const created = await prisma.user.create({
+      data: {
+        name: data.name,
+        email: data.email,
+        role: data.role,
+        status: data.status,
+        password: data.password,
+        note: data.note ?? null,
+        birthday: data.birthday ? new Date(data.birthday) : null,
+      },
+      select: { id: true },
+    });
+    return created.id;
+  }
+
+  // Update user fields. Only whitelisted fields are accepted.
+  async update(
+    id: number,
+    data: {
+      name: string;
+      email: string;
+      role: string;
+      status: string;
+      note?: string | null;
+      birthday?: string | null;
+    },
+  ): Promise<void> {
+    await prisma.user.update({
+      where: { id },
+      data: {
+        name: data.name,
+        email: data.email,
+        role: data.role,
+        status: data.status,
+        note: data.note ?? null,
+        birthday: data.birthday ? new Date(data.birthday) : null,
+      },
+    });
+  }
+
+  // Delete a user by id.
+  async delete(id: number): Promise<void> {
+    await prisma.user.delete({ where: { id } });
+  }
+
+  // Create an audit log entry. changedFields is serialized to JSON by Prisma.
   async createAuditLog(entry: AuditLogDTO): Promise<void> {
-    await pool.query<ResultSetHeader>(
-      'INSERT INTO `audit_logs` (`admin_id`, `target_user_id`, `action`, `changed_fields`) VALUES (?, ?, ?, ?)',
-      [entry.admin_id, entry.target_user_id, entry.action, JSON.stringify(entry.changed_fields ?? null)]
-    );
+    await prisma.auditLog.create({
+      data: {
+        adminId: entry.admin_id,
+        targetUserId: entry.target_user_id,
+        action: entry.action,
+        // Prisma expects JsonValue-compatible input; the application value is
+        // already a plain object/null/undefined.
+        changedFields: entry.changed_fields as never,
+      },
+    });
   }
 
-  // 監査ログ取得 / Get audit logs for a target user
+  // Return audit logs for a target user, joined with the admin's name.
+  // Returns rows in the API snake_case shape (admin_id, target_user_id, ...).
   async getAuditLogs(targetUserId: number, limit = 20): Promise<AuditLog[]> {
-    const [rows] = await pool.query<AuditLog[]>(
-      `SELECT al.*, u.name as admin_name
-       FROM \`audit_logs\` al
-       JOIN \`users\` u ON al.admin_id = u.id
-       WHERE al.target_user_id = ?
-       ORDER BY al.timestamp DESC
-       LIMIT ?`,
-      [targetUserId, limit]
-    );
-    return rows;
+    const rows = await prisma.auditLog.findMany({
+      where: { targetUserId },
+      orderBy: { timestamp: 'desc' },
+      take: limit,
+      include: { admin: { select: { name: true } } },
+    });
+
+    return rows.map((r) => ({
+      id: r.id,
+      admin_id: r.adminId,
+      target_user_id: r.targetUserId,
+      action: r.action,
+      changed_fields: r.changedFields as ChangedFields,
+      timestamp: r.timestamp,
+      admin_name: r.admin?.name ?? '',
+    }));
   }
 }
