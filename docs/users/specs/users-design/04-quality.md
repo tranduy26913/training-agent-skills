@@ -28,7 +28,8 @@ status: Approved
 | U-BE-06 | deleteUser: self-delete → throw | `adminId = 1`, `targetId = 1` | gọi `deleteUser(1, 1)` | throw `CANNOT_DELETE_SELF` |
 | U-BE-07 | getUsers: filter theo role | mock DB | gọi `getUsers({ role:'admin' })` | query có điều kiện `role='admin'` |
 | U-BE-08 | getUsers: sortBy whitelist | sortBy = `email` | gọi `getUsers({ sortBy:'email' })` | query có `ORDER BY email` |
-| U-BE-09 | getUsers: invalid sortBy → bỏ qua | sortBy = `'; DROP TABLE users; --` | gọi `getUsers({...})` | fallback về default sort `created_at` |
+| U-BE-09 | getUsers: invalid sortBy → bỏ qua | sortBy = `'; DROP TABLE users; --` | gọi `getUsers({...})` | fallback về default sort `created_at DESC` |
+| U-BE-10 | getUsers: sortBy không trong whitelist → bỏ qua | sortBy = `last_login_at` | gọi `getUsers({ sortBy:'last_login_at' })` | fallback về default sort `created_at DESC` (không throw) |
 
 #### Integration Tests (HTTP endpoints — `src/modules/users/users.routes.test.ts`)
 
@@ -81,7 +82,7 @@ status: Approved
 |---|-----------|-------|--------|--------|
 | F-CREATE-01 | handleSubmit gọi createUser | mock store | UserForm emit `submit(data)` | `usersStore.createUser(data)` được gọi |
 | F-CREATE-02 | Redirect sau create thành công | mock createUser resolve | submit | `router.push({ name:'UserList' })` |
-| F-CREATE-03 | Hiển thị email error khi 409 | mock createUser throw `EMAIL_EXISTS` | submit | `emailError` set, truyền vào UserForm |
+| F-CREATE-03 | Hiển thị toast email error khi 409 | mock createUser throw error với `response.status === 409` | submit | toast với `users.emailInUse` được add |
 | F-CREATE-04 | handleCancel redirect về list | — | UserForm emit `cancel` | `router.push({ name:'UserList' })` |
 
 #### UserEditPage (`UserEditPage.test.ts`)
@@ -91,8 +92,8 @@ status: Approved
 | F-EDIT-01 | fetchUser + fetchUserActivity onMounted | mock store | render | cả 2 được gọi với `id` |
 | F-EDIT-02 | clearCurrentUser onUnmounted | — | unmount component | `usersStore.clearCurrentUser()` được gọi |
 | F-EDIT-03 | handleSubmit gọi updateUser | — | UserForm emit `submit(data)` | `usersStore.updateUser(id, data)` |
-| F-EDIT-04 | Refresh activity sau update | mock updateUser resolve | submit | `fetchUserActivity` được gọi lại |
-| F-EDIT-05 | 409 → set emailError | mock updateUser throw `EMAIL_EXISTS` | submit | emailError propagated to UserForm |
+| F-EDIT-04 | Redirect về list sau update thành công | mock updateUser resolve | submit | `router.push({ name:'UserList' })` |
+| F-EDIT-05 | 409 → toast emailInUse | mock updateUser throw error với `response.status === 409` | submit | toast với `users.emailInUse` |
 
 #### UserTable.vue (`UserTable.test.ts`)
 
@@ -123,7 +124,7 @@ status: Approved
 | F-FORM-02 | Validation: name min 2 | name = 'A' | click Save | inline error `min 2 chars` |
 | F-FORM-03 | Validation: email required | email = '' | click Save | inline error hiển thị |
 | F-FORM-04 | Validation: email format | email = 'bad' | click Save | inline error `invalid email` |
-| F-FORM-05 | Save disabled khi emailError prop | `emailError = 'Email exists'` | render | Save button disabled |
+| F-FORM-05 | Save disabled khi emailServerError | `useEmailValidation` mock trả về `emailError='emailAlreadyExists'` | render | Save button disabled |
 | F-FORM-06 | Emit submit với data hợp lệ | form filled valid | click Save | emit `submit` với data |
 | F-FORM-07 | Emit cancel | — | click Cancel | emit `cancel` |
 | F-FORM-08 | Pre-populate ở edit mode | `initialData = mockUser, mode='edit'` | render | inputs hiển thị giá trị cũ |
@@ -138,17 +139,29 @@ status: Approved
 | F-AUDIT-01 | Hiển thị skeleton khi loading=true | `loading=true` | render | Skeleton components |
 | F-AUDIT-02 | Hiển thị "No history yet" khi empty | `logs=[], loading=false` | render | empty message |
 | F-AUDIT-03 | Hiển thị đúng format log entry | `logs=[{action:'UPDATE',...}]` | render | format có admin name, field, old/new, date |
-| F-AUDIT-04 | Tối đa 10 entries | `logs = 15 items` | render | chỉ 10 items render (hoặc trả về từ API) |
+| F-AUDIT-04 | Render tất cả entries trả về từ API | `logs = 25 items` | render | 25 items render (max do backend `limit=20` mặc định; client không tự cắt) |
 
 #### useUsers.ts (`useUsers.test.ts`)
 
 | # | Test Name | Setup | Action | Assert |
 |---|-----------|-------|--------|--------|
-| F-COMP-01 | getUsers gọi đúng endpoint | mock apiClient | gọi `getUsers({page:1})` | `GET /api/users` với params |
-| F-COMP-02 | createUser gọi POST | mock apiClient | gọi `createUser(data)` | `POST /api/users` với body |
-| F-COMP-03 | updateUser gọi PUT với id | mock apiClient | gọi `updateUser(5, data)` | `PUT /api/users/5` |
-| F-COMP-04 | deleteUser gọi DELETE | mock apiClient | gọi `deleteUser(3)` | `DELETE /api/users/3` |
-| F-COMP-05 | getUserActivity gọi activity endpoint | mock apiClient | gọi `getUserActivity(2)` | `GET /api/users/2/activity` |
+| F-COMP-01 | getUsers gọi đúng endpoint | mock usersApiService | gọi `getUsers({page:1})` | `usersApiService.getUsers({page:1})` được gọi và trả về PaginatedData |
+| F-COMP-02 | createUser gọi POST | mock usersApiService | gọi `createUser(data)` | `usersApiService.create(data)` được gọi |
+| F-COMP-03 | updateUser gọi PUT với id | mock usersApiService | gọi `updateUser(5, data)` | `usersApiService.update(5, data)` được gọi |
+| F-COMP-04 | deleteUser gọi DELETE | mock usersApiService | gọi `deleteUser(3)` | `usersApiService.delete(3)` được gọi |
+| F-COMP-05 | getUserActivity gọi activity endpoint | mock usersApiService | gọi `getUserActivity(2)` | `usersApiService.getUserActivity(2)` được gọi |
+
+#### useEmailValidation.ts (`useEmailValidation.test.ts`)
+
+| # | Test Name | Setup | Action | Assert |
+|---|-----------|-------|--------|--------|
+| F-EV-01 | Initial state: empty error, not checking | `email=ref('')` | render | `isChecking=false`, `emailError=''` |
+| F-EV-02 | Không gọi API khi email rỗng | `email=ref('')` | advance timers 200ms | `usersApiService.checkEmail` không được gọi |
+| F-EV-03 | Không gọi API khi email format không hợp lệ | `email=ref('not-an-email')` | advance timers 200ms | `usersApiService.checkEmail` không được gọi |
+| F-EV-04 | Set `emailAlreadyExists` error khi email đã dùng | mock `checkEmail` resolve `{exists:true}` | set `email='used@test.com'` | `emailError='emailAlreadyExists'` |
+| F-EV-05 | Clear error khi email available | mock `checkEmail` resolve `{exists:false}` | set `email='free@test.com'` | `emailError=''` |
+| F-EV-06 | Truyền `excludeId` cho API khi edit | `excludeId=ref(3)` | set `email='test@test.com'` | `checkEmail` được gọi với `('test@test.com', 3)` |
+| F-EV-07 | Reset `emailError` ngay khi email thay đổi | error đang có | set `email='new@test.com'` | `emailError=''` ngay lập tức (không đợi debounce) |
 
 #### users.store.ts (`users.store.test.ts`)
 
@@ -156,11 +169,12 @@ status: Approved
 |---|-----------|-------|--------|--------|
 | F-STORE-01 | fetchUsers: cập nhật users + pagination | mock useUsers.getUsers | gọi `fetchUsers()` | `users` và `pagination` được set |
 | F-STORE-02 | fetchUsers: loading flag | — | trong khi fetch | `loading=true`; sau khi xong `loading=false` |
-| F-STORE-03 | createUser: gọi composable | mock useUsers.createUser | gọi `createUser(data)` | composable được gọi |
-| F-STORE-04 | deleteUser: reload fetchUsers | mock deleteUser resolve | gọi `deleteUser(1)` | `fetchUsers` được gọi lại |
-| F-STORE-05 | resetFilters: reset + fetchUsers | filters đang có giá trị | gọi `resetFilters()` | filters về default, fetchUsers gọi |
+| F-STORE-03 | createUser: gọi composable, KHÔNG reload list | mock useUsers.createUser | gọi `createUser(data)` | composable được gọi; `fetchUsers` KHÔNG được gọi lại |
+| F-STORE-04 | deleteUser: tự động reload fetchUsers | mock deleteUser resolve | gọi `deleteUser(1)` | `fetchUsers` được gọi lại tự động |
+| F-STORE-05 | resetFilters: reset + fetchUsers | filters đang có giá trị | gọi `resetFilters()` | filters về `{}`, `fetchUsers` được gọi |
 | F-STORE-06 | clearCurrentUser: clear state | `currentUser = mockUser` | gọi `clearCurrentUser()` | `currentUser=null, auditLogs=[]` |
 | F-STORE-07 | fetchUsers: set error khi fail | mock apiClient throw | gọi `fetchUsers()` | `error` được set |
+| F-STORE-08 | createUser KHÔNG throw `{code:'EMAIL_EXISTS'}` | mock createUser throw error 409 | gọi `createUser(data)` | lỗi propagate ra ngoài (KHÔNG được wrap thành `{code:'EMAIL_EXISTS'}`) |
 
 ---
 
@@ -181,7 +195,7 @@ status: Approved
 
 | Mục | Biện pháp |
 |-----|-----------|
-| Authentication | JWT Bearer token xác thực mọi endpoint (trừ `check-email`) |
+| Authentication | JWT Bearer token + admin role xác thực mọi endpoint (bao gồm `check-email`) |
 | Authorization | Admin-only: tất cả endpoint user management kiểm tra `role === 'admin'` |
 | SQL Injection | Dùng parameterized queries (prepared statements) cho mọi dynamic values |
 | sortBy injection | Whitelist validation cho `sortBy` param trước khi dùng trong query |

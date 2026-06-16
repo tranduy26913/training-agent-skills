@@ -21,6 +21,11 @@ const emit = defineEmits<{
   'update:modelValue': [ids: number[]];
 }>();
 
+// Debug: Watch modelValue changes
+watch(() => props.modelValue, (newVal) => {
+  console.log('[VocabRelationSelect] modelValue changed:', newVal);
+}, { deep: true });
+
 // Options for MultiSelect
 const options = ref<VocabRelationDto[]>([]);
 
@@ -47,8 +52,10 @@ function handleChange(selectedIds: number[]): void {
   emit('update:modelValue', selectedIds);
 }
 
-// Format display label for each option
-function formatOptionLabel(option: VocabRelationDto): string {
+// Find option label by id
+function findOptionLabel(id: number): string {
+  const option = options.value.find(opt => opt.id === id);
+  if (!option) return '';
   return option.hiragana ? `${option.kanji} (${option.hiragana})` : option.kanji;
 }
 </script>
@@ -67,6 +74,7 @@ function formatOptionLabel(option: VocabRelationDto): string {
       :placeholder="t('vocab.placeholder.relations')"
       class="w-full"
       display="chip"
+      chip-icon="pi pi-times"
       @update:model-value="handleChange"
     >
       <template #option="{ option }">
@@ -76,12 +84,6 @@ function formatOptionLabel(option: VocabRelationDto): string {
           <span v-if="option.level" class="text-xs">
             {{ option.level }}
           </span>
-        </div>
-      </template>
-      <template #chip="{ value }">
-        <div class="flex items-center gap-1">
-          <span>{{ value.kanji }}</span>
-          <span v-if="value.hiragana" class="text-surface-500 text-xs">({{ value.hiragana }})</span>
         </div>
       </template>
     </MultiSelect>

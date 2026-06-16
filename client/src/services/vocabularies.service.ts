@@ -10,6 +10,8 @@ import type {
   CreateVocabularyDto,
   UpdateVocabularyDto,
   AnalyticsData,
+  VocabChangeLogDto,
+  VocabReportDto,
 } from '@/types/vocabularies.types';
 
 // 語彙 API クライアント / Vocabularies API client with domain-specific methods
@@ -25,26 +27,38 @@ class VocabulariesApiClient extends BaseApiClient<VocabularyResponse, CreateVoca
 
   // 語彙詳細取得（関連データ付き） / Get vocabulary detail with relations and audit data
   async getVocabularyDetail(id: number): Promise<VocabularyDetail> {
-    const response: AxiosResponse<VocabularyDetail> = await apiClient.get(
-      `${this.basePath}/${id}`,
-    );
-    return response.data;
+    const response: AxiosResponse<{
+      vocabulary: VocabularyResponse;
+      relations: {
+        related: VocabRelationDto[];
+        synonyms: VocabRelationDto[];
+        antonyms: VocabRelationDto[];
+      };
+      changeLogs: VocabChangeLogDto[];
+      reports: VocabReportDto[];
+    }> = await apiClient.get(`${this.basePath}/${id}`);
+    
+    const data = response.data;
+    // Map server response to client VocabularyDetail format
+    return {
+      ...data.vocabulary,
+      related_vocab: data.relations.related,
+      synonym_vocab: data.relations.synonyms,
+      antonym_vocab: data.relations.antonyms,
+      change_logs: data.changeLogs,
+      reports: data.reports,
+    } as VocabularyDetail;
   }
 
   // 語彙関係オプション取得 / Get vocabulary options for relation MultiSelect
   async getRelationOptions(excludeIds?: number[]): Promise<VocabRelationDto[]> {
-    // Load from main endpoint with limit=1000 as per spec
-    const params = excludeIds?.length ? `?excludeIds=${excludeIds.join(',')}` : '';
+    // Use dedicated relation options endpoint
+    const params = excludeIds?.length ? { excludeIds: excludeIds.join(',') } : {};
     const response: AxiosResponse<VocabRelationDto[]> = await apiClient.get(
-      `${this.basePath}${params}`,
-      { params: { limit: 1000 } },
+      `${this.basePath}/relations/options`,
+      { params },
     );
-    return response.data.map((item) => ({
-      id: item.id,
-      kanji: item.kanji,
-      hiragana: item.hiragana,
-      level: item.level,
-    }));
+    return response.data;
   }
 
   // 分析データ取得 / Get analytics data for a vocabulary

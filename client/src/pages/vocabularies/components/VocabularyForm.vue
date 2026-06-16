@@ -74,7 +74,6 @@ watch(() => props.vocabularyId, async (id) => {
       
       // Populate form data
       formData.value = {
-        id: detail.id,
         kanji: detail.kanji,
         hiragana: detail.hiragana,
         romaji: detail.romaji,
@@ -88,7 +87,7 @@ watch(() => props.vocabularyId, async (id) => {
         related_ids: detail.related_vocab.map((v) => v.id),
         synonym_ids: detail.synonym_vocab.map((v) => v.id),
         antonym_ids: detail.antonym_vocab.map((v) => v.id),
-      };
+      } as UpdateVocabularyDto;
 
       // Save initial data for change tracking
       initialData = JSON.parse(JSON.stringify(formData.value));
@@ -230,7 +229,7 @@ const isAdmin = computed(() => {
   <div class="space-y-4">
     <TabView v-model:active-index="activeTabIndex">
       <!-- Tab 1: Thông tin -->
-      <TabPanel :header="t('vocab.tab.info')">
+      <TabPanel value="info" :header="t('vocab.tab.info')">
         <TabInfo
           :form-data="formData"
           :errors="formErrors"
@@ -240,7 +239,7 @@ const isAdmin = computed(() => {
       </TabPanel>
 
       <!-- Tab 2: Audit -->
-      <TabPanel :header="t('vocab.tab.audit')" v-if="isEdit && vocabulary">
+      <TabPanel value="audit" :header="t('vocab.tab.audit')" v-if="isEdit && vocabulary">
         <TabAudit
           :vocabulary="vocabulary"
           :is-admin="isAdmin"
@@ -249,7 +248,7 @@ const isAdmin = computed(() => {
       </TabPanel>
 
       <!-- Tab 3: Analytics -->
-      <TabPanel :header="t('vocab.tab.analytics')" v-if="isEdit">
+      <TabPanel value="analytics" :header="t('vocab.tab.analytics')" v-if="isEdit">
         <TabAnalytics :analytics="analytics" />
       </TabPanel>
     </TabView>

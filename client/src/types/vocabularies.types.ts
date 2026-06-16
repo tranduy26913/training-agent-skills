@@ -24,8 +24,13 @@ export interface VocabularyResponse {
   level: VocabLevel | null;
   media_url: string | null;
   note: string | null;
-  tags: string[];
+  tags: string[] | null;
   status: VocabularyStatus;
+  learn_count?: number;
+  favorite_count?: number;
+  created_by: number | null;
+  updated_by: number | null;
+  version: number;
   created_at: string;
   updated_at: string;
 }

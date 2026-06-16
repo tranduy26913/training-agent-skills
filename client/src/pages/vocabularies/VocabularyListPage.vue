@@ -9,7 +9,8 @@ import ConfirmDialog from 'primevue/confirmdialog';
 import { useVocabularies } from './composables/useVocabularies';
 import VocabularyTable from './components/VocabularyTable.vue';
 import VocabularyFilter from './components/VocabularyFilter.vue';
-import type { VocabularyFilters } from './composables/useVocabularies';
+import type { VocabularyFilters, VocabularyResponse } from './composables/useVocabularies';
+import type { PaginationInfo } from '@/types/api.types';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -18,25 +19,23 @@ const toast = useToast();
 const { getVocabularies, deleteVocabulary, loading, error } = useVocabularies();
 
 // State
-const vocabularies = ref([]);
-const pagination = ref({ page: 1, limit: 20, total: 0, total_pages: 0 });
+const vocabularies = ref<VocabularyResponse[]>([]);
 const currentFilters = ref<VocabularyFilters>({});
 
-// Initial load
-onMounted(async () => {
-  await fetchVocabularies();
-});
+// Pagination info
+const pagination = ref<PaginationInfo>({ page: 1, limit: 20, total: 0, pages: 0 });
 
 // Fetch vocabularies with filters
 async function fetchVocabularies(filters?: VocabularyFilters): Promise<void> {
   try {
     const result = await getVocabularies(filters);
-    vocabularies.value = result.data;
+    // Server returns 'items' field, map to local state
+    vocabularies.value =  result.data || [];
     pagination.value = {
-      page: result.page,
-      limit: result.limit,
-      total: result.total,
-      total_pages: result.total_pages,
+      page: result.pagination.page,
+      limit: result.pagination.limit,
+      total: result.pagination.total,
+      pages: result.pagination.pages,
     };
   } catch (err) {
     toast.add({ 
@@ -48,10 +47,21 @@ async function fetchVocabularies(filters?: VocabularyFilters): Promise<void> {
   }
 }
 
+// Initial load
+onMounted(async () => {
+  await fetchVocabularies();
+});
+
 // Filter change handler
 function handleFilterChange(filters: VocabularyFilters): void {
   currentFilters.value = filters;
   fetchVocabularies({ ...filters, page: 1 });
+}
+
+// Filter change handler for reset
+function handleFilterReset(): void {
+  currentFilters.value = {};
+  fetchVocabularies({ page: 1 });
 }
 
 // Page change handler
@@ -125,7 +135,7 @@ function handleDelete(id: number): void {
       />
     </div>
 
-    <VocabularyFilter @search="handleFilterChange" @reset="() => handleFilterChange({})" />
+    <VocabularyFilter @search="handleFilterChange" @reset="handleFilterReset" />
 
     <VocabularyTable
       :items="vocabularies"

@@ -33,7 +33,8 @@ export default {
     users: 'ユーザー',
     employees: '従業員',
     notebooklm: 'NotebookLM',
-    notebooklmOperations: 'NotebookLM運用',
+    notebooklmOperations: 'NotebookLM 運用',
+    vocabularies: '語彙',
     settings: '設定',
   },
   topbar: {

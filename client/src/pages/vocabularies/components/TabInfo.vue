@@ -138,8 +138,10 @@ function validateTags(value: string[] | null | undefined): string | null {
 }
 
 // Update form field
-function updateField<K extends keyof CreateVocabularyDto>(field: K, value: CreateVocabularyDto[K]): void {
-  emit('update:formData', { ...props.formData, [field]: value });
+function updateField<K extends keyof CreateVocabularyDto>(field: K, value: CreateVocabularyDto[K] | undefined | null): void {
+  if (value !== undefined) {
+    emit('update:formData', { ...props.formData, [field]: value as CreateVocabularyDto[K] });
+  }
 }
 </script>
 
@@ -156,7 +158,7 @@ function updateField<K extends keyof CreateVocabularyDto>(field: K, value: Creat
           :model-value="formData.kanji"
           :invalid="!!errors?.kanji"
           :placeholder="t('vocab.placeholder.kanji')"
-          @update:model-value="(v) => updateField('kanji', v)"
+          @update:model-value="(v) => updateField('kanji', v || null)"
         />
         <small v-if="errors?.kanji" class="text-red-500">{{ errors.kanji }}</small>
       </div>
@@ -288,7 +290,7 @@ function updateField<K extends keyof CreateVocabularyDto>(field: K, value: Creat
           id="tags"
           :model-value="formData.tags?.join(', ')"
           :placeholder="t('vocab.placeholder.tags')"
-          @update:model-value="(v) => updateField('tags', v.split(',').map((t) => t.trim()).filter(Boolean))"
+          @update:model-value="(v) => updateField('tags', v ? v.split(',').map((t) => t.trim()).filter(Boolean) : [])"
         />
         <small class="text-surface-500">{{ t('vocab.helper.tags') }}</small>
       </div>
@@ -324,24 +326,24 @@ function updateField<K extends keyof CreateVocabularyDto>(field: K, value: Creat
           :model-value="formData.related_ids || []"
           relation-type="related"
           :label="t('vocab.label.related')"
-          :exclude-ids="isEdit && formData.id ? [formData.id] : undefined"
-          @update:model-value="(v) => updateField('related_ids', v)"
+          :exclude-ids="isEdit && 'id' in formData && formData.id ? [formData.id] : undefined"
+          @update:model-value="(v: number[]) => updateField('related_ids', v)"
         />
 
         <VocabRelationSelect
           :model-value="formData.synonym_ids || []"
           relation-type="synonym"
           :label="t('vocab.label.synonyms')"
-          :exclude-ids="isEdit && formData.id ? [formData.id] : undefined"
-          @update:model-value="(v) => updateField('synonym_ids', v)"
+          :exclude-ids="isEdit && 'id' in formData && formData.id ? [formData.id] : undefined"
+          @update:model-value="(v: number[]) => updateField('synonym_ids', v)"
         />
 
         <VocabRelationSelect
           :model-value="formData.antonym_ids || []"
           relation-type="antonym"
           :label="t('vocab.label.antonyms')"
-          :exclude-ids="isEdit && formData.id ? [formData.id] : undefined"
-          @update:model-value="(v) => updateField('antonym_ids', v)"
+          :exclude-ids="isEdit && 'id' in formData && formData.id ? [formData.id] : undefined"
+          @update:model-value="(v: number[]) => updateField('antonym_ids', v)"
         />
       </div>
     </Fluid>

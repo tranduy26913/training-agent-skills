@@ -16,75 +16,130 @@ status: Approved
 
 ### 1.1 Database Schema
 
-#### users (existing — columns added in v1.2)
+Schema được khai báo bằng **Prisma** tại `server/prisma/schema.prisma`. Các
+model liên quan đến users module:
 
-```sql
-users {
-  id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  name          VARCHAR(50)  NOT NULL,
-  email         VARCHAR(255) NOT NULL UNIQUE,
-  password      VARCHAR(255) NOT NULL,           -- bcrypt hashed, never exposed
-  role          ENUM('admin','user','moderator') NOT NULL DEFAULT 'user',
-  status        ENUM('active','inactive','suspended') NOT NULL DEFAULT 'active',
-  avatar        VARCHAR(500) NULL,
-  note          VARCHAR(500) NULL,               -- v1.2
-  birthday      DATE         NULL,               -- v1.2
-  points        INT          NOT NULL DEFAULT 0, -- v1.2, read-only from API
-  last_login_at TIMESTAMP    NULL,               -- v1.2, set on auth login
-  created_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX idx_email (email),
-  INDEX idx_role  (role),
-  INDEX idx_status (status)
-}
-```
+#### `User` (table `users`)
 
-#### audit_logs (new in v1.0)
+| Property | Type | Notes |
+|----------|------|-------|
+| `id` | `Int @id @default(autoincrement())` | UNSIGNED, auto-increment |
+| `name` | `String` | VARCHAR(100), NOT NULL |
+| `email` | `String @unique` | VARCHAR(255), NOT NULL |
+| `password` | `String` | VARCHAR(255), bcrypt hash; không bao giờ trả về client |
+| `role` | `String @default("user")` | VARCHAR(20); values: `admin` / `user` / `moderator` |
+| `status` | `String @default("active")` | VARCHAR(20); values: `active` / `inactive` / `suspended` |
+| `avatar` | `String?` | VARCHAR(500), nullable |
+| `lastLoginAt` | `DateTime?` (column `last_login_at`) | set on auth login |
+| `points` | `Int @default(0)` | read-only từ API user management |
+| `note` | `String?` (v1.2) | VARCHAR(500), nullable |
+| `birthday` | `DateTime?` (v1.2) | DATE, nullable; không cho phép tương lai |
+| `createdAt` | `DateTime @default(now())` (column `created_at`) | |
+| `updatedAt` | `DateTime @updatedAt` (column `updated_at`) | |
+| `auditLogsAsAdmin` | `AuditLog[] @relation("AuditLogAdmin")` | relation |
+| `auditLogsAsTarget` | `AuditLog[] @relation("AuditLogTarget")` | relation |
+| Indexes | `@@index([role])`, `@@index([status])` | |
+| `@@map` | `"users"` | |
 
-```sql
-audit_logs {
-  id             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  admin_id       INT UNSIGNED NOT NULL,
-  target_user_id INT UNSIGNED NOT NULL,
-  action         ENUM('CREATE','UPDATE','DELETE') NOT NULL,
-  changed_fields JSON NULL,   -- { "field": { "old": "...", "new": "..." } }
-  timestamp      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (admin_id)       REFERENCES users(id) ON DELETE CASCADE,
-  FOREIGN KEY (target_user_id) REFERENCES users(id) ON DELETE CASCADE,
-  INDEX idx_audit_target (target_user_id)
-}
-```
+#### `AuditLog` (table `audit_logs`)
+
+| Property | Type | Notes |
+|----------|------|-------|
+| `id` | `Int @id @default(autoincrement())` | UNSIGNED |
+| `adminId` | `Int` (column `admin_id`) | FK → `User.id`, ON DELETE CASCADE |
+| `targetUserId` | `Int` (column `target_user_id`) | FK → `User.id`, ON DELETE CASCADE |
+| `action` | `String` | VARCHAR(20); values: `CREATE` / `UPDATE` / `DELETE` |
+| `changedFields` | `Json?` (column `changed_fields`) | `{ field: { old, new } }` |
+| `timestamp` | `DateTime @default(now())` | DATETIME(0) |
+| Index | `@@index([targetUserId])` | |
+| `@@map` | `"audit_logs"` | |
+
+#### `Role` (table `roles`)
+
+| Property | Type | Notes |
+|----------|------|-------|
+| `id` | `Int @id @default(autoincrement())` | UNSIGNED |
+| `name` | `String @unique` | VARCHAR(50) |
+| `description` | `String?` | VARCHAR(255) |
+| `createdAt` | `DateTime @default(now())` (column `created_at`) | |
+| `@@map` | `"roles"` | |
 
 ### 1.2 TypeScript Models
-File: `client/src/models/users.model.ts`
-Models: (Không mô tả DTO vì DTO sẽ nằm ở Validation Rules)
-```typescript
-// Response type — never includes password
-export interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: 'admin' | 'user' | 'moderator';
-  status: 'active' | 'inactive' | 'suspended';
-  avatar: string | null;
-  note: string | null;
-  birthday: string | null;        // ISO date "YYYY-MM-DD"
-  points: number;
-  last_login_at: string | null;   // ISO datetime
-  created_at: string;
-  updated_at: string;
-}
 
-export interface AuditLog {
-  id: number;
-  admin_id: number;
-  admin_name: string;
-  action: 'CREATE' | 'UPDATE' | 'DELETE';
-  changed_fields: Record<string, { old: unknown; new: unknown }> | null;
-  timestamp: string;
-}
+> **Quy ước:** Mô tả type chỉ liệt kê tên + property (không dùng code block).
+> Trỏ file thực tế để tra cứu khi cần.
 
-```
+#### Server types — `server/src/models/users.model.ts`
+
+Type `User`
+- alias của `PrismaUser` (import từ `@prisma/client`)
+
+Type `AuditLog`
+- `id: number`
+- `admin_id: number`
+- `target_user_id: number`
+- `action: string`
+- `changed_fields: ChangedFields` (xem `common.model.ts`)
+- `timestamp: Date`
+- `admin_name: string`
+
+Interface `UserFilters` extends `PaginationParams`, `SortParams`
+- `search?: string`
+- `role?: string`
+- `status?: string`
+- `startDate?: string`
+- `endDate?: string`
+
+Interface `AuditLogDTO`
+- `admin_id: number`
+- `target_user_id: number`
+- `action: AuditAction` (`'CREATE' | 'UPDATE' | 'DELETE'`)
+- `changed_fields?: ChangedFields`
+
+#### Client types — `client/src/types/users.types.ts`
+
+Interface `User` (response shape, snake_case timestamps)
+- `id: number`
+- `name: string`
+- `email: string`
+- `role: 'admin' | 'user' | 'moderator'`
+- `status: 'active' | 'inactive' | 'suspended'`
+- `avatar: string | null`
+- `note: string | null`
+- `birthday: string | null` — ISO date `YYYY-MM-DD`
+- `points: number`
+- `last_login_at: string | null` — ISO datetime
+- `created_at: string`
+- `updated_at: string`
+
+Interface `CreateUserDto`
+- `name: string` — required
+- `email: string` — required, valid email
+- `role: 'admin' | 'user' | 'moderator'` — required
+- `status: 'active' | 'inactive' | 'suspended'` — required
+- `note?: string` — optional, max 500
+- `birthday?: string` — optional, ISO date, không tương lai
+
+Type `UpdateUserDto`
+- alias của `CreateUserDto`
+
+Interface `UserFilters` extends `PaginationParams`, `SortParams`
+- `search?: string`
+- `role?: 'admin' | 'user' | 'moderator'`
+- `status?: 'active' | 'inactive' | 'suspended'`
+- `startDate?: string`
+- `endDate?: string`
+
+Interface `AuditLog`
+- `id: number`
+- `admin_id: number`
+- `target_user_id: number`
+- `action: 'CREATE' | 'UPDATE' | 'DELETE'`
+- `changed_fields: Record<string, { old: unknown; new: unknown }> | null`
+- `timestamp: string`
+- `admin_name: string`
+
+> **Shared types** (`UserRole`, `UserStatus`, `AuditAction`, `PaginationParams`, `SortParams`, `ChangedFields`, `PaginationInfo`) được định nghĩa trong `client/src/types/api.types.ts` và được `users.types.ts` re-use.
 
 ---
 
@@ -95,7 +150,7 @@ export interface AuditLog {
 
 **Request:**
 ```
-GET /api/users?page=1&limit=10&search=john&role=admin&status=active
+GET /api/users?page=1&limit=20&search=john&role=admin&status=active
   &startDate=2026-01-01&endDate=2026-12-31&sortBy=created_at&sortOrder=desc
 ```
 
@@ -104,7 +159,7 @@ GET /api/users?page=1&limit=10&search=john&role=admin&status=active
 | Param | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
 | page | number | No | 1 | Trang hiện tại |
-| limit | number | No | 10 | Số items per page (10/25/50) |
+| limit | number | No | 20 | Số items per page |
 | search | string | No | — | Tìm theo name hoặc email (LIKE, case-insensitive) |
 | role | string | No | — | Filter: `admin` / `user` / `moderator` |
 | status | string | No | — | Filter: `active` / `inactive` / `suspended` |
@@ -113,7 +168,7 @@ GET /api/users?page=1&limit=10&search=john&role=admin&status=active
 | sortBy | string | No | `created_at` | Field to sort — whitelist enforced |
 | sortOrder | string | No | `desc` | `asc` / `desc` |
 
-**Allowed sortBy whitelist:** `id`, `name`, `email`, `role`, `status`, `created_at`, `updated_at`, `last_login_at`, `points`
+**Allowed sortBy whitelist:** `id`, `name`, `email`, `role`, `status`, `created_at`, `updated_at`. Bất kỳ giá trị nào ngoài whitelist sẽ fallback về default sort `created_at DESC`.
 
 **Flow:**
 1. `authMiddleware` xác thực JWT token
@@ -211,7 +266,7 @@ GET /api/users?page=1&limit=10&search=john&role=admin&status=active
 ### SV-006 — GET /api/users/:id/activity
 **Lịch sử thay đổi user**
 
-**Query Parameters:** `limit` (optional, default 10)
+**Query Parameters:** `limit` (optional, default 20)
 
 **Flow:**
 1. `authMiddleware` + admin check
@@ -247,9 +302,9 @@ GET /api/users?page=1&limit=10&search=john&role=admin&status=active
 
 **Response 200:** `{ "exists": false }`
 
-**Errors:** 400 Missing/invalid email
+**Errors:** 400 Missing/invalid email | 401 | 403
 
-> **Note:** Endpoint không yêu cầu auth. Gọi từ client với debounce 500ms.
+> **Note:** Endpoint yêu cầu admin auth (cùng router với các endpoint user management khác). Gọi từ client với debounce 500ms qua composable `useEmailValidation`.
 
 ---
 
@@ -263,12 +318,14 @@ GET /api/users?page=1&limit=10&search=john&role=admin&status=active
 | Role | Required, enum: admin/user/moderator |
 | Status | Required, enum: active/inactive/suspended |
 | Note | Optional, max 500 chars |
-| Birthday | Optional, valid date, không được là ngày tương lai |
+| Birthday | Optional, valid ISO date, không được là ngày tương lai |
 
-type:
-- `CreateUserDto` 
-- `UpdateUserDto`
-...
+DTOs (server-side):
+- `CreateUserInput` (từ `createUserSchema`)
+- `UpdateUserInput` (từ `updateUserSchema`)
+- `CheckEmailQuery` (từ `checkEmailSchema`)
+
+Cả `CreateUserInput` và `UpdateUserInput` đều có cùng shape: `name`, `email`, `role`, `status`, `note?`, `birthday?`.
 
 ### Business Rules
 

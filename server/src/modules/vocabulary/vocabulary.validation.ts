@@ -45,6 +45,7 @@ const hiraganaSchema = z
       message: 'Hiragana must contain only Japanese characters (Hiragana, Katakana, or prolonged sound mark)',
     }
   )
+  .nullable()
   .optional();
 
 /**
@@ -65,6 +66,7 @@ const romajiSchema = z
       message: 'Romaji must contain only letters a-z',
     }
   )
+  .nullable()
   .optional();
 
 /**
@@ -91,6 +93,7 @@ const onYomiSchema = z
   })
   .min(1, 'On-yomi must be at least 1 character')
   .max(255, 'On-yomi must be at most 255 characters')
+  .nullable()
   .optional();
 
 /**
@@ -100,7 +103,7 @@ const onYomiSchema = z
  */
 const levelSchema = z.nativeEnum(VocabLevel, {
   message: 'Level must be one of N5, N4, N3, N2, or N1',
-}).optional();
+}).nullable().optional();
 
 /**
  * Validate media_url field
@@ -113,6 +116,7 @@ const mediaUrlSchema = z
   })
   .url('Media URL must be a valid URL')
   .max(500, 'Media URL must be at most 500 characters')
+  .nullable()
   .optional()
   .or(z.literal(''));
 
@@ -126,6 +130,7 @@ const noteSchema = z
     invalid_type_error: 'Note must be a string',
   })
   .max(2000, 'Note must be at most 2000 characters')
+  .nullable()
   .optional();
 
 /**
@@ -145,6 +150,7 @@ const tagsSchema = z
       .max(50, 'Each tag must be at most 50 characters')
   )
   .max(10, 'Maximum 10 tags allowed')
+  .nullable()
   .optional();
 
 /**
@@ -155,7 +161,7 @@ const tagsSchema = z
  */
 const statusSchema = z.nativeEnum(VocabularyStatus, {
   message: 'Status must be Publish, Hide, or Delete',
-}).optional();
+}).nullable().optional();
 
 /**
  * Validate relations field
@@ -169,6 +175,7 @@ const relationsSchema = z
     synonyms: z.array(z.number().int().positive('Vocabulary ID must be positive')).optional(),
     antonyms: z.array(z.number().int().positive('Vocabulary ID must be positive')).optional(),
   })
+  .nullable()
   .optional();
 
 // ============================================================================
@@ -204,16 +211,16 @@ export const createVocabularySchema = z.object({
  */
 export const updateVocabularySchema = z.object({
   kanji: kanjiSchema.optional(),
-  hiragana: hiraganaSchema,
-  romaji: romajiSchema,
+  hiragana: hiraganaSchema.optional(),
+  romaji: romajiSchema.optional(),
   meaning_vi: meaningViSchema.optional(),
-  on_yomi: onYomiSchema,
-  level: levelSchema,
-  media_url: mediaUrlSchema,
-  note: noteSchema,
-  tags: tagsSchema,
-  status: statusSchema,
-  relations: relationsSchema,
+  on_yomi: onYomiSchema.optional(),
+  level: levelSchema.optional(),
+  media_url: mediaUrlSchema.optional(),
+  note: noteSchema.optional(),
+  tags: tagsSchema.optional(),
+  status: statusSchema.optional(),
+  relations: relationsSchema.optional(),
 });
 
 // ============================================================================

@@ -3,6 +3,8 @@
  * Types and interfaces for vocabulary management system
  */
 
+import { PaginationInfo } from "./common.model";
+
 // ============================================================================
 // Enums
 // ============================================================================
@@ -131,20 +133,20 @@ export interface VocabReportRow {
  */
 export interface CreateVocabularyDto {
   kanji: string;
-  hiragana?: string;
-  romaji?: string;
+  hiragana?: string | null;
+  romaji?: string | null;
   meaning_vi: string;
-  on_yomi?: string;
-  level?: VocabLevel;
-  media_url?: string;
-  note?: string;
-  tags?: string[];
-  status?: VocabularyStatus;
+  on_yomi?: string | null;
+  level?: VocabLevel | null;
+  media_url?: string | null;
+  note?: string | null;
+  tags?: string[] | null;
+  status?: VocabularyStatus | null;
   relations?: {
     related?: number[];
     synonyms?: number[];
     antonyms?: number[];
-  };
+  } | null;
 }
 
 /**
@@ -153,21 +155,21 @@ export interface CreateVocabularyDto {
  * Used in PUT /api/vocabularies/:id
  */
 export interface UpdateVocabularyDto {
-  kanji?: string;
-  hiragana?: string;
-  romaji?: string;
-  meaning_vi?: string;
-  on_yomi?: string;
-  level?: VocabLevel;
-  media_url?: string;
-  note?: string;
-  tags?: string[];
-  status?: VocabularyStatus;
+  kanji?: string | null;
+  hiragana?: string | null;
+  romaji?: string | null;
+  meaning_vi?: string | null;
+  on_yomi?: string | null;
+  level?: VocabLevel | null;
+  media_url?: string | null;
+  note?: string | null;
+  tags?: string[] | null;
+  status?: VocabularyStatus | null;
   relations?: {
     related?: number[];
     synonyms?: number[];
     antonyms?: number[];
-  };
+  } | null;
 }
 
 /**
@@ -268,21 +270,11 @@ export interface PaginationParams {
 }
 
 /**
- * Pagination response
- */
-export interface PaginationResponse {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-}
-
-/**
  * List response with pagination
  */
 export interface VocabularyListResponse {
-  items: VocabularyResponse[];
-  pagination: PaginationResponse;
+  data: VocabularyResponse[];
+  pagination: PaginationInfo;
 }
 
 // ============================================================================

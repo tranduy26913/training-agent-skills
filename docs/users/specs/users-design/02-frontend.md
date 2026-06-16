@@ -102,7 +102,7 @@ UserEditPage
 | 14 | colPoints | Column | number | — | — | — | `users.points` | Điểm số (read-only) | Sortable |
 | 15 | editBtn | Button | — | — | — | — | `common.edit` | Điều hướng đến UserEditPage | emits edit(id) |
 | 16 | deleteBtn | Button | — | — | — | — | `common.delete` | Mở confirm dialog xóa | emits delete(id) |
-| 17 | pagination | Pagination | — | — | — | — | — | Server-side pagination | 10/25/50 per page; emits pageChange |
+| 17 | pagination | Pagination | — | — | — | — | Server-side pagination | Default `limit=20`; emits `pageChange` |
 
 ### 3.2 UserCreatePage (`/users/create`)
 
@@ -115,7 +115,7 @@ UserEditPage
 | 4 | statusSelect | Dropdown | string | Yes | enum | — | `users.status` | Trạng thái; default "active" | Options: Active/Inactive/Suspended |
 | 5 | noteInput | Textarea | string | No | max 500 | `users.notePlaceholder` | `users.note` | Ghi chú bổ sung | Character counter hiển thị `n/500` |
 | 6 | birthdayPicker | DatePicker | string | No | no future dates | — | `users.birthday` | Ngày sinh | maxDate = today |
-| 7 | saveBtn | Button | — | — | — | — | `common.save` | Submit form | Disabled khi email đang check hoặc có lỗi |
+| 7 | saveBtn | Button | — | — | — | — | `common.save` | Submit form | Disabled khi email đang check hoặc có email error từ server (do `useEmailValidation` composable) |
 | 8 | cancelBtn | Button | — | — | — | — | `common.cancel` | Quay lại UserListPage | Không cần confirm |
 
 ### 3.3 UserEditPage (`/users/:id/edit`)
@@ -155,7 +155,7 @@ UserEditPage
 | edit | `id: number` | User click Edit button |
 | delete | `id: number` | User click Delete button |
 | pageChange | `page: number` | User chuyển trang |
-| sortChange | `{ sortBy, sortOrder }` | User click sort column |
+| sortChange | `(field: string, order: 1 \| -1)` | User click sort column (1=asc, -1=desc) |
 
 **Skeleton:** Hiển thị 5 dòng `<Skeleton>` per cell khi `loading=true`. Không dùng `loading` prop của DataTable (tránh spinner overlay).
 
@@ -180,16 +180,16 @@ UserEditPage
 | Prop | Type | Required | Description |
 |------|------|----------|-------------|
 | mode | `'create' \| 'edit'` | Yes | Phân biệt create/edit mode |
-| initialData | `UserDto` | No | Pre-populate form ở edit mode |
-| emailError | `string \| null` | No | Lỗi email từ API (409) truyền từ parent |
+| initialData | `User` | No | Pre-populate form ở edit mode |
+| loading | `boolean` | No | Loading state cho submit button |
 
 **Emits:**
 | Event | Payload | Description |
 |-------|---------|-------------|
-| submit | `CreateUserDto \| UpdateUserDto` | Form data sau khi pass validation |
+| submit | `{ name, email, role, status, note, birthday }` | Form data sau khi pass validation |
 | cancel | — | User click Cancel |
 
-**Email validation:** Sử dụng `useEmailValidation` composable; spinner hiển thị khi đang check; form không submit khi có lỗi email.
+**Email validation:** Sử dụng `useEmailValidation` composable nội bộ (với `excludeId = mode === 'edit' ? initialData.id : undefined`); spinner hiển thị khi đang check; Save button bị disable khi có email error hoặc đang check.
 
 ---
 
@@ -208,72 +208,135 @@ UserEditPage
 ## 5. Composable
 
 ### useUsers.ts (`pages/users/composables/`)
-Methods:
-- `getUsers(filters: UserFilters): Promise<UserDto[]>` - Gọi API lấy
-- `getUser(id: number): Promise<UserDto>` - Lấy chi tiết user
-- `createUser(data: CreateUserDto): Promise<UserDto>` - Tạo user mới
-- `updateUser(id: number, data: UpdateUserDto): Promise<UserDto>` - Cập nhật user
+Methods (re-export types `User`, `CreateUserDto`, `UpdateUserDto`, `UserFilters`, `AuditLog`, `PaginationInfo`):
+- `getUsers(filters?: UserFilters): Promise<PaginatedData<User>>` - Gọi API lấy danh sách
+- `getUser(id: number): Promise<User>` - Lấy chi tiết user
+- `createUser(data: CreateUserDto): Promise<User>` - Tạo user mới
+- `updateUser(id: number, data: UpdateUserDto): Promise<User>` - Cập nhật user
 - `deleteUser(id: number): Promise<void>` - Xóa user
-- `getUserActivity(id: number, limit?: number): Promise<AuditLogDto[]>` - Lấy lịch sử audit gần nhất
+- `getUserActivity(id: number, limit?: number): Promise<AuditLog[]>` - Lấy lịch sử audit gần nhất
 
 ### useEmailValidation.ts (`composables/`)
-
----
+Composable dùng `watchDebounced` từ `@vueuse/core` với default 500ms debounce.
+- Input: `email: Ref<string>`, `excludeId?: Ref<number | undefined> | number`, `debounceMs = 500`
+- Output: `{ isChecking: Ref<boolean>, emailError: Ref<string>, reset(): void }`
+- Skip API call khi email rỗng hoặc format không hợp lệ.
+- Khi `emailError.value === 'emailAlreadyExists'` form sẽ disable submit.---
 
 ## 6. Store
 
 ### users.store.ts (`stores/`)
-State:
-- users: UserDto[]
-- currentUser: UserDto | null
-- auditLogs: AuditLogDto[]
-- pagination: PaginationInfo
-- filters: UserFilters
-- loading: boolean
-- loadingUser: boolean
-- loadingActivity: boolean
-- error: string | null
+State (sử dụng Composition API với `ref`/`shallowRef`):
+- `users: User[]` (ref)
+- `currentUser: User | null` (ref)
+- `auditLogs: AuditLog[]` (ref)
+- `pagination: PaginationInfo` (ref, default `{ page:1, limit:20, total:0, pages:0 }`)
+- `filters: UserFilters` (ref, default `{}`)
+- `loading: boolean` (shallowRef)
+- `loadingUser: boolean` (shallowRef)
+- `loadingActivity: boolean` (shallowRef)
+- `error: string | null` (shallowRef)
+
+Getters:
+- `totalUsers: number` (computed từ `pagination.total`)
+- `hasUsers: boolean` (computed từ `users.length > 0`)
+- `isLastPage: boolean` (computed từ `pagination.page >= pagination.pages`)
+
 Actions:
-- fetchUsers(filters?)       → GET SV-001; cập nhật users + pagination
-- fetchUser(id)              → GET SV-003; cập nhật currentUser
-- createUser(data)           → POST SV-002; throw { code:'EMAIL_EXISTS' } nếu 409
-- updateUser(id, data)       → PUT SV-004; throw { code:'EMAIL_EXISTS' } nếu 409
-- deleteUser(id)             → DELETE SV-005; reload fetchUsers
-- fetchUserActivity(id)      → GET SV-006; cập nhật auditLogs
-- resetFilters()             → reset filters + fetchUsers()
-- clearCurrentUser()         → currentUser=null, auditLogs=[]
+- `fetchUsers(newFilters?: UserFilters): Promise<void>` → merge filters (nếu có), gọi GET SV-001; cập nhật `users` + `pagination`. Lỗi được set vào `error`.
+- `fetchUser(id: number): Promise<void>` → gọi GET SV-003; cập nhật `currentUser`. Lỗi được set vào `error`.
+- `createUser(data: CreateUserDto): Promise<void>` → gọi POST SV-002; không tự reload danh sách.
+- `updateUser(id: number, data: UpdateUserDto): Promise<void>` → gọi PUT SV-004; không tự reload.
+- `deleteUser(id: number): Promise<void>` → gọi DELETE SV-005; gọi lại `fetchUsers()` để reload danh sách.
+- `fetchUserActivity(id: number): Promise<void>` → gọi GET SV-006; cập nhật `auditLogs`. Lỗi set vào `error`.
+- `resetFilters(): void` → reset `filters` về `{}` và gọi `fetchUsers()`.
+- `clearCurrentUser(): void` → set `currentUser = null`, `auditLogs = []`.
+
+> **Note:** `createUser` và `updateUser` KHÔNG ném `{ code:'EMAIL_EXISTS' }`. Validation email trùng được xử lý hoàn toàn phía client qua `useEmailValidation` composable. Nếu server trả 409, page sẽ bắt response và hiển thị toast.
 ---
 
-## 7. TypeScript Types & Interfaces 
-### users.types.ts (`types/`)
-```typescript
-export interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: 'admin' | 'user' | 'moderator';
-  status: 'active' | 'inactive' | 'suspended';
-  avatar: string | null;
-  note: string | null;
-  birthday: string | null;
-  points: number;
-  last_login_at: string | null;
-  created_at: string;
-  updated_at: string;
-}
+## 7. TypeScript Types & Interfaces
 
-export interface UserFilters {
-  search?: string;
-  role?: 'admin' | 'user' | 'moderator';
-  status?: 'active' | 'inactive' | 'suspended';
-  startDate?: string;
-  endDate?: string;
-  page?: number;
-  limit?: number;
-  sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
-}
-```
+> **Quy ước:** Mô tả type chỉ liệt kê tên + property (không dùng code block).
+> Trỏ file thực tế để tra cứu khi cần.
+
+### `client/src/types/users.types.ts`
+
+Interface `User` (response shape, snake_case timestamps)
+- `id: number`
+- `name: string`
+- `email: string`
+- `role: UserRole` — `'admin' | 'user' | 'moderator'`
+- `status: UserStatus` — `'active' | 'inactive' | 'suspended'`
+- `avatar: string | null`
+- `last_login_at: string | null` — ISO datetime
+- `points: number`
+- `note: string | null`
+- `birthday: string | null` — ISO date `YYYY-MM-DD`
+- `created_at: string`
+- `updated_at: string`
+
+Interface `CreateUserDto`
+- `name: string` — required
+- `email: string` — required
+- `role: UserRole` — required
+- `status: UserStatus` — required
+- `note?: string` — optional
+- `birthday?: string` — optional, ISO date
+
+Type `UpdateUserDto`
+- alias của `CreateUserDto`
+
+Interface `UserFilters` extends `PaginationParams`, `SortParams`
+- `search?: string`
+- `role?: string`
+- `status?: string`
+- `startDate?: string`
+- `endDate?: string`
+
+Interface `AuditLog`
+- `id: number`
+- `admin_id: number`
+- `target_user_id: number`
+- `action: AuditAction` — `'CREATE' | 'UPDATE' | 'DELETE'`
+- `changed_fields: ChangedFields` — `Record<string, { old, new }> | null`
+- `timestamp: string`
+- `admin_name: string`
+
+### `client/src/types/api.types.ts` (shared types)
+
+Type `UserRole`
+- `'admin' | 'user' | 'moderator'`
+
+Type `UserStatus`
+- `'active' | 'inactive' | 'suspended'`
+
+Type `AuditAction`
+- `'CREATE' | 'UPDATE' | 'DELETE'`
+
+Interface `PaginationInfo`
+- `page: number`
+- `limit: number`
+- `total: number`
+- `pages: number`
+
+Interface `PaginatedData<T>`
+- `data: T[]`
+- `pagination: PaginationInfo`
+
+Interface `PaginationParams`
+- `page?: number`
+- `limit?: number`
+
+Interface `SortParams`
+- `sortBy?: string`
+- `sortOrder?: 'asc' | 'desc'`
+
+Type `ChangedFields`
+- `Record<string, { old: unknown; new: unknown }> | null`
+
+Interface `ApiErrorResponse`
+- `message: string`
 ---
 
 ## 8. Database Schema Reference

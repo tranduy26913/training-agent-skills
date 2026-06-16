@@ -9,7 +9,7 @@ import type { VocabularyDetail, VocabReportStatus } from '@/types/vocabularies.t
 const { t } = useI18n();
 
 // Props
-defineProps<{
+const props = defineProps<{
   vocabulary: VocabularyDetail | null;
   isAdmin?: boolean;
 }>();
@@ -24,7 +24,7 @@ const reportStatusSeverityMap: Record<VocabReportStatus, 'warn' | 'success' | 'd
   pending: 'warn',
   resolved: 'success',
   dismissed: 'danger',
-};
+} as const;
 
 // Format date
 function formatDate(dateString: string | null | undefined): string {
@@ -123,7 +123,7 @@ function handleResolveReport(reportId: number, status: 'resolved' | 'dismissed')
         <Column field="report_text" :header="t('vocab.col.report_text')" />
         <Column field="status" :header="t('vocab.col.status')">
           <template #body="{ data }">
-            <Tag :value="data.status" :severity="reportStatusSeverityMap[data.status]" />
+            <Tag :value="data.status" :severity="reportStatusSeverityMap[data.status as VocabReportStatus]" />
           </template>
         </Column>
         <Column field="reported_by" :header="t('vocab.col.reported_by')" />

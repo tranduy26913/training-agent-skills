@@ -16,25 +16,30 @@ date: [YYYY-MM-DD]
 
 ### 1.1 Database Schema
 
-```sql
--- [main_table] (NEW / Existing)
-CREATE TABLE [table_name] (
-  id          INT AUTO_INCREMENT PRIMARY KEY,
-  field_a     VARCHAR(100) NOT NULL,
-  field_b     VARCHAR(50)  NOT NULL,
-  field_c     TEXT,
-  created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+> Mô tả schema theo dạng khai báo **Prisma model** (bảng property). Nếu project dùng ORM khác (TypeORM, Sequelize, Drizzle, ...) thay thuộc tính `@` / `@@` cho phù hợp.
 
--- [related_table] (if applicable)
-CREATE TABLE [related_table] (
-  id          INT AUTO_INCREMENT PRIMARY KEY,
-  parent_id   INT NOT NULL,
-  ...
-  FOREIGN KEY (parent_id) REFERENCES [table_name](id) ON DELETE CASCADE
-);
-```
+#### `ModelName` (table `[table_name]`)
+
+| Property | Type / Prisma Modifier | Notes |
+|----------|------------------------|-------|
+| `id` | `Int @id @default(autoincrement())` | UNSIGNED, auto-increment |
+| `fieldA` | `String` | NOT NULL |
+| `fieldB` | `String?` | nullable |
+| `fieldC` | `DateTime @default(now())` (column `created_at`) | timestamp |
+| `updatedAt` | `DateTime @updatedAt` (column `updated_at`) | auto-updated |
+| `relationField` | `RelatedModel[] @relation("Name")` | relation (if applicable) |
+| Indexes | `@@index([fieldA])`, `@@index([fieldB, fieldC])` | |
+| `@@map` | `"table_name"` | |
+
+#### `RelatedModel` (table `[related_table]`, if applicable)
+
+| Property | Type / Prisma Modifier | Notes |
+|----------|------------------------|-------|
+| `id` | `Int @id @default(autoincrement())` | |
+| `parentId` | `Int` (column `parent_id`) | FK → `ModelName.id`, `onDelete: Cascade` |
+| `parent` | `ModelName @relation("Name", fields: [parentId], references: [id], onDelete: Cascade)` | |
+| `@@map` | `"related_table"` | |
+
 ### 1.2 TypeScript Models
 Only list name of the data models relevant to this feature. Do not include full definitions.
 Include full path of the files where these models are defined.

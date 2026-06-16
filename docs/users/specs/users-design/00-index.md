@@ -40,7 +40,7 @@ Cung cấp giao diện quản lý toàn diện cho admin quản lý user account
 - Tạo user mới (auto-generate password, không hiển thị)
 - Chỉnh sửa thông tin user: name (2–50), email (unique), role, status, note (max 500), birthday (no future)
 - Xóa user (không thể xóa chính mình)
-- Xem lịch sử audit log cho mỗi user (max 10 entries)
+- Xem lịch sử audit log cho mỗi user (default `limit=20` từ server, client render tất cả entries trả về)
 - Hiển thị Last Login, Points trong bảng user
 - Email duplicate check với debounce 500ms
 - Tracking audit log cho tất cả hành động (CREATE/UPDATE/DELETE)
@@ -83,10 +83,12 @@ Cung cấp giao diện quản lý toàn diện cho admin quản lý user account
 
 | Table | Purpose |
 |-------|---------|
-| `users` | Tất cả user accounts; các cột mới: `note`, `birthday`, `points`, `last_login_at` |
-| `audit_logs` | Lịch sử CREATE/UPDATE/DELETE do admin thực hiện |
+| `users` | Tất cả user accounts; các cột mới: `note`, `birthday`, `points`, `last_login_at`. `password` được lưu dưới dạng bcrypt hash, không bao giờ được trả về client. |
+| `audit_logs` | Lịch sử CREATE/UPDATE/DELETE do admin thực hiện; `changed_fields` lưu dưới dạng JSON. |
 
-Chi tiết schema xem tại [01-backend.md → Section 1](./01-backend.md).
+Schema khai báo bằng **Prisma** tại `server/prisma/schema.prisma` (xem chi tiết property/relation tại [01-backend.md → Section 1.1](./01-backend.md)). Server-side sử dụng Prisma Client để truy cập DB; client-side gọi API qua `usersApiService` (`client/src/services/users.service.ts`).
+
+TypeScript types mô tả property (không code block) — xem tại [01-backend.md → Section 1.2](./01-backend.md) cho server + [02-frontend.md → Section 7](./02-frontend.md) cho client.
 
 ---
 

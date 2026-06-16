@@ -34,6 +34,7 @@ export default {
     employees: 'Nhân viên',
     notebooklm: 'NotebookLM',
     notebooklmOperations: 'Vận hành NotebookLM',
+    vocabularies: 'Từ vựng',
     settings: 'Cài đặt',
   },
   topbar: {

@@ -5,7 +5,7 @@ import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
 import Select from 'primevue/select';
 import { useDebounceFn } from '@vueuse/core';
-import type { VocabLevel, VocabularyStatus } from '@/types/vocabularies.types';
+import type { VocabLevel, VocabularyStatus, VocabularyFilters } from '@/types/vocabularies.types';
 
 const { t } = useI18n();
 
@@ -14,7 +14,7 @@ const { t } = useI18n();
 
 // Emit definitions
 const emit = defineEmits<{
-  search: [filters: { kanji?: string; level?: VocabLevel | null; status?: VocabularyStatus | null }]
+  search: [filters: VocabularyFilters]
   reset: []
 }>();
 
@@ -43,8 +43,8 @@ const statusOptions = [
 function handleSearch(): void {
   emit('search', {
     kanji: kanji.value || undefined,
-    level: level.value ?? null,
-    status: status.value ?? null,
+    level: level.value || undefined,
+    status: status.value || undefined,
   });
 }
 

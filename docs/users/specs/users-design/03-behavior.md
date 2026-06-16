@@ -16,7 +16,7 @@ date: 2026-05-17
 ### 1.1 UserListPage
 
 **onMounted:**
-1. Khởi tạo `defaultFilters = { page: 1, limit: 10, sortBy: 'created_at', sortOrder: 'desc' }`
+1. Khởi tạo `defaultFilters = {}` (rỗng; server trả về default `limit=20`, `sortBy=created_at`, `sortOrder=desc`)
 2. Gọi `usersStore.fetchUsers(defaultFilters)`
 
 **handleFilterChange(filters: UserFilters):**
@@ -27,15 +27,18 @@ date: 2026-05-17
 **handlePageChange(page: number):**
 1. Gọi `usersStore.fetchUsers({ ...activeFilters, page })`
 
-**handleSortChange({ sortBy, sortOrder }):**
-1. Gọi `usersStore.fetchUsers({ ...activeFilters, sortBy, sortOrder, page: 1 })`
+**handleSortChange(field: string, order: 1 | -1):**
+1. Cập nhật local `sortField` / `sortOrder` state
+2. Gọi `usersStore.fetchUsers({ ...activeFilters, sortBy: field, sortOrder: order === 1 ? 'asc' : 'desc', page: 1 })`
 
 **handleEdit(id: number):**
 1. `router.push({ name: 'UserEdit', params: { id } })`
 
 **handleDelete(id: number):**
 1. Hiển thị `ConfirmDialog` (xem Section 3)
-2. Nếu confirm → `usersStore.deleteUser(id)` → toast success → reload table
+2. Nếu confirm → `usersStore.deleteUser(id)` → toast success → reload table (đã được store xử lý)
+
+> **Sort whitelist:** Sortable columns ở client là `id`, `name`, `email`, `role`, `status`, `created_at`, `updated_at`, `last_login_at`, `points`. Server chỉ chấp nhận `id, name, email, role, status, created_at, updated_at` (whitelist); `last_login_at` và `points` sẽ bị fallback về default `created_at DESC` nếu gửi lên.
 
 ---
 
@@ -44,7 +47,10 @@ date: 2026-05-17
 **handleSubmit(formData: CreateUserDto):**
 1. Gọi `usersStore.createUser(formData)`
 2. Thành công → toast success → `router.push({ name: 'UserList' })`
-3. Lỗi 409 (`EMAIL_EXISTS`) → set `emailError = t('users.emailAlreadyExists')` → truyền vào `UserForm`
+3. Lỗi 409 (`EMAIL_EXISTS`) → toast `users.emailInUse`
+4. Lỗi khác → toast `users.createdError`
+
+> **Note:** Email duplicate check được xử lý hoàn toàn ở client bởi `useEmailValidation` composable trong `UserForm`. Form không truyền `emailError` prop cho parent.
 
 **handleCancel():**
 1. `router.push({ name: 'UserList' })`
@@ -55,16 +61,17 @@ date: 2026-05-17
 
 **onMounted:**
 1. Lấy `id` từ `route.params.id` (parse to number)
-2. Gọi song song: `usersStore.fetchUser(id)` + `usersStore.fetchUserActivity(id)`
-3. Populate form khi `currentUser` available
+2. Gọi tuần tự: `usersStore.fetchUser(id)` rồi `usersStore.fetchUserActivity(id)`
+3. Populate form khi `currentUser` available (UserForm watch `initialData`)
 
 **onUnmounted:**
 1. `usersStore.clearCurrentUser()`
 
 **handleSubmit(formData: UpdateUserDto):**
 1. Gọi `usersStore.updateUser(id, formData)`
-2. Thành công → toast success → `usersStore.fetchUserActivity(id)` để refresh audit log
-3. Lỗi 409 → set `emailError` → truyền vào `UserForm`
+2. Thành công → toast success → `router.push({ name: 'UserList' })`
+3. Lỗi 409 → toast `users.emailInUse`
+4. Lỗi khác → toast `users.updatedError`
 
 **handleCancel():**
 1. `router.push({ name: 'UserList' })`
@@ -86,21 +93,29 @@ date: 2026-05-17
 
 | State | Trigger | Behavior |
 |-------|---------|----------|
-| Loading (form) | `usersStore.loadingUser = true` | Skeleton overlay trên form fields |
+| Loading (form) | `props.loading = true` | Form inputs disabled; submit button loading state |
 | Email checking | `useEmailValidation.isChecking = true` | Spinner icon bên cạnh email input |
-| Email error | `emailError !== null` | Inline error dưới email field; Save button disabled |
+| Email error | `useEmailValidation.emailError = 'emailAlreadyExists'` | Inline error dưới email field; Save button disabled |
 | Validation error | Submit với fields invalid | Inline error dưới từng field |
 | Submitting | Sau khi click Save | Save button loading state; không cho double-submit |
 | Success (create) | Sau createUser | Toast success; redirect về UserList |
-| Success (edit) | Sau updateUser | Toast success; audit log refresh |
+| Success (edit) | Sau updateUser | Toast success; redirect về UserList (audit log KHÔNG refresh tự động — chỉ refresh khi user mở lại edit page) |
+| Error (create/edit) | Server trả 409 | Toast `users.emailInUse` |
+| Error (khác) | Server trả lỗi khác | Toast `users.createdError` / `users.updatedError` |
 
 ### AuditLogViewer
 
 | State | Trigger | Behavior |
 |-------|---------|----------|
-| Loading | `usersStore.loadingActivity = true` | Skeleton list |
-| Empty | `auditLogs.length === 0` | Message "No history yet" |
-| Populated | Dữ liệu có | List tối đa 10 entries |
+| Loading | `props.loading = true` | 3 dòng Skeleton (PrimeVue Skeleton) |
+| Empty | `logs.length === 0` | Message "No activity yet" (`users.noActivity`) |
+| Populated | Dữ liệu có | List các entries với icon CREATE/UPDATE/DELETE + format message |
+
+**Format mỗi entry:**
+- CREATE: `"{admin_name} created this user on {DD/MM/YYYY HH:mm}"`
+- DELETE: `"{admin_name} deleted this user on {DD/MM/YYYY HH:mm}"`
+- UPDATE với changed_fields: `"{admin_name} changed {field} from '{old}' to '{new}'[, ...] on {DD/MM/YYYY HH:mm}"`
+- UPDATE không có changed_fields: `"{admin_name} updated this user on {DD/MM/YYYY HH:mm}"`
 
 ---
 
@@ -111,12 +126,13 @@ date: 2026-05-17
 | Thuộc tính | Giá trị |
 |-----------|---------|
 | Trigger | Click Delete button trong UserTable |
-| Title | `users.deleteConfirmTitle` → "Delete User" |
-| Message | `users.deleteConfirmMessage` → "Are you sure you want to delete this user? This action cannot be undone." |
-| Confirm button | `common.delete` (danger style) |
-| Cancel button | `common.cancel` |
-| On confirm | `usersStore.deleteUser(id)` → toast success → reload table |
+| Header | `users.deleteHeader` |
+| Message | `users.deleteConfirm` |
+| Confirm button | `common.yes` (severity=danger) |
+| Cancel button | `common.no` |
+| On confirm | `usersStore.deleteUser(id)` (store sẽ tự reload danh sách) → toast success `users.deletedSuccess` |
 | On cancel | Đóng dialog, không action |
+| On error | Toast `users.deletedError` |
 
 ---
 
@@ -128,7 +144,7 @@ date: 2026-05-17
 | Click Edit button / row | UserListPage | UserEditPage | Always |
 | Submit create form (success) | UserCreatePage | UserListPage | After successful create |
 | Click Cancel (create) | UserCreatePage | UserListPage | Always |
-| Submit edit form (success) | UserEditPage | UserEditPage (stay) | After successful update |
+| Submit edit form (success) | UserEditPage | UserListPage | After successful update |
 | Click Cancel (edit) | UserEditPage | UserListPage | Always |
 | Access `/users` (non-admin) | Any | Redirect (403) | Router guard `meta.roles: ['admin']` |
 

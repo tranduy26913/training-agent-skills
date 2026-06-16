@@ -102,7 +102,7 @@ onMounted(() => {
       :is-edit="isEdit"
       @submit="handleSubmit"
       @cancel="handleCancel"
-      @update:has-changes="(value) => (hasUnsavedChanges.value = value)"
+      @update:has-changes="(value) => (hasUnsavedChanges = value)"
     />
 
     <ConfirmDialog />

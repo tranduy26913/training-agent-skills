@@ -8,9 +8,8 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from
 import request from 'supertest';
 import dotenv from 'dotenv';
 import path from 'path';
-import type { ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 import app from '../../app';
-import { pool } from '../../database/connection';
+import { prisma } from '../../database/prisma';
 import { signToken } from '../../utils/token.util';
 import {
   VocabularyStatus,
@@ -44,26 +43,25 @@ function getUserToken(): string {
   return signToken({ userId: USER_ID, email: USER_EMAIL, role: 'user' });
 }
 
-// Clean up test vocabulary by kanji
-// 漢字でテスト語彙を削除
+// Clean up test vocabulary by kanji. Cascades through relations, change
+// logs, and reports.
 async function cleanupTestVocabByKanji(kanji: string): Promise<void> {
-  // First, delete related data (FK constraints)
-  await pool.query('DELETE FROM vocab_reports WHERE vocab_id IN (SELECT id FROM vocabularies WHERE kanji = ?)', [
-    kanji,
-  ]);
-  await pool.query('DELETE FROM vocab_change_logs WHERE vocab_id IN (SELECT id FROM vocabularies WHERE kanji = ?)', [
-    kanji,
-  ]);
-  await pool.query(
-    'DELETE FROM vocab_relations WHERE vocab_id IN (SELECT id FROM vocabularies WHERE kanji = ?) OR target_vocab_id IN (SELECT id FROM vocabularies WHERE kanji = ?)',
-    [kanji, kanji]
-  );
-  // Then delete the vocabulary
-  await pool.query('DELETE FROM vocabularies WHERE kanji = ?', [kanji]);
+  const ids = await prisma.vocabulary.findMany({
+    where: { kanji },
+    select: { id: true },
+  });
+  const idList = ids.map((v) => v.id);
+  if (idList.length === 0) return;
+
+  await prisma.vocabReport.deleteMany({ where: { vocabId: { in: idList } } });
+  await prisma.vocabChangeLog.deleteMany({ where: { vocabId: { in: idList } } });
+  await prisma.vocabRelation.deleteMany({
+    where: { OR: [{ vocabId: { in: idList } }, { targetVocabId: { in: idList } }] },
+  });
+  await prisma.vocabulary.deleteMany({ where: { id: { in: idList } } });
 }
 
-// Create vocabulary directly in database
-// DB に直接語彙を作成
+// Create vocabulary directly via Prisma.
 async function createTestVocabDirectly(data: {
   kanji: string;
   hiragana?: string | null;
@@ -74,33 +72,35 @@ async function createTestVocabDirectly(data: {
   status?: VocabularyStatus;
   created_by?: number | null;
 }): Promise<number> {
-  const [result] = await pool.query<ResultSetHeader>(
-    `INSERT INTO vocabularies 
-     (kanji, hiragana, romaji, meaning_vi, on_yomi, level, status, created_by, version)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      data.kanji,
-      data.hiragana || null,
-      data.romaji || null,
-      data.meaning_vi,
-      data.on_yomi || null,
-      data.level || null,
-      data.status || VocabularyStatus.Publish,
-      data.created_by || null,
-      1,
-    ]
-  );
-  return result.insertId;
+  const created = await prisma.vocabulary.create({
+    data: {
+      kanji: data.kanji,
+      hiragana: data.hiragana ?? null,
+      romaji: data.romaji ?? null,
+      meaningVi: data.meaning_vi,
+      onYomi: data.on_yomi ?? null,
+      level: data.level ?? null,
+      status: data.status ?? VocabularyStatus.Publish,
+      createdBy: data.created_by ?? null,
+      version: 1,
+    },
+    select: { id: true },
+  });
+  return created.id;
 }
 
-// Create a report directly in database
-// DB に直接レポートを作成
+// Create a report directly via Prisma.
 async function createTestReport(vocabId: number, reportText: string, reportedBy: number = 1000): Promise<number> {
-  const [result] = await pool.query<ResultSetHeader>(
-    'INSERT INTO vocab_reports (vocab_id, report_text, status, reported_by) VALUES (?, ?, ?, ?)',
-    [vocabId, reportText, 'pending', reportedBy]
-  );
-  return result.insertId;
+  const created = await prisma.vocabReport.create({
+    data: {
+      vocabId,
+      reportText,
+      status: 'pending',
+      reportedBy,
+    },
+    select: { id: true },
+  });
+  return created.id;
 }
 
 describe('VocabularyController Integration Tests', () => {
@@ -123,7 +123,7 @@ describe('VocabularyController Integration Tests', () => {
   });
 
   afterAll(async () => {
-    await pool.end();
+    await prisma.$disconnect();
   });
 
   // ============================================================================
@@ -161,10 +161,11 @@ describe('VocabularyController Integration Tests', () => {
       });
 
       // Verify in database
-      const [rows] = await pool.query<RowDataPacket[]>('SELECT id FROM vocabularies WHERE kanji = ?', [
-        newVocab.kanji,
-      ]);
-      expect(rows.length).toBe(1);
+      const created = await prisma.vocabulary.findFirst({
+        where: { kanji: newVocab.kanji },
+        select: { id: true },
+      });
+      expect(created).not.toBeNull();
     });
 
     // UT-002: Invalid DTO (missing kanji) → 400 + validation error
@@ -291,10 +292,11 @@ describe('VocabularyController Integration Tests', () => {
       expect(res.body.version).toBe(2);
 
       // Verify change log was created
-      const [logs] = await pool.query<RowDataPacket[]>(
-        'SELECT * FROM vocab_change_logs WHERE vocab_id = ? ORDER BY created_at DESC LIMIT 2',
-        [vocabId]
-      );
+      const logs = await prisma.vocabChangeLog.findMany({
+        where: { vocabId },
+        orderBy: { createdAt: 'desc' },
+        take: 2,
+      });
       expect(logs.length).toBeGreaterThanOrEqual(1);
     });
 
@@ -314,13 +316,12 @@ describe('VocabularyController Integration Tests', () => {
         })
         .expect(200);
 
-      const [logs] = await pool.query<RowDataPacket[]>(
-        'SELECT * FROM vocab_change_logs WHERE vocab_id = ? AND field_name = ?',
-        [vocabId, 'kanji']
-      );
+      const logs = await prisma.vocabChangeLog.findMany({
+        where: { vocabId, fieldName: 'kanji' },
+      });
       expect(logs.length).toBe(1);
-      expect(logs[0].old_value).toBe('ChangeLog');
-      expect(logs[0].new_value).toBe('Changed');
+      expect(logs[0].oldValue).toBe('ChangeLog');
+      expect(logs[0].newValue).toBe('Changed');
     });
 
     // UT-008: Non-existent id → 404
@@ -396,8 +397,11 @@ describe('VocabularyController Integration Tests', () => {
       expect(res.body.status).toBe('Delete');
 
       // Verify soft delete in database
-      const [rows] = await pool.query<RowDataPacket[]>('SELECT status FROM vocabularies WHERE id = ?', [vocabId]);
-      expect(rows[0].status).toBe('Delete');
+      const after = await prisma.vocabulary.findUnique({
+        where: { id: vocabId },
+        select: { status: true },
+      });
+      expect(after?.status).toBe('Delete');
     });
 
     // UT-011: Non-existent id → 404
@@ -798,24 +802,41 @@ describe('VocabularyController Integration Tests', () => {
 // Helper Functions
 // ============================================================================
 
-async function cleanupAllTestVocabs(): Promise<void> {
-  // Get all test vocabularies
-  const [rows] = await pool.query<RowDataPacket[]>(
-    "SELECT id FROM vocabularies WHERE kanji LIKE '%Test%' OR kanji LIKE '%Duplicate%' OR kanji LIKE '%Update%' OR kanji LIKE '%Delete%' OR kanji LIKE '%ChangeLog%' OR kanji LIKE '%Detail%' OR kanji LIKE '%Report%' OR kanji LIKE '%Dismiss%' OR kanji LIKE '%Invalid%' OR kanji LIKE '%Analytics%' OR kanji LIKE '%AdminReport%' OR kanji LIKE '%Original%' OR kanji LIKE '%N3Vocab%' OR kanji LIKE '%N5Vocab%' OR kanji LIKE '%PublishVocab%' OR kanji LIKE '%HideVocab%' OR kanji LIKE '%食べる%' OR kanji LIKE '%飲む%' OR kanji LIKE '%DeletedVocab%' OR kanji LIKE '%NoReportVocab%' OR kanji LIKE '%To Delete%' OR kanji LIKE '%CreatedVocab%'"
-  );
+// All kanji patterns used in the test suite, kept in one place so the cleanup
+// step stays in sync with the test data.
+const TEST_KANJI_PATTERNS = [
+  'Test', 'Duplicate', 'Update', 'Delete', 'ChangeLog', 'Detail',
+  'Report', 'Dismiss', 'Invalid', 'Analytics', 'AdminReport', 'Original',
+  'N3Vocab', 'N5Vocab', 'PublishVocab', 'HideVocab', '食べる', '飲む',
+  'DeletedVocab', 'NoReportVocab', 'CreatedVocab',
+];
+const TEST_REPORT_PATTERNS = [
+  'Test report',
+  'Test report to resolve',
+  'Test report to dismiss',
+];
 
-  for (const row of rows) {
-    await pool.query('DELETE FROM vocab_reports WHERE vocab_id = ?', [row.id]);
-    await pool.query('DELETE FROM vocab_change_logs WHERE vocab_id = ?', [row.id]);
-    await pool.query('DELETE FROM vocab_relations WHERE vocab_id = ? OR target_vocab_id = ?', [row.id, row.id]);
-    await pool.query('DELETE FROM vocabularies WHERE id = ?', [row.id]);
-  }
-  
-  // Also cleanup any orphaned reports
-  const [reportRows] = await pool.query<RowDataPacket[]>(
-    "SELECT id FROM vocab_reports WHERE report_text LIKE '%Test report%' OR report_text LIKE '%Test report to resolve%' OR report_text LIKE '%Test report to dismiss%'"
-  );
-  for (const row of reportRows) {
-    await pool.query('DELETE FROM vocab_reports WHERE id = ?', [row.id]);
+// Cleanup all test vocabularies + orphan reports created by the suite.
+async function cleanupAllTestVocabs(): Promise<void> {
+  // Delete orphan reports first (no foreign key to vocab so we match on text).
+  await prisma.vocabReport.deleteMany({
+    where: { reportText: { in: TEST_REPORT_PATTERNS } },
+  });
+
+  // For each kanji pattern, cascade through related tables.
+  for (const kanji of TEST_KANJI_PATTERNS) {
+    const ids = await prisma.vocabulary.findMany({
+      where: { kanji: { contains: kanji } },
+      select: { id: true },
+    });
+    const idList = ids.map((v) => v.id);
+    if (idList.length === 0) continue;
+
+    await prisma.vocabReport.deleteMany({ where: { vocabId: { in: idList } } });
+    await prisma.vocabChangeLog.deleteMany({ where: { vocabId: { in: idList } } });
+    await prisma.vocabRelation.deleteMany({
+      where: { OR: [{ vocabId: { in: idList } }, { targetVocabId: { in: idList } }] },
+    });
+    await prisma.vocabulary.deleteMany({ where: { id: { in: idList } } });
   }
 }

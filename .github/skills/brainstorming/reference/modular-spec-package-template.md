@@ -48,7 +48,7 @@ Use the file templates in this folder as the starting point:
 5. Spec File Index (table linking to the other 4 files)
 
 ### 01-backend.md
-1. Data Models (DB schema + TypeScript Models)
+1. Data Models (DB schema dạng Prisma model table + TypeScript Models property list)
 2. API Endpoints (one subsection per endpoint: request, flow, response, errors)
 3. Validation Rules (client-side + server-side + business rules)
 4. Error Handling (standard format + error scenarios table)
@@ -60,7 +60,7 @@ Use the file templates in this folder as the starting point:
 4. Component Details (props + emits per component)
 5. Composable
 6. Store
-7. TypeScript Types & Interfaces
+7. TypeScript Types & Interfaces (property list, không code block)
 
 ### 03-behavior.md
 1. Page Events & Handlers (onMounted + each handler per page)
@@ -79,8 +79,13 @@ Use the file templates in this folder as the starting point:
 ---
 
 ## Common Rules
+
 - Do not include implementation details or source code in any file; focus on specifications, contracts, and design
 - Use Vietnamese for content; headers may remain English
+- **TypeScript types:** Mô tả chỉ liệt kê tên + property (không dùng code block). Trỏ file thực tế để tra cứu khi cần
+- **Database schema:** Mô tả dạng Prisma model (bảng property với `@@map`, indexes, relations, FK cascade) — không viết raw `CREATE TABLE` SQL
+- **Response/request JSON examples:** Code block được phép (chỉ thể hiện contract, không phải type definition)
+- **File structure tree, sequence diagram ASCII:** Code block được phép (visual representation)
 
 ---
 
