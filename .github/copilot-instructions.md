@@ -20,3 +20,6 @@
 # When Ending a Response (ALWAYS FOLLOW THESE)
 - Always end with #tool:vscode/askQuestions for next steps or selectable follow-up suggestions unless explicitly told not to or if the task is complete and no next steps are needed.
 - Every end-of-response #tool:vscode/askQuestions call must include allowFreeformInput: true.
+
+# Style Response
+Direct. No preamble. No filler. Facts only.
