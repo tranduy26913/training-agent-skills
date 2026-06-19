@@ -1,0 +1,18 @@
+// User reports for vocabulary entries.
+model VocabReport {
+  id          Int       @id @default(autoincrement()) @db.UnsignedInt
+  vocabId     Int       @map("vocab_id") @db.UnsignedInt
+  reportText  String    @map("report_text") @db.Text
+  status      String    @default("pending") @db.VarChar(10)
+  reportedBy  Int       @map("reported_by") @db.UnsignedInt
+  resolvedBy  Int?      @map("resolved_by") @db.UnsignedInt
+  resolvedAt  DateTime? @map("resolved_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  vocab Vocabulary @relation(fields: [vocabId], references: [id], onDelete: Cascade)
+
+  @@index([vocabId])
+  @@index([status])
+  @@map("vocab_reports")
+}

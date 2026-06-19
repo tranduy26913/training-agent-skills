@@ -7,7 +7,7 @@ import type { User, CreateUserDto, UpdateUserDto, UserFilters, AuditLog } from '
 // ユーザーAPIクライアント / Users API client with domain-specific methods
 class UsersApiClient extends BaseApiClient<User, CreateUserDto, UpdateUserDto> {
   constructor() {
-    super('/users');
+    super('/admin/users');
   }
 
   // フィルター付きユーザー一覧取得 / Get users with filters

@@ -1,0 +1,33 @@
+// Vocabulary main table. Mirrors migration 011.
+model Vocabulary {
+  id             Int      @id @default(autoincrement()) @db.UnsignedInt
+  kanji          String   @db.VarChar(255)
+  hiragana       String?  @db.VarChar(255)
+  romaji         String?  @db.VarChar(255)
+  meaningVi      String   @map("meaning_vi") @db.Text
+  onYomi         String?  @map("on_yomi") @db.VarChar(255)
+  level          String?  @db.VarChar(2)
+  mediaUrl       String?  @map("media_url") @db.VarChar(500)
+  note           String?  @db.Text
+  // JSON column holding ["tag1", "tag2"].
+  tags           Json?
+  status         String   @default("Publish") @db.VarChar(10)
+  learnCount     Int      @default(0) @map("learn_count") @db.UnsignedInt
+  favoriteCount  Int      @default(0) @map("favorite_count") @db.UnsignedInt
+  createdBy      Int?     @map("created_by") @db.UnsignedInt
+  updatedBy      Int?     @map("updated_by") @db.UnsignedInt
+  version        Int      @default(1) @db.UnsignedInt
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  relations      VocabRelation[]      @relation("VocabSource")
+  relationsFrom  VocabRelation[]      @relation("VocabTarget")
+  changeLogs     VocabChangeLog[]
+  reports        VocabReport[]
+
+  @@index([kanji])
+  @@index([level])
+  @@index([status])
+  @@index([createdBy])
+  @@map("vocabularies")
+}

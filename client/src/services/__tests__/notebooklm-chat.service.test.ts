@@ -27,6 +27,7 @@ const SESSION_API = {
   workspace_id: 10,
   user_id: 5,
   title: 'My Session',
+  llm_provider: 'ollama' as const,
   created_at: '2026-05-11T08:00:00.000Z',
   updated_at: '2026-05-11T08:00:00.000Z',
 };
@@ -36,6 +37,7 @@ const SESSION_DOMAIN = {
   workspaceId: 10,
   userId: 5,
   title: 'My Session',
+  llmProvider: 'ollama' as const,
   createdAt: '2026-05-11T08:00:00.000Z',
   updatedAt: '2026-05-11T08:00:00.000Z',
 };
@@ -101,7 +103,7 @@ describe('notebooklmChatService', () => {
 
       const result = await notebooklmChatService.getSessions(10);
 
-      expect(mockGet).toHaveBeenCalledWith('/notebooklm/workspaces/10/sessions');
+      expect(mockGet).toHaveBeenCalledWith('/user/notebooklm/workspaces/10/sessions');
       expect(result.data).toHaveLength(1);
       expect(result.data[0]).toEqual(SESSION_DOMAIN);
       expect(result.pagination.total).toBe(1);
@@ -114,7 +116,7 @@ describe('notebooklmChatService', () => {
 
       await notebooklmChatService.getSessions(10, { page: 2, limit: 5 });
 
-      expect(mockGet).toHaveBeenCalledWith('/notebooklm/workspaces/10/sessions?page=2&limit=5');
+      expect(mockGet).toHaveBeenCalledWith('/user/notebooklm/workspaces/10/sessions?page=2&limit=5');
     });
 
     it('handles empty session list', async () => {
@@ -138,7 +140,7 @@ describe('notebooklmChatService', () => {
 
       const result = await notebooklmChatService.createSession(10, { title: 'My Session' });
 
-      expect(mockPost).toHaveBeenCalledWith('/notebooklm/workspaces/10/sessions', { title: 'My Session' });
+      expect(mockPost).toHaveBeenCalledWith('/user/notebooklm/workspaces/10/sessions', { title: 'My Session' });
       expect(result).toEqual(SESSION_DOMAIN);
     });
 
@@ -147,7 +149,7 @@ describe('notebooklmChatService', () => {
 
       const result = await notebooklmChatService.createSession(10, {});
 
-      expect(mockPost).toHaveBeenCalledWith('/notebooklm/workspaces/10/sessions', {});
+      expect(mockPost).toHaveBeenCalledWith('/user/notebooklm/workspaces/10/sessions', {});
       expect(result.id).toBe(1);
     });
   });
@@ -162,7 +164,7 @@ describe('notebooklmChatService', () => {
 
       const result = await notebooklmChatService.updateSession(1, { title: 'Renamed' });
 
-      expect(mockPatch).toHaveBeenCalledWith('/notebooklm/sessions/1', { title: 'Renamed' });
+      expect(mockPatch).toHaveBeenCalledWith('/user/notebooklm/sessions/1', { title: 'Renamed' });
       expect(result.title).toBe('Renamed');
       expect(result.id).toBe(1);
     });
@@ -179,7 +181,7 @@ describe('notebooklmChatService', () => {
 
       const result = await notebooklmChatService.getMessages(1);
 
-      expect(mockGet).toHaveBeenCalledWith('/notebooklm/sessions/1/messages');
+      expect(mockGet).toHaveBeenCalledWith('/user/notebooklm/sessions/1/messages');
       expect(result).toHaveLength(2);
       expect(result[0]).toEqual(MESSAGE_DOMAIN);
       expect(result[1]).toEqual(MESSAGE_ASSISTANT_DOMAIN);
@@ -224,7 +226,7 @@ describe('notebooklmChatService', () => {
 
       const result = await notebooklmChatService.sendMessage(1, { content: 'What is AI?' });
 
-      expect(mockPost).toHaveBeenCalledWith('/notebooklm/sessions/1/messages', {
+      expect(mockPost).toHaveBeenCalledWith('/user/notebooklm/sessions/1/messages', {
         content: 'What is AI?',
       });
       expect(result.jobId).toBe(9001);

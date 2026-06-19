@@ -34,7 +34,7 @@ class ChatApiClient {
   constructor(private readonly baseURL: string) {}
 
   async authenticate(): Promise<void> {
-    const res = await fetch(`${this.baseURL}/api/auth/login`, {
+    const res = await fetch(`${this.baseURL}/api/v1/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD }),
@@ -53,7 +53,7 @@ class ChatApiClient {
 
   /** ワークスペース一覧を取得する / List accessible workspaces */
   async listWorkspaces(): Promise<Array<{ id: number; name: string }>> {
-    const res = await fetch(`${this.baseURL}/api/notebooklm/workspaces?limit=5`, {
+    const res = await fetch(`${this.baseURL}/api/v1/user/notebooklm/workspaces?limit=5`, {
       headers: this.headers,
     });
     if (!res.ok) return [];
@@ -67,7 +67,7 @@ class ChatApiClient {
     title: string,
     llmProvider?: 'ollama' | 'mock' | 'gemini',
   ): Promise<{ id: number } | null> {
-    const res = await fetch(`${this.baseURL}/api/notebooklm/workspaces/${workspaceId}/sessions`, {
+    const res = await fetch(`${this.baseURL}/api/v1/user/notebooklm/workspaces/${workspaceId}/sessions`, {
       method: 'POST',
       headers: this.headers,
       body: JSON.stringify({ title, ...(llmProvider ? { llmProvider } : {}) }),
@@ -79,7 +79,7 @@ class ChatApiClient {
 
   /** セッションにメッセージを送信する / Send a message to a session */
   async sendMessage(sessionId: number, content: string): Promise<{ jobId: number } | null> {
-    const res = await fetch(`${this.baseURL}/api/notebooklm/sessions/${sessionId}/messages`, {
+    const res = await fetch(`${this.baseURL}/api/v1/user/notebooklm/sessions/${sessionId}/messages`, {
       method: 'POST',
       headers: this.headers,
       body: JSON.stringify({ content }),
@@ -93,7 +93,7 @@ class ChatApiClient {
   async listMessages(
     sessionId: number,
   ): Promise<Array<{ id: number; role: string; content: string }>> {
-    const res = await fetch(`${this.baseURL}/api/notebooklm/sessions/${sessionId}/messages`, {
+    const res = await fetch(`${this.baseURL}/api/v1/user/notebooklm/sessions/${sessionId}/messages`, {
       headers: this.headers,
     });
     if (!res.ok) return [];

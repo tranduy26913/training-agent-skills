@@ -9,7 +9,7 @@ class OperationsApiClient {
   constructor(private readonly baseURL: string) {}
 
   async authenticate(): Promise<void> {
-    const response = await fetch(`${this.baseURL}/api/auth/login`, {
+    const response = await fetch(`${this.baseURL}/api/v1/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD }),
@@ -24,7 +24,7 @@ class OperationsApiClient {
   }
 
   async listFailedJobs(): Promise<Array<{ id: number; status: string }>> {
-    const response = await fetch(`${this.baseURL}/api/notebooklm/admin/jobs?status=failed&limit=5`, {
+    const response = await fetch(`${this.baseURL}/api/v1/admin/notebooklm/jobs?status=failed&limit=5`, {
       headers: this.token ? { Authorization: `Bearer ${this.token}` } : {},
     });
 

@@ -8,6 +8,7 @@
     "dev:debug": "nodemon --watch src --ext ts --ignore dist --exec \"node --inspect=9229 -r ts-node/register src/server.ts\"",
     "build": "tsc",
     "start": "node dist/server.js",
+    "schema:merge": "node prisma/scripts/merge-schema.js",
     "migrate": "ts-node src/database/migrate.ts",
     "migrate:test": "ts-node src/database/migrate.ts --test",
     "seed": "ts-node src/database/seed.ts",
@@ -38,6 +39,7 @@
     "prisma": "^6.19.3",
     "supertest": "^7.2.2",
     "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
     "typescript": "^5.5.0",
     "vitest": "^4.1.4"
   }

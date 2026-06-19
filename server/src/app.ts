@@ -2,12 +2,12 @@ import express from 'express';
 import cors from 'cors';
 import { corsConfig, appConfig } from './config';
 import { authRoutes } from './modules/auth/auth.routes';
-import { usersRoutes } from './modules/users/users.routes';
-import { employeesRoutes } from './modules/employees/employees.routes';
-import { vocabularyRoutes } from './modules/vocabulary/vocabulary.routes';
-import { notebookLmRoutes } from './modules/notebooklm/notebooklm.routes';
-import { notebookLmOperationsRoutes } from './modules/notebooklm/operations.routes';
-import { chatRoutes } from './modules/notebooklm/chat.routes';
+import { usersRoutes } from './modules/admin/users/users.routes';
+import { employeesRoutes } from './modules/admin/employees/employees.routes';
+import { vocabularyRoutes } from './modules/admin/vocabulary/vocabulary.routes';
+import { notebookLmRoutes } from './modules/admin/notebooklm/notebooklm.routes';
+import { notebookLmOperationsRoutes } from './modules/admin/notebooklm/operations.routes';
+import { chatRoutes } from './modules/admin/notebooklm/chat.routes';
 import { authMiddleware } from './middleware/auth.middleware';
 import { errorMiddleware } from './middleware/error.middleware';
 import { logger } from './utils/logger.util';
@@ -27,12 +27,12 @@ app.use((req, _res, next) => {
 
 // Routes / ルート設定
 app.use(`${appConfig.apiPrefix}/auth`, authRoutes);
-app.use(`${appConfig.apiPrefix}/users`, usersRoutes);
-app.use(`${appConfig.apiPrefix}/employees`, employeesRoutes);
-app.use(`${appConfig.apiPrefix}/vocabularies`, vocabularyRoutes);
-app.use(`${appConfig.apiPrefix}/notebooklm`, notebookLmRoutes);
-app.use(`${appConfig.apiPrefix}/notebooklm/admin`, notebookLmOperationsRoutes);
-app.use(`${appConfig.apiPrefix}/notebooklm`, chatRoutes);
+app.use(`${appConfig.apiPrefix}/admin/users`, usersRoutes);
+app.use(`${appConfig.apiPrefix}/admin/employees`, employeesRoutes);
+app.use(`${appConfig.apiPrefix}/admin/vocabularies`, vocabularyRoutes);
+app.use(`${appConfig.apiPrefix}/user/notebooklm`, notebookLmRoutes);
+app.use(`${appConfig.apiPrefix}/admin/notebooklm`, notebookLmOperationsRoutes);
+app.use(`${appConfig.apiPrefix}/user/notebooklm`, chatRoutes);
 
 // Health check
 app.get(`${appConfig.apiPrefix}/health`, (_req, res) => {

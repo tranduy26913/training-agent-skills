@@ -16,7 +16,7 @@ class ChatApiClient {
   constructor(private readonly baseURL: string) {}
 
   async authenticate(): Promise<void> {
-    const res = await fetch(`${this.baseURL}/api/auth/login`, {
+    const res = await fetch(`${this.baseURL}/api/v1/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD }),
@@ -35,7 +35,7 @@ class ChatApiClient {
 
   // ワークスペースを作成する / Create a test workspace and return its id
   async createWorkspace(name: string): Promise<number> {
-    const res = await fetch(`${this.baseURL}/api/notebooklm/workspaces`, {
+    const res = await fetch(`${this.baseURL}/api/v1/user/notebooklm/workspaces`, {
       method: 'POST',
       headers: this.authHeaders,
       body: JSON.stringify({ name, description: 'E2E chat test workspace' }),
@@ -47,7 +47,7 @@ class ChatApiClient {
 
   // ワークスペースを削除する / Delete a workspace by id (cleanup)
   async deleteWorkspace(id: number): Promise<void> {
-    await fetch(`${this.baseURL}/api/notebooklm/workspaces/${id}`, {
+    await fetch(`${this.baseURL}/api/v1/user/notebooklm/workspaces/${id}`, {
       method: 'DELETE',
       headers: this.authHeaders,
     });

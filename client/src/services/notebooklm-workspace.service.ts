@@ -141,7 +141,7 @@ async function toBase64(file: File): Promise<string> {
 }
 
 class NotebooklmWorkspaceService {
-  private readonly basePath = '/notebooklm/workspaces';
+  private readonly basePath = '/user/notebooklm/workspaces';
 
   async getWorkspaces(filters?: WorkspaceFilters): Promise<PaginatedData<Workspace>> {
     const query = this.buildQueryString(filters as Record<string, unknown> | undefined);
@@ -222,7 +222,7 @@ class NotebooklmWorkspaceService {
     limit = 10,
   ): Promise<WorkspaceMemberCandidate[]> {
     const response: AxiosResponse<WorkspaceMemberCandidateApiModel[] | ApiEnvelope<WorkspaceMemberCandidateApiModel[]>> = await apiClient.get(
-      '/notebooklm/users/search',
+      '/user/notebooklm/users/search',
       {
         params: { workspaceId, q, page, limit },
       },
@@ -246,7 +246,7 @@ class NotebooklmWorkspaceService {
   }
 
   async getJobProgress(jobId: number): Promise<WorkspaceJobProgress> {
-    const response: AxiosResponse<JobProgressApiModel> = await apiClient.get(`/notebooklm/jobs/${jobId}`);
+    const response: AxiosResponse<JobProgressApiModel> = await apiClient.get(`/user/notebooklm/jobs/${jobId}`);
     return mapJobProgress(response.data);
   }
 

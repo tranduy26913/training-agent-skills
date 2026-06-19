@@ -113,7 +113,7 @@ function mapDlqItem(item: DlqItemApiModel): NotebooklmDlqItem {
 }
 
 class NotebooklmOperationsService {
-  private readonly basePath = '/notebooklm/admin';
+  private readonly basePath = '/admin/notebooklm';
 
   async getJobs(filters?: NotebooklmOperationsFilters): Promise<PaginatedData<NotebooklmJobMonitorItem>> {
     const query = buildQueryString(filters as Record<string, unknown> | undefined);

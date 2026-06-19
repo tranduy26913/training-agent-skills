@@ -81,7 +81,7 @@ function mapChatMessage(item: ChatMessageApiModel): ChatMessage {
 }
 
 class NotebooklmChatService {
-  private readonly basePath = '/notebooklm';
+  private readonly basePath = '/user/notebooklm';
 
   /**
    * ワークスペースのチャットセッション一覧を取得する

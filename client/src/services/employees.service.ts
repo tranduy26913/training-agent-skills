@@ -5,7 +5,7 @@ import type { Employee, CreateEmployeeDto, UpdateEmployeeDto, EmployeeFilters } 
 // 従業員APIクライアント / Employees API client with domain-specific methods
 class EmployeesApiClient extends BaseApiClient<Employee, CreateEmployeeDto, UpdateEmployeeDto> {
   constructor() {
-    super('/employees');
+    super('/admin/employees');
   }
 
   // フィルター付き従業員一覧取得 / Get employees with filters

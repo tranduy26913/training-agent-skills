@@ -1,0 +1,15 @@
+// Audit log entry. changed_fields is stored as JSON in MySQL.
+model AuditLog {
+  id              Int      @id @default(autoincrement()) @db.UnsignedInt
+  adminId         Int      @map("admin_id") @db.UnsignedInt
+  targetUserId    Int      @map("target_user_id") @db.UnsignedInt
+  action          String   @db.VarChar(20)
+  changedFields   Json?    @map("changed_fields")
+  timestamp       DateTime @default(now()) @db.DateTime(0)
+
+  admin   User @relation("AuditLogAdmin",  fields: [adminId],      references: [id], onDelete: Cascade)
+  target  User @relation("AuditLogTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@index([targetUserId])
+  @@map("audit_logs")
+}

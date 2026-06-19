@@ -1,0 +1,10 @@
+// Roles reference table (seeded by 001_seed_roles.sql). Kept here so admin
+// checks can be added in a future migration without breaking the client.
+model Role {
+  id          Int      @id @default(autoincrement()) @db.UnsignedInt
+  name        String   @unique @db.VarChar(50)
+  description String?  @db.VarChar(255)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("roles")
+}

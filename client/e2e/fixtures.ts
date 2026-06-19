@@ -11,7 +11,7 @@ export class ApiClient {
   constructor(private readonly baseURL: string) {}
 
   async authenticate(email: string, password: string): Promise<void> {
-    const response = await fetch(`${this.baseURL}/api/auth/login`, {
+    const response = await fetch(`${this.baseURL}/api/v1/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
@@ -22,7 +22,7 @@ export class ApiClient {
   }
 
   async createUser(data: Record<string, unknown>): Promise<{ id: number }> {
-    const response = await fetch(`${this.baseURL}/api/users`, {
+    const response = await fetch(`${this.baseURL}/api/v1/admin/users`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -36,7 +36,7 @@ export class ApiClient {
   }
 
   async updateUser(id: number, data: Record<string, unknown>): Promise<void> {
-    const response = await fetch(`${this.baseURL}/api/users/${id}`, {
+    const response = await fetch(`${this.baseURL}/api/v1/admin/users/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -48,14 +48,14 @@ export class ApiClient {
   }
 
   async deleteUser(id: number): Promise<void> {
-    await fetch(`${this.baseURL}/api/users/${id}`, {
+    await fetch(`${this.baseURL}/api/v1/admin/users/${id}`, {
       method: 'DELETE',
       headers: this.token ? { Authorization: `Bearer ${this.token}` } : {},
     });
   }
 
   async createVocabulary(data: Record<string, unknown>): Promise<{ id: number }> {
-    const response = await fetch(`${this.baseURL}/api/vocabularies`, {
+    const response = await fetch(`${this.baseURL}/api/v1/admin/vocabularies`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -69,7 +69,7 @@ export class ApiClient {
   }
 
   async deleteVocabulary(id: number): Promise<void> {
-    await fetch(`${this.baseURL}/api/vocabularies/${id}`, {
+    await fetch(`${this.baseURL}/api/v1/admin/vocabularies/${id}`, {
       method: 'DELETE',
       headers: this.token ? { Authorization: `Bearer ${this.token}` } : {},
     });

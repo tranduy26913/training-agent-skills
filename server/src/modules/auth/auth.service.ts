@@ -1,9 +1,9 @@
-import { prisma } from '../../database/prisma';
-import { comparePassword, hashPassword } from '../../utils/hash.util';
-import { signToken } from '../../utils/token.util';
-import { ServiceError } from '../../models/common.model';
-import type { UserRole } from '../../models/common.model';
-import type { AuthUser, LoginResponseData } from '../../models/auth.model';
+import { prisma } from '@database/prisma';
+import { comparePassword, hashPassword } from '@utils/hash.util';
+import { signToken } from '@utils/token.util';
+import { ServiceError } from '@models/common.model';
+import type { UserRole } from '@models/common.model';
+import type { AuthUser, LoginResponseData } from '@models/auth.model';
 import type { LoginInput, UpdateProfileInput, ChangePasswordInput } from './auth.validation';
 
 // Public user fields returned to clients (no password hash).

@@ -1,0 +1,26 @@
+// User account. role / status are stored as strings (MySQL enums) to keep
+// parity with the existing column types and avoid Prisma enum migrations.
+model User {
+  id           Int       @id @default(autoincrement()) @db.UnsignedInt
+  name         String    @db.VarChar(100)
+  email        String    @unique @db.VarChar(255)
+  password     String    @db.VarChar(255)
+  role         String    @default("user") @db.VarChar(20)
+  status       String    @default("active") @db.VarChar(20)
+  avatar       String?   @db.VarChar(500)
+  // [NEW] fields added by migration 005
+  lastLoginAt  DateTime? @map("last_login_at")
+  points       Int       @default(0)
+  note         String?   @db.VarChar(500)
+  birthday     DateTime? @db.Date
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  // Audit log relations (admin performing actions, target user receiving them)
+  auditLogsAsAdmin   AuditLog[] @relation("AuditLogAdmin")
+  auditLogsAsTarget  AuditLog[] @relation("AuditLogTarget")
+
+  @@index([role])
+  @@index([status])
+  @@map("users")
+}

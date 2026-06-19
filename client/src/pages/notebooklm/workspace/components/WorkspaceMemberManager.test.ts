@@ -44,6 +44,12 @@ function mountComponent(overrides?: Partial<InstanceType<typeof WorkspaceMemberM
     },
     global: {
       plugins: [i18n],
+      stubs: {
+        InputText: {
+          template: '<input data-testid="workspace-member-search" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+          props: ['modelValue'],
+        },
+      },
     },
   });
 }

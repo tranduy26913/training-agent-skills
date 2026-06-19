@@ -38,7 +38,7 @@ export class UserListPage {
     await this.searchInput.fill(query);
     // Wait for debounced API call to complete
     await this.page.waitForResponse(
-      (resp) => resp.url().includes('/api/users') && resp.status() === 200,
+      (resp) => resp.url().includes('/api/v1/admin/users') && resp.status() === 200,
     );
     await this.waitForTableLoad();
   }

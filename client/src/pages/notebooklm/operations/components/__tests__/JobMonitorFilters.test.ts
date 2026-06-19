@@ -46,7 +46,7 @@ describe('JobMonitorFilters', () => {
     });
 
     await wrapper.find('[data-testid="job-filter-clear"]').trigger('click');
-    const last = wrapper.emitted('filterChange')?.at(-1)?.[0] as Record<string, unknown>;
+    const last = (wrapper.emitted('filterChange')?.slice(-1)[0] as Record<string, unknown>[])[0];
 
     expect(last.search).toBeUndefined();
     expect(last.page).toBe(1);

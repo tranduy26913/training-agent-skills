@@ -1,0 +1,360 @@
+import { ServiceError } from '@models/common.model';
+import type {
+  AddNotebookLmMemberInput,
+  NotebookLmJobDetails,
+  NotebookLmMemberRole,
+  NotebookLmUserSearchFilters,
+  NotebookLmUserSearchRow,
+  NotebookLmWorkspaceFilters,
+  NotebookLmWorkspaceMemberRow,
+  NotebookLmWorkspaceRow,
+  UpdateNotebookLmWorkspaceInput,
+  UploadNotebookLmDocumentInput,
+} from '@models/notebooklm.model';
+import { NotebookLmRepository } from './notebooklm.repository';
+import type { CreateWorkspaceInput } from './notebooklm.validation';
+import { dispatchNotebookLmWorker, type NotebookLmDispatchableJobType } from './worker-dispatcher';
+
+export { ServiceError };
+
+export class NotebookLmService {
+  private repository: NotebookLmRepository;
+  private workerDispatcher: (jobType: NotebookLmDispatchableJobType) => Promise<void>;
+
+  constructor(
+    repository?: NotebookLmRepository,
+    workerDispatcher?: (jobType: NotebookLmDispatchableJobType) => Promise<void> | void,
+  ) {
+    this.repository = repository ?? new NotebookLmRepository();
+    this.workerDispatcher = async (jobType: NotebookLmDispatchableJobType) => {
+      await Promise.resolve((workerDispatcher ?? dispatchNotebookLmWorker)(jobType));
+    };
+  }
+
+  private async triggerWorker(jobType: NotebookLmDispatchableJobType): Promise<void> {
+    try {
+      await this.workerDispatcher(jobType);
+    } catch (error) {
+      // Keep API response successful even when background worker trigger fails.
+      console.error('[NotebookLmService] Failed to trigger python worker', { jobType, error });
+    }
+  }
+
+  private async getMemberOrThrow(workspaceId: number, userId: number): Promise<NotebookLmWorkspaceMemberRow> {
+    const member = await this.repository.findMemberByWorkspaceAndUser(workspaceId, userId);
+    if (!member) {
+      throw new ServiceError('Workspace not found', 404);
+    }
+    return member;
+  }
+
+  private ensureOwner(role: NotebookLmMemberRole): void {
+    if (role !== 'owner') {
+      throw new ServiceError('Only workspace owner can manage members', 403);
+    }
+  }
+
+  private ensureEditorOrOwner(role: NotebookLmMemberRole): void {
+    if (role === 'viewer') {
+      throw new ServiceError('Insufficient permissions', 403);
+    }
+  }
+
+  async listWorkspaces(userId: number, filters: NotebookLmWorkspaceFilters) {
+    const page = filters.page ?? 1;
+    const limit = filters.limit ?? 10;
+    const { data, total } = await this.repository.listWorkspacesForUser(userId, filters);
+
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async createWorkspace(input: CreateWorkspaceInput, userId: number): Promise<NotebookLmWorkspaceRow> {
+    const duplicate = await this.repository.findWorkspaceByNameForOwner(input.name, userId);
+    if (duplicate) {
+      throw new ServiceError('Workspace name already exists', 409);
+    }
+
+    const workspaceResult = await this.repository.createWorkspace({
+      name: input.name,
+      description: input.description ?? null,
+      owner_id: userId,
+    });
+
+    await this.repository.createWorkspaceMember({
+      workspace_id: workspaceResult.insertId,
+      user_id: userId,
+      role: 'owner',
+    });
+
+    const created = await this.repository.findWorkspaceByIdForUser(workspaceResult.insertId, userId);
+    if (!created) {
+      throw new ServiceError('Workspace not found', 404);
+    }
+
+    return created;
+  }
+
+  async searchUsers(
+    filters: NotebookLmUserSearchFilters,
+    userId: number,
+  ): Promise<{
+    data: NotebookLmUserSearchRow[];
+    pagination: { page: number; limit: number; total: number; pages: number };
+  }> {
+    // Search endpoint requires authenticated user; membership is not required.
+    if (!userId) {
+      throw new ServiceError('Unauthorized', 401);
+    }
+
+    const page = filters.page ?? 1;
+    const limit = filters.limit ?? 10;
+    const { data, total } = await this.repository.searchUsers(filters);
+
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async getWorkspace(workspaceId: number, userId: number): Promise<NotebookLmWorkspaceRow> {
+    const workspace = await this.repository.findWorkspaceByIdForUser(workspaceId, userId);
+    if (!workspace) {
+      throw new ServiceError('Workspace not found', 404);
+    }
+    return workspace;
+  }
+
+  async updateWorkspace(
+    workspaceId: number,
+    input: UpdateNotebookLmWorkspaceInput,
+    userId: number,
+  ): Promise<NotebookLmWorkspaceRow> {
+    const member = await this.getMemberOrThrow(workspaceId, userId);
+    this.ensureEditorOrOwner(member.role);
+
+    const duplicate = await this.repository.findWorkspaceByNameForOwner(input.name, member.user_id, workspaceId);
+    if (duplicate) {
+      throw new ServiceError('Workspace name already exists', 409);
+    }
+
+    await this.repository.updateWorkspace(workspaceId, {
+      name: input.name,
+      description: input.description ?? null,
+    });
+
+    return this.getWorkspace(workspaceId, userId);
+  }
+
+  async deleteWorkspace(workspaceId: number, userId: number): Promise<{ deleted: boolean }> {
+    const member = await this.getMemberOrThrow(workspaceId, userId);
+    this.ensureOwner(member.role);
+
+    const workspace = await this.repository.findWorkspaceById(workspaceId);
+    if (!workspace) {
+      throw new ServiceError('Workspace not found', 404);
+    }
+
+    await this.repository.deleteWorkspace(workspaceId);
+    return { deleted: true };
+  }
+
+  async listMembers(workspaceId: number, userId: number): Promise<NotebookLmWorkspaceMemberRow[]> {
+    await this.getMemberOrThrow(workspaceId, userId);
+    return this.repository.listMembersByWorkspace(workspaceId);
+  }
+
+  async addMember(
+    workspaceId: number,
+    input: AddNotebookLmMemberInput,
+    userId: number,
+  ): Promise<NotebookLmWorkspaceMemberRow[]> {
+    const actor = await this.getMemberOrThrow(workspaceId, userId);
+    this.ensureOwner(actor.role);
+
+    const existing = await this.repository.findMemberByWorkspaceAndUser(workspaceId, input.userId);
+    if (existing) {
+      if (existing.role === 'owner' && input.role !== 'owner') {
+        throw new ServiceError('Owner role cannot be changed', 400);
+      }
+      await this.repository.updateMemberRole(workspaceId, input.userId, input.role);
+      return this.repository.listMembersByWorkspace(workspaceId);
+    }
+
+    await this.repository.createWorkspaceMember({
+      workspace_id: workspaceId,
+      user_id: input.userId,
+      role: input.role,
+    });
+
+    return this.repository.listMembersByWorkspace(workspaceId);
+  }
+
+  async updateMemberRole(
+    workspaceId: number,
+    memberUserId: number,
+    role: NotebookLmMemberRole,
+    userId: number,
+  ): Promise<NotebookLmWorkspaceMemberRow[]> {
+    const actor = await this.getMemberOrThrow(workspaceId, userId);
+    this.ensureOwner(actor.role);
+
+    const target = await this.getMemberOrThrow(workspaceId, memberUserId);
+    if (target.role === 'owner' && role !== 'owner') {
+      throw new ServiceError('Owner role cannot be changed', 400);
+    }
+
+    await this.repository.updateMemberRole(workspaceId, memberUserId, role);
+    return this.repository.listMembersByWorkspace(workspaceId);
+  }
+
+  async removeMember(workspaceId: number, memberUserId: number, userId: number): Promise<void> {
+    const actor = await this.getMemberOrThrow(workspaceId, userId);
+    this.ensureOwner(actor.role);
+
+    const target = await this.getMemberOrThrow(workspaceId, memberUserId);
+    if (target.role === 'owner') {
+      throw new ServiceError('Owner cannot be removed from workspace', 400);
+    }
+
+    await this.repository.removeMember(workspaceId, memberUserId);
+  }
+
+  async listDocuments(workspaceId: number, userId: number) {
+    await this.getMemberOrThrow(workspaceId, userId);
+    return this.repository.listDocumentsByWorkspace(workspaceId);
+  }
+
+  async enqueueDocumentIngestion(
+    workspaceId: number,
+    input: UploadNotebookLmDocumentInput,
+    userId: number,
+  ): Promise<{ documentId: number; jobId: number }> {
+    const member = await this.getMemberOrThrow(workspaceId, userId);
+    this.ensureEditorOrOwner(member.role);
+
+    const documentResult = await this.repository.createDocument({
+      workspace_id: workspaceId,
+      uploaded_by: userId,
+      filename: input.filename,
+      mime_type: input.mimeType,
+      file_size: input.fileSize,
+      file_data: input.fileData,
+      status: 'pending',
+    });
+
+    const documentId = documentResult.insertId;
+    const jobResult = await this.repository.createJob({
+      type: 'INGEST',
+      status: 'pending',
+      payload: {
+        workspace_id: workspaceId,
+        document_id: documentId,
+        requested_by: userId,
+        mime_type: input.mimeType,
+        workspaceId,
+        documentId,
+        requestedBy: userId,
+        mimeType: input.mimeType,
+      },
+    });
+
+    const stepNames = ['parse', 'chunk', 'embed', 'index'];
+    for (const stepName of stepNames) {
+      await this.repository.createJobStep({
+        job_id: jobResult.insertId,
+        step_name: stepName,
+        status: 'pending',
+        progress_pct: 0,
+      });
+    }
+
+    await this.triggerWorker('INGEST');
+
+    return {
+      documentId,
+      jobId: jobResult.insertId,
+    };
+  }
+
+  async enqueueDocumentDeletion(
+    workspaceId: number,
+    documentId: number,
+    userId: number,
+  ): Promise<{ jobId: number }> {
+    const member = await this.getMemberOrThrow(workspaceId, userId);
+    this.ensureEditorOrOwner(member.role);
+
+    const document = await this.repository.findDocumentByIdForWorkspace(documentId, workspaceId);
+    if (!document) {
+      throw new ServiceError('Document not found', 404);
+    }
+
+    const jobResult = await this.repository.createJob({
+      type: 'DELETE_DOC',
+      status: 'pending',
+      payload: {
+        workspace_id: workspaceId,
+        document_id: documentId,
+        requested_by: userId,
+        workspaceId,
+        documentId,
+        requestedBy: userId,
+      },
+    });
+
+    await this.repository.createJobStep({
+      job_id: jobResult.insertId,
+      step_name: 'delete_document',
+      status: 'pending',
+      progress_pct: 0,
+    });
+
+    await this.triggerWorker('DELETE_DOC');
+
+    return { jobId: jobResult.insertId };
+  }
+
+  /**
+   * ドキュメント�EファイルチE�Eタを取得すめE/ Retrieve raw file data for a document
+   */
+  async downloadDocument(
+    workspaceId: number,
+    documentId: number,
+    userId: number,
+  ): Promise<{ filename: string; mimeType: string; fileData: Buffer }> {
+    await this.getMemberOrThrow(workspaceId, userId);
+    const document = await this.repository.findDocumentByIdForWorkspace(documentId, workspaceId);
+    if (!document) {
+      throw new ServiceError('Document not found', 404);
+    }
+    if (!document.file_data) {
+      throw new ServiceError('File data not available', 404);
+    }
+    return {
+      filename: document.filename,
+      mimeType: document.mime_type,
+      fileData: document.file_data,
+    };
+  }
+
+  async getJobStatus(jobId: number, userId: number): Promise<NotebookLmJobDetails> {
+    const job = await this.repository.findJobWithStepsByIdForUser(jobId, userId);
+    if (!job) {
+      throw new ServiceError('Job not found', 404);
+    }
+    return job;
+  }
+}

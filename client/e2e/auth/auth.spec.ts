@@ -17,7 +17,7 @@ test.describe('Login', () => {
     await loginPage.login(ADMIN_EMAIL, 'wrong-password');
     // Wait explicitly for the API response, then verify error rendered
     await page.waitForResponse(
-      (r) => r.url().includes('/api/auth') && !r.ok(),
+      (r) => r.url().includes('/api/v1/auth') && !r.ok(),
       { timeout: 10000 },
     );
     await loginPage.expectError('Invalid email or password');

@@ -17,7 +17,7 @@ import type {
 // 語彙 API クライアント / Vocabularies API client with domain-specific methods
 class VocabulariesApiClient extends BaseApiClient<VocabularyResponse, CreateVocabularyDto, UpdateVocabularyDto> {
   constructor() {
-    super('/vocabularies');
+    super('/admin/vocabularies');
   }
 
   // フィルター付き語彙一覧取得 / Get vocabularies with filters

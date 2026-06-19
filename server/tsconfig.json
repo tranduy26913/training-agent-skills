@@ -16,7 +16,14 @@
     "baseUrl": "./src",
     "ignoreDeprecations": "6.0",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@models/*": ["./models/*"],
+      "@middleware/*": ["./middleware/*"],
+      "@database/*": ["./database/*"],
+      "@utils/*": ["./utils/*"],
+      "@types/*": ["./types/*"],
+      "@types-express": ["./types/express.d.ts"],
+      "@app": ["./app.ts"]
     }
   },
   "include": ["src/**/*"],
