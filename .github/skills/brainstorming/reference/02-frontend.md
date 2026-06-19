@@ -284,64 +284,12 @@ Actions:
 ---
 
 ## 7. TypeScript Types & Interfaces
+```markdown
+### File: `types/[feature].types.ts`
+Types:
+- `Item`: Main data model representing an item in this feature
+- `ItemFilters`: Filter criteria for listing items
 
-> **Quy ước:** Mô tả type chỉ liệt kê tên + property (không dùng code block).
-> Trỏ file thực tế để tra cứu khi cần.
-
-### `client/src/types/[feature].types.ts`
-
-Interface `[ModelName]` (response shape)
-- `id: number`
-- `field1: string`
-- `field2: 'enumValueA' | 'enumValueB'`
-- `field3: string | null`
-- `created_at: string`
-- `updated_at: string`
-- ... (liệt kê đầy đủ property)
-
-Interface `[ModelName]CreateDto`
-- `field1: string` — required
-- `field2: 'enumValueA' | 'enumValueB'` — required
-- `field3?: string` — optional
-- ... (liệt kê property)
-
-Type `[ModelName]UpdateDto`
-- alias của `[ModelName]CreateDto` (hoặc liệt kê riêng nếu khác shape)
-
-Interface `[ModelName]Filters` extends `PaginationParams`, `SortParams`
-- `search?: string`
-- `filterA?: string`
-- `filterB?: string`
-- ... (liệt kê property)
-
-Interface `[RelatedEntity]`
-- `id: number`
-- ... (liệt kê property)
-
-### `client/src/types/api.types.ts` (shared types, nếu có)
-
-Type `[EnumName]`
-- `'valueA' | 'valueB' | 'valueC'`
-
-Interface `PaginationInfo`
-- `page: number`
-- `limit: number`
-- `total: number`
-- `pages: number`
-
-Interface `PaginatedData<T>`
-- `data: T[]`
-- `pagination: PaginationInfo`
-
-Interface `PaginationParams`
-- `page?: number`
-- `limit?: number`
-
-Interface `SortParams`
-- `sortBy?: string`
-- `sortOrder?: 'asc' | 'desc'`
-
-Interface `ApiErrorResponse`
-- `message: string`
+---
 
 ```
