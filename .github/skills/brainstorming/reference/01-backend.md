@@ -41,8 +41,8 @@ date: [YYYY-MM-DD]
 | `@@map` | `"related_table"` | |
 
 ### 1.2 TypeScript Models
-Only list name of the data models relevant to this feature. Do not include full definitions.
-Include full path of the files where these models are defined.
+Chỉ liệt kê tên của các data models liên quan đến feature này. Không bao gồm định nghĩa đầy đủ.
+Bao gồm full path của các files nơi các models này được định nghĩa.
 ``` markdown
 ### [model_name].model.ts (`models/`)
 - `[ModelName]` (field1, field2, field3, ...)
@@ -53,9 +53,9 @@ Include full path of the files where these models are defined.
 
 ### 2.1 Authorization
 
-All endpoints require:
-1. Valid JWT token in `Authorization: Bearer <token>` header
-2. Role/permission validation per endpoint
+Tất cả endpoints yêu cầu:
+1. JWT token hợp lệ trong header `Authorization: Bearer <token>`
+2. Role/permission validation cho mỗi endpoint
 
 ---
 
@@ -74,17 +74,17 @@ Query Parameters:
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `page` | number | No | 1 | Page number |
-| `limit` | number | No | 10 | Items per page (max 100) |
-| `search` | string | No | - | Search by [field] |
-| `filterA` | string | No | - | Filter by [field A] |
+| `page` | number | No | 1 | Số trang |
+| `limit` | number | No | 10 | Số items mỗi trang (tối đa 100) |
+| `search` | string | No | - | Tìm kiếm theo [field] |
+| `filterA` | string | No | - | Lọc theo [field A] |
 
 Flow:
-1. Verify JWT token
-2. Check role/permission
+1. Xác thực JWT token
+2. Kiểm tra role/permission
 3. Validate query parameters
-4. Query database with filters and pagination
-5. Return result with pagination metadata
+4. Query database với filters và pagination
+5. Trả về result với pagination metadata
 
 Response (200 OK):
 ```json
@@ -121,12 +121,12 @@ Content-Type: application/json
 ```
 
 Flow:
-1. Verify JWT token
-2. Check role/permission
-3. Validate request body (see Validation Rules)
-4. Check for duplicates if applicable
-5. Insert record to database
-6. Return created entity
+1. Xác thực JWT token
+2. Kiểm tra role/permission
+3. Validate request body (xem Validation Rules)
+4. Kiểm tra trùng lặp nếu applicable
+5. Insert record vào database
+6. Trả về entity đã tạo
 
 Response (201 Created):
 ```json
@@ -157,11 +157,11 @@ Authorization: Bearer <token>
 ```
 
 Flow:
-1. Verify JWT token
-2. Check role/permission
+1. Xác thực JWT token
+2. Kiểm tra role/permission
 3. Validate `id` route parameter (positive integer)
-4. Query by id
-5. Return entity or 404
+4. Query theo id
+5. Trả về entity hoặc 404
 
 Response (200 OK):
 ```json
@@ -196,13 +196,13 @@ Content-Type: application/json
 ```
 
 Flow:
-1. Verify JWT token
-2. Check role/permission
-3. Validate `id` route parameter and request body
-4. Check record exists
-5. Check for duplicate conflicts if applicable
+1. Xác thực JWT token
+2. Kiểm tra role/permission
+3. Validate `id` route parameter và request body
+4. Kiểm tra record tồn tại
+5. Kiểm tra duplicate conflicts nếu applicable
 6. Update record
-7. Return updated entity
+7. Trả về entity đã cập nhật
 
 Response (200 OK):
 ```json
@@ -234,13 +234,13 @@ Authorization: Bearer <token>
 ```
 
 Flow:
-1. Verify JWT token
-2. Check role/permission
+1. Xác thực JWT token
+2. Kiểm tra role/permission
 3. Validate `id` route parameter
-4. Check record exists
-5. Check business constraints (e.g., cannot delete if has dependents)
+4. Kiểm tra record tồn tại
+5. Kiểm tra business constraints (e.g., cannot delete if has dependents)
 6. Delete record
-7. Return success message
+7. Trả về success message
 
 Response (200 OK):
 ```json
@@ -289,7 +289,7 @@ Errors:
 
 ### 4.1 Standard Error Response Format
 
-All errors must follow this format:
+Tất cả errors PHẢI tuân theo format này:
 ```json
 {
   "error": "Human-readable error message",

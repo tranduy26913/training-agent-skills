@@ -3,72 +3,72 @@ name: writing-plans
 description: Use when you have a spec or requirements for a multi-step task, before touching code 
 --- 
 
-# Writing Plans 
+# Viết Kế Hoạch Triển Khai
 
-**Save plans to:** `docs/<topic>/plans/YYYY-MM-DD-<topic>.md`
+**Lưu kế hoạch vào:** `docs/<topic>/plans/YYYY-MM-DD-<topic>.md`
 
-## Overview
+## Tổng Quan
 
-Write execution-ready plans for the `executing-plans` skill. Audience: skilled developers with no context on our codebase or problem domain. DRY. YAGNI. TDD. Frequent commits.
+Viết các kế hoạch sẵn sàng thực thi cho skill `executing-plans`. Đối tượng: các developer có kinh nghiệm nhưng không có context về codebase hoặc lĩnh vực bài toán của chúng ta. DRY. YAGNI. TDD. Commit thường xuyên.
 
-With coding tasks, follow TDD order when possible: write a failing test that references the spec, implement just enough to make it pass, verify the test passes, then commit. For non-coding tasks (e.g., schema migrations, config changes), TDD is not required.
+Với các task coding, tuân theo thứ tự TDD khi có thể: viết một test thất bại reference đến spec, triển khai vừa đủ để test pass, verify test pass, rồi commit. Đối với các task không phải coding (ví dụ: schema migrations, config changes), TDD không bắt buộc.
 
-## Scope Check
+## Kiểm Tra Phạm Vi
 
-If the spec covers multiple independent subsystems, split into separate plans — one per subsystem. Each plan must produce working, testable software on its own.
+Nếu spec bao gồm nhiều subsystem độc lập, tách thành các kế hoạch riêng — mỗi subsystem một kế hoạch. Mỗi kế hoạch phải tạo ra phần mềm hoạt động được và có thể test được một cách độc lập.
 
-## Phase Structure
+## Cấu Trúc Phase
 
-Organize tasks into **Phases**. Phases are sequential — each phase starts only after the previous phase completes. Tasks within a phase are also executed sequentially.
+Tổ chức các task thành **Phases**. Các phase là tuần tự — mỗi phase chỉ bắt đầu sau khi phase trước hoàn thành. Các task trong cùng một phase cũng được thực thi tuần tự.
 
-Rules:
-- Group related tasks that logically belong together into the same phase.
-- Start a new phase only when tasks depend on output from the previous phase.
-- If the plan has only one phase, use a single `## Phase 1 — [Name]` heading with tasks nested under it.
+Quy tắc:
+- Nhóm các task có liên quan logic với nhau vào cùng một phase.
+- Chỉ bắt đầu phase mới khi các task phụ thuộc vào output từ phase trước.
+- Nếu kế hoạch chỉ có một phase, sử dụng duy nhất heading `## Phase 1 — [Tên]` với các task lồng bên trong.
 
-## File Structure
+## Cấu Trúc File
 
-Before defining tasks, map out which files will be created or modified and what each one is responsible for. This is where decomposition decisions get locked in.
+Trước khi định nghĩa các task, lập bản đồ các file sẽ được tạo hoặc sửa đổi và mỗi file chịu trách nhiệm gì. Đây là nơi các quyết định phân rã được khóa lại.
 
-- Design units with clear boundaries and well-defined interfaces. Each file should have one clear responsibility.
-- You reason best about code you can hold in context at once, and your edits are more reliable when files are focused. Prefer smaller, focused files over large ones that do too much.
-- Files that change together should live together. Split by responsibility, not by technical layer.
-- In existing codebases, follow established patterns. If the codebase uses large files, don't unilaterally restructure - but if a file you're modifying has grown unwieldy, including a split in the plan is reasonable.
+- Thiết kế các unit với boundaries rõ ràng và interfaces được định nghĩa tốt. Mỗi file nên có một trách nhiệm rõ ràng duy nhất.
+- Bạn suy luận tốt nhất về code có thể giữ trong context cùng một lúc, và các edit đáng tin cậy hơn khi files tập trung. Ưu tiên các file nhỏ, tập trung hơn các file lớn làm quá nhiều việc.
+- Các file thay đổi cùng nhau nên sống cùng nhau. Tách theo trách nhiệm, không theo technical layer.
+- Trong codebase hiện có, tuân theo các pattern đã thiết lập. Nếu codebase sử dụng file lớn, không tự ý tái cấu trúc - nhưng nếu file bạn đang sửa đã phát triển cồng kềnh, việc bao gồm một phần tách trong kế hoạch là hợp lý.
 
-This structure informs the task decomposition. Each task should produce self-contained changes that make sense independently.
+Cấu trúc này thông báo cho việc phân rã task. Mỗi task nên tạo ra các thay đổi độc lập có ý nghĩa.
 
-## Planning Principles (NOT Fixed Task Templates!)
+## Nguyên Tắc Lập Kế Hoạch (KHÔNG phải Template Task cố định!)
 
-### Principle 1: Keep It SHORT
-- 5-10 clear tasks max
-- Only actionable items
-- Keep the task description section in spec. No code in the task body.
+### Nguyên Tắc 1: Giữ NGẮN GỌN
+- Tối đa 5-10 task rõ ràng
+- Chỉ các mục có thể hành động
+- Giữ phần mô tả task trong spec. Không có code trong phần thân task.
 
-### Principle 2: Reference the Design Spec in Every Task
-> **Every implementation task must trace directly to its spec source. Never implement from memory or assumption.**
-- Implement per `01-backend.md` — SV-002"
-- Build `[ListPage]` per `02-frontend.md` — Section 3.1
-- Write unit tests per `04-quality.md` — [CreatePage] Unit Tests table
-- Handle form validation per rules in `01-backend.md` — Section 3. Validation Rules
+### Nguyên Tắc 2: Reference Design Spec trong Mọi Task
+> **Mọi task triển khai phải trace trực tiếp đến nguồn spec của nó. Không bao giờ triển khai từ bộ nhớ hoặc giả định.**
+- Triển khai theo `01-backend.md` — SV-002"
+- Xây dựng `[ListPage]` theo `02-frontend.md` — Section 3.1
+- Viết unit tests theo `04-quality.md` — bảng [CreatePage] Unit Tests
+- Xử lý validation form theo các quy tắc trong `01-backend.md` — Section 3. Validation Rules
 
-> **Rule:** Each task must include a `**Spec Reference:**` field linking to the exact spec file and section. An executor who has never seen the feature must be able to open the spec and know exactly what to build.
+> **Quy tắc:** Mỗi task phải bao gồm trường `**Spec Reference:**` liên kết đến file spec và section chính xác. Một executor chưa từng thấy feature phải có thể mở spec và biết chính xác cần build gì.
 
-### Principle 3: Tests are embedded in tasks, not deferred
-- Tests live in the same task as the code they test.
+### Nguyên Tắc 3: Tests được nhúng trong task, không trì hoãn
+- Tests sống trong cùng task với code mà chúng test.
 
-### Principle 4: No Placeholders or Vague Language
-- No `[TODO]`, `TBD`, vague paths (`path/to/file.ts`), or steps with no verifiable outcome. Every command must have an expected result.
-> **Rule:** If a step requires the executor to ask a question before acting, it must be rewritten.
+### Nguyên Tắc 4: Không Placeholders hoặc Ngôn Ngữ Mơ Hồ
+- Không `[TODO]`, `TBD`, đường dẫn mơ hồ (`path/to/file.ts`), hoặc các bước không có kết quả có thể verify. Mọi command phải có kết quả mong đợi.
+> **Quy tắc:** Nếu một bước yêu cầu executor phải hỏi câu hỏi trước khi hành động, nó phải được viết lại.
 
-## Principle 5: Separate Phases across multiple files
-- Separate phases into 4 files, Do not create any other files besides the 4 below: 
-`2024-06-15-vocabularies-01-migration.md`: DB schema + migration tasks. Short descriptions
-`2024-06-17-vocabularies-02-backend.md`: Backend API tasks + Test tasks related to backend + Build success/test verification
-`2024-06-19-vocabularies-03-frontend.md`: Frontend store + UI tasks + Test tasks related to frontend, Build success/test verification
+## Nguyên Tắc 5: Tách Phases qua nhiều file
+- Tách phases thành 4 files, Không tạo bất kỳ file nào khác ngoài 4 file dưới đây:
+`2024-06-15-vocabularies-01-migration.md`: DB schema + migration tasks. Mô tả ngắn gọn
+`2024-06-17-vocabularies-02-backend.md`: Backend API tasks + Test tasks liên quan đến backend + Build success/test verification
+`2024-06-19-vocabularies-03-frontend.md`: Frontend store + UI tasks + Test tasks liên quan đến frontend, Build success/test verification
 `2024-06-20-vocabularies-04-review.md`: review tests + review code
 
-## Plan Document Header
-**Every plan MUST start with this header:**
+## Header của Kế Hoạch
+**Mọi kế hoạch PHẢI bắt đầu với header này:**
 
 ````markdown
 # [Feature Name] Implementation Plan
@@ -77,30 +77,30 @@ This structure informs the task decomposition. Each task should produce self-con
 
 ## Plan Structure
 ````markdown
-## Phase 1 — [Name]
-### Task N: [Task Name]
+## Phase 1 — [Tên]
+### Task N: [Tên Task]
 
 **Spec Reference:** `docs/<topic>/specs/<topic>-design/01-backend.md — Section X.Y`
 
 **Files:**
 - Create: `exact/path/to/file.ts`
 - Modify: `exact/path/to/existing.ts`
-- Test: `exact/path/to/test.spec.ts` _(omit if no tests in this task)_
+- Test: `exact/path/to/test.spec.ts` _(bỏ qua nếu task không có tests)_
 
-- **Step 1:** [Describe what to do — e.g., run migration, implement endpoint, write tests in Section X.Y of 01-backend.md, etc.] 
-[Do not describe how to do it — the executor will read the spec and figure out the implementation details themselves. The task should be clear and actionable without any additional explanation.]
+- **Bước 1:** [Mô tả cần làm gì — ví dụ: chạy migration, triển khai endpoint, viết tests trong Section X.Y của 01-backend.md, v.v.]
+[Không mô tả cách làm — executor sẽ đọc spec và tự tìm ra chi tiết triển khai. Task nên rõ ràng và có thể hành động được mà không cần giải thích thêm.]
   - Run: `[command]`
-  - Expected: [verifiable outcome]
+  - Expected: [kết quả có thể verify]
 
-- **Step 2: Commit**
+- **Bước 2: Commit**
   - `git add [files]`
-  - `git commit -m "feat: [description]"`
+  - `git commit -m "feat: [mô tả]"`
 
 ````
-## Self-Review (run before saving)
+## Self-Review (chạy trước khi lưu)
 
-1. **Spec coverage** — every spec requirement maps to a task. Add missing tasks.
-2. **Placeholder scan** — no vague paths, missing commands, or unverifiable outcomes.
-3. **Type consistency** — types and method names match across all tasks.
-4. **Dependency check** — tasks that depend on prior phase output are in a later phase.
-5. **Test coverage check** — every task that writes logic includes tests in the same task. No task defers tests to a later phase. Tasks with no logic (migrations, config, type files) may omit tests.
+1. **Spec coverage** — mọi yêu cầu spec map đến một task. Thêm các task còn thiếu.
+2. **Placeholder scan** — không có đường dẫn mơ hồ, command thiếu, hoặc kết quả không thể verify.
+3. **Type consistency** — types và method names khớp nhau xuyên suốt các task.
+4. **Dependency check** — các task phụ thuộc vào output của phase trước nằm trong phase sau.
+5. **Test coverage check** — mọi task viết logic bao gồm tests trong cùng task. Không task nào trì hoãn tests cho phase sau. Các task không có logic (migrations, config, type files) có thể bỏ qua tests.

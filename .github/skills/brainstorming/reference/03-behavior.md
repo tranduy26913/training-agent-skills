@@ -17,70 +17,70 @@ date: [YYYY-MM-DD]
 ### 1.1 [ListPage]
 
 #### onMounted
-1. Initialize default filter state
-2. Call `fetchItems()` with default pagination
-3. Render table with loaded items or empty state
+1. Khởi tạo trạng thái filter mặc định
+2. Gọi `fetchItems()` với pagination mặc định
+3. Render table với các items đã load hoặc empty state
 
 #### handleFilterChange(filters)
-1. Reset `page` to 1
-2. Update filter state
-3. Call `fetchItems()` with new filters
-4. Update URL query params (optional)
+1. Reset `page` về 1
+2. Cập nhật trạng thái filter
+3. Gọi `fetchItems()` với filters mới
+4. Cập nhật URL query params (tùy chọn)
 
 #### handlePageChange(page)
-1. Update current page in pagination state
-2. Call `fetchItems()` with updated page
+1. Cập nhật trang hiện tại trong trạng thái pagination
+2. Gọi `fetchItems()` với trang đã cập nhật
 
 #### handleEditClick(id)
-1. Navigate to `[EditPage]` route: `/path/:id/edit`
+1. Điều hướng đến route `[EditPage]`: `/path/:id/edit`
 
 #### handleDeleteClick(id)
-1. Show confirm dialog (see [Confirm Dialogs](#3-confirm-dialogs))
-2. On confirm: call `deleteItem(id)`
-3. On success: show success toast, refresh list
-4. On error: show error toast
+1. Hiển thị hộp thoại confirm (xem [Confirm Dialogs](#3-confirm-dialogs))
+2. Khi confirm: gọi `deleteItem(id)`
+3. Khi thành công: hiển thị toast thành công, làm mới danh sách
+4. Khi lỗi: hiển thị toast lỗi
 
 ---
 
 ### 1.2 [CreatePage]
 
 #### onMounted
-1. Initialize empty form state
-2. Focus first input field
+1. Khởi tạo trạng thái form rỗng
+2. Focus vào ô input đầu tiên
 
 #### handleSubmit(formData)
-1. Validate all form fields client-side
-2. If invalid: highlight error fields, stop
-3. If valid: call `createItem(formData)`
-4. On success: show success toast -> navigate to list
-5. On error: show error toast, stay on page
+1. Validate tất cả các fields của form phía client-side
+2. Nếu không hợp lệ: highlight các fields lỗi, dừng lại
+3. Nếu hợp lệ: gọi `createItem(formData)`
+4. Khi thành công: hiển thị toast thành công -> điều hướng đến list
+5. Khi lỗi: hiển thị toast lỗi, ở lại trang
 
 #### handleCancel()
-1. Check if form has unsaved changes (dirty state)
-2. If dirty: show confirm dialog (see [Confirm Dialogs](#3-confirm-dialogs))
-3. On confirm (or not dirty): navigate back to list
+1. Kiểm tra form có thay đổi chưa lưu (dirty state)
+2. Nếu dirty: hiển thị hộp thoại confirm (xem [Confirm Dialogs](#3-confirm-dialogs))
+3. Khi confirm (hoặc not dirty): điều hướng về list
 
 ---
 
 ### 1.3 [EditPage]
 
 #### onMounted
-1. Extract `id` from route params
-2. Call `fetchItem(id)`
-3. Populate form with existing data
-4. If item not found: redirect to 404 or list page
+1. Lấy `id` từ route params
+2. Gọi `fetchItem(id)`
+3. Điền form với dữ liệu hiện có
+4. Nếu item không tìm thấy: redirect về 404 hoặc list page
 
 #### handleSubmit(formData)
-1. Validate all form fields client-side
-2. If invalid: highlight error fields, stop
-3. If valid: call `updateItem(id, formData)`
-4. On success: show success toast, stay on edit page
-5. On error: show error toast, stay on page
+1. Validate tất cả các fields của form client-side
+2. Nếu không hợp lệ: highlight các fields lỗi, dừng lại
+3. Nếu hợp lệ: gọi `updateItem(id, formData)`
+4. Khi thành công: hiển thị toast thành công, ở lại trang edit
+5. Khi lỗi: hiển thị toast lỗi, ở lại trang
 
 #### handleCancel()
-1. Check if form has unsaved changes (dirty state)
-2. If dirty: show confirm dialog (see [Confirm Dialogs](#3-confirm-dialogs))
-3. On confirm (or not dirty): navigate back to list
+1. Kiểm tra form có thay đổi chưa lưu (dirty state)
+2. Nếu dirty: hiển thị hộp thoại confirm (xem [Confirm Dialogs](#3-confirm-dialogs))
+3. Khi confirm (hoặc not dirty): điều hướng về list
 
 ---
 
@@ -90,35 +90,35 @@ date: [YYYY-MM-DD]
 
 | Page / Component | Trigger | UI Behavior |
 |-----------------|---------|-------------|
-| [ListPage] | Fetching items | Show skeleton rows in table |
-| [CreatePage] / [EditPage] | Submitting form | Disable submit button, show spinner |
-| [EditPage] | Loading item data | Show form skeleton / spinner |
-| [OptionalViewer] | Loading activity | Show spinner in panel |
+| [ListPage] | Đang fetch items | Hiển thị skeleton rows trong table |
+| [CreatePage] / [EditPage] | Đang submit form | Vô hiệu hóa nút submit, hiển thị spinner |
+| [EditPage] | Đang load dữ liệu item | Hiển thị form skeleton / spinner |
+| [OptionalViewer] | Đang load activity | Hiển thị spinner trong panel |
 
 ### 2.2 Empty States
 
 | Page / Component | Condition | UI Behavior |
 |-----------------|-----------|-------------|
-| [ListPage] - Table | No items found (0 results) | Show "No [resource] found" message with optional CTA |
-| [ListPage] - Table | Search/filter returns 0 results | Show "No results match your filter" message |
-| [OptionalViewer] | No activity history | Show "No activity recorded yet" |
+| [ListPage] - Table | Không tìm thấy items (0 results) | Hiển thị thông báo "No [resource] found" với optional CTA |
+| [ListPage] - Table | Search/filter trả về 0 results | Hiển thị thông báo "No results match your filter" |
+| [OptionalViewer] | Không có lịch sử activity | Hiển thị thông báo "No activity recorded yet" |
 
 ### 2.3 Error States
 
 | Page / Component | Condition | UI Behavior |
 |-----------------|-----------|-------------|
-| [ListPage] | Fetch items fails | Show error banner: "Failed to load [resource]. Try again." |
-| [CreatePage] / [EditPage] | Submit fails (server error) | Show error toast: "An error occurred. Please try again." |
-| [EditPage] | Item not found (404) | Redirect to list + show warning toast: "[Resource] not found" |
-| Form field | Client validation fails | Highlight field red + show inline error message |
+| [ListPage] | Fetch items thất bại | Hiển thị error banner: "Failed to load [resource]. Try again." |
+| [CreatePage] / [EditPage] | Submit thất bại (server error) | Hiển thị error toast: "An error occurred. Please try again." |
+| [EditPage] | Item not found (404) | Redirect về list + hiển thị warning toast: "[Resource] not found" |
+| Form field | Client validation thất bại | Highlight field đỏ + hiển thị inline error message |
 
 ### 2.4 Success States
 
 | Action | UI Behavior |
 |--------|-------------|
-| Create successful | Toast: "[Resource] created successfully" -> redirect to list |
-| Update successful | Toast: "[Resource] updated successfully" -> stay on edit page |
-| Delete successful | Toast: "[Resource] deleted successfully" -> refresh list |
+| Create successful | Toast: "[Resource] created successfully" -> redirect về list |
+| Update successful | Toast: "[Resource] updated successfully" -> ở lại trang edit |
+| Delete successful | Toast: "[Resource] deleted successfully" -> làm mới list |
 
 ---
 
@@ -128,25 +128,25 @@ date: [YYYY-MM-DD]
 
 | Property | Value |
 |----------|-------|
-| Trigger | Click Delete button on list row |
+| Trigger | Click nút Delete trên list row |
 | Title | "Delete [Resource]" |
 | Message | "Are you sure you want to delete **[item name]**? This action cannot be undone." |
 | Confirm button | "Delete" (destructive / red) |
 | Cancel button | "Cancel" |
-| On confirm | Execute delete flow |
-| On cancel | Close dialog, no action |
+| On confirm | Thực thi delete flow |
+| On cancel | Đóng dialog, không có hành động |
 
 ### 3.2 Unsaved Changes Confirmation
 
 | Property | Value |
 |----------|-------|
-| Trigger | Click Cancel / navigate away when form is dirty |
+| Trigger | Click Cancel / navigate away khi form is dirty |
 | Title | "Unsaved Changes" |
 | Message | "You have unsaved changes. Are you sure you want to leave?" |
 | Confirm button | "Leave" |
 | Cancel button | "Stay" |
 | On confirm | Navigate away without saving |
-| On cancel | Close dialog, stay on page |
+| On cancel | Đóng dialog, ở lại trang |
 
 ---
 
@@ -154,13 +154,13 @@ date: [YYYY-MM-DD]
 
 | Action | From | To | Condition |
 |--------|------|----|-----------|
-| Click "Add" button | [ListPage] | [CreatePage] | Always |
-| Click "Edit" on row | [ListPage] | [EditPage] `/:id/edit` | Always |
-| Create success | [CreatePage] | [ListPage] | After successful save |
-| Update success | [EditPage] | [EditPage] (stay) | After successful save |
-| Cancel (clean form) | [CreatePage] / [EditPage] | [ListPage] | No dirty state |
-| Cancel (dirty form) | [CreatePage] / [EditPage] | [ListPage] | After confirm dialog |
-| Item not found | [EditPage] | [ListPage] | API returns 404 |
+| Click nút "Add" | [ListPage] | [CreatePage] | Always |
+| Click "Edit" trên row | [ListPage] | [EditPage] `/:id/edit` | Always |
+| Create thành công | [CreatePage] | [ListPage] | Sau khi lưu thành công |
+| Update thành công | [EditPage] | [EditPage] (stay) | Sau khi lưu thành công |
+| Cancel (form sạch) | [CreatePage] / [EditPage] | [ListPage] | No dirty state |
+| Cancel (form dirty) | [CreatePage] / [EditPage] | [ListPage] | Sau khi confirm dialog |
+| Item not found | [EditPage] | [ListPage] | API trả về 404 |
 | Unauthorized | Any page | Login page | 401 response |
 
 ---
@@ -172,7 +172,7 @@ date: [YYYY-MM-DD]
 ```text
 User         [CreatePage]    use[Feature].ts    Backend       Database
   |               |                |               |              |
-  |-- Fill form ->|                |               |              |
+  |-- Điền form ->|                |               |              |
   |-- Submit ---->|                |               |              |
   |               |-- validate --->|               |              |
   |               |   (invalid) <--|               |              |
@@ -199,7 +199,7 @@ User         [EditPage]      use[Feature].ts    Backend       Database
   |               |                |               |-- SELECT --->|
   |               |                |<-- data ------|              |
   |               |<-- item data --|               |              |
-  |-- Edit form ->|                |               |              |
+  |-- Chỉnh form ->|               |               |              |
   |-- Submit ---->|                |               |              |
   |               |-- updateItem ->|               |              |
   |               |                |-- PUT ------->|              |

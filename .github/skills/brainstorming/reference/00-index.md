@@ -10,7 +10,7 @@ date: [YYYY-MM-DD]
 
 ## Executive Summary
 
-Provide a concise summary of the feature objective, business value, and expected outcome.
+Cung cấp một tóm tắt ngắn gọn về mục tiêu feature, business value, và kết quả mong đợi.
 
 ---
 
@@ -26,16 +26,16 @@ Provide a concise summary of the feature objective, business value, and expected
 
 ### Purpose
 
-Describe the main goal of this feature and its intended users.
+Mô tả mục tiêu chính của feature này và những người dùng dự kiến.
 
 ### In Scope
 
-- [List features included in this delivery]
+- [Liệt kê các features được bao gồm trong delivery này]
 - [...]
 
 ### Out of Scope
 
-- [List features explicitly excluded from this delivery]
+- [Liệt kê các features bị loại trừ rõ ràng khỏi delivery này]
 - [...]
 
 ---

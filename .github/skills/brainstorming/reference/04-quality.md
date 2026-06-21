@@ -16,29 +16,29 @@ date: [YYYY-MM-DD]
 
 ### 1.1 Backend Tests
 
-> **Rule**: All **backend tests** should be in **only 1 file**: `server/src/modules/[feature]/[feature].controller.test.ts`
-- Use Database test for test. Not use in-memory mocks or fake implementations. Use the same test database and run migrations before tests.
+> **Rule**: Tất cả **backend tests** nên nằm trong **chỉ 1 file**: `server/src/modules/[feature]/[feature].controller.test.ts`
+- Sử dụng Database test để test. Không sử dụng in-memory mocks hoặc fake implementations. Sử dụng cùng test database và chạy migrations trước khi tests.
 
 #### Unit Tests
 
 | Test Case | Description |
 |-----------|-------------|
-| Create [resource] - success | Valid input creates record and returns entity |
-| Create [resource] - validation error | Invalid input throws validation error |
-| Create [resource] - duplicate | Duplicate key throws conflict error |
-| Get [resource] by ID - found | Returns correct entity |
-| Get [resource] by ID - not found | Throws 404 error |
-| Update [resource] - success | Valid update modifies and returns entity |
-| Update [resource] - not found | Throws 404 error |
-| Delete [resource] - success | Deletes record and returns success |
-| Delete [resource] - constraint | Business rule prevents deletion, throws error |
-| List [resource] - filtered | Returns filtered, paginated results |
+| Create [resource] - thành công | Input hợp lệ tạo record và trả về entity |
+| Create [resource] - lỗi validation | Input không hợp lệ ném lỗi validation |
+| Create [resource] - trùng lặp | Duplicate key ném lỗi conflict |
+| Get [resource] by ID - tìm thấy | Trả về entity chính xác |
+| Get [resource] by ID - không tìm thấy | Ném lỗi 404 |
+| Update [resource] - thành công | Update hợp lệ sửa đổi và trả về entity |
+| Update [resource] - không tìm thấy | Ném lỗi 404 |
+| Delete [resource] - thành công | Xóa record và trả về thành công |
+| Delete [resource] - constraint | Business rule ngăn chặn xóa, ném lỗi |
+| List [resource] - filtered | Trả về kết quả đã filter, phân trang |
 
 #### Integration Tests
 
 | Test Case | HTTP Method | Endpoint |
 |-----------|-------------|----------|
-| GET list — authenticated, returns data | GET | `/api/[resource]` |
+| GET list — authenticated, trả về data | GET | `/api/[resource]` |
 | GET list — unauthenticated, 401 | GET | `/api/[resource]` |
 | GET list — no permission, 403 | GET | `/api/[resource]` |
 | POST create — valid body, 201 | POST | `/api/[resource]` |
@@ -52,10 +52,10 @@ date: [YYYY-MM-DD]
 
 | Test Case | Role | Expected |
 |-----------|------|----------|
-| [Role A] can access list | [RoleA] | 200 |
-| [Role B] cannot access list | [RoleB] | 403 |
-| [Role A] can create | [RoleA] | 201 |
-| [Role B] cannot delete | [RoleB] | 403 |
+| [Role A] có thể truy cập list | [RoleA] | 200 |
+| [Role B] không thể truy cập list | [RoleB] | 403 |
+| [Role A] có thể create | [RoleA] | 201 |
+| [Role B] không thể delete | [RoleB] | 403 |
 
 ---
 
@@ -65,17 +65,17 @@ date: [YYYY-MM-DD]
 
 | # | Test Case | Arrange | Act | Assert |
 |---|-----------|---------|-----|--------|
-| 1 | Renders items in table on mount | Mock `fetchItems` returns 2 items | Mount `[ListPage]` | Table displays 2 rows |
-| 2 | Shows loading skeleton while fetching | Mock `fetchItems` pending | Mount `[ListPage]` | Loading skeleton visible; table rows hidden |
-| 3 | Shows empty state when no items | Mock `fetchItems` returns `[]` | Mount `[ListPage]` | Empty state message shown |
-| 4 | Triggers fetch when search input changes | Mount `[ListPage]` | Type in search input (debounced) | `fetchItems` called with updated search filter |
-| 5 | Triggers fetch when filter changes | Mount `[ListPage]` | Select [Filter A] option | `fetchItems` called with updated filter, page reset to 1 |
-| 6 | Triggers fetch when page changes | Mount `[ListPage]` | Click next page | `fetchItems` called with updated page number |
-| 7 | Navigates to create page on Add click | Mount `[ListPage]` | Click Add button | Router push called with `/path/create` |
-| 8 | Navigates to edit page on Edit click | Mount `[ListPage]` with 1 item | Click Edit on row | Router push called with `/path/1/edit` |
-| 9 | Shows delete confirm dialog on Delete click | Mount `[ListPage]` with 1 item | Click Delete on row | Confirm dialog shown with item name |
-| 10 | Deletes item and refreshes list on confirm | Mock `deleteItem` resolves | Confirm delete dialog | `deleteItem` called; `fetchItems` called again; success toast shown |
-| 11 | Shows error toast when fetch fails | Mock `fetchItems` rejects | Mount `[ListPage]` | Error message/banner shown |
+| 1 | Hiển thị items trong table khi mount | Mock `fetchItems` trả về 2 items | Mount `[ListPage]` | Table hiển thị 2 rows |
+| 2 | Hiển thị loading skeleton khi fetching | Mock `fetchItems` đang pending | Mount `[ListPage]` | Loading skeleton visible; table rows hidden |
+| 3 | Hiển thị empty state khi không có items | Mock `fetchItems` trả về `[]` | Mount `[ListPage]` | Empty state message shown |
+| 4 | Trigger fetch khi search input thay đổi | Mount `[ListPage]` | Type trong search input (debounced) | `fetchItems` called với search filter đã cập nhật |
+| 5 | Trigger fetch khi filter thay đổi | Mount `[ListPage]` | Select [Filter A] option | `fetchItems` called với filter đã cập nhật, page reset về 1 |
+| 6 | Trigger fetch khi page thay đổi | Mount `[ListPage]` | Click next page | `fetchItems` called với page number đã cập nhật |
+| 7 | Navigate đến create page khi click Add | Mount `[ListPage]` | Click nút Add | Router push called với `/path/create` |
+| 8 | Navigate đến edit page khi click Edit | Mount `[ListPage]` với 1 item | Click Edit trên row | Router push called với `/path/1/edit` |
+| 9 | Hiển thị delete confirm dialog khi click Delete | Mount `[ListPage]` với 1 item | Click Delete trên row | Confirm dialog shown với item name |
+| 10 | Xóa item và làm mới list khi confirm | Mock `deleteItem` resolves | Confirm delete dialog | `deleteItem` called; `fetchItems` called lại; success toast shown |
+| 11 | Hiển thị error toast khi fetch thất bại | Mock `fetchItems` rejects | Mount `[ListPage]` | Error message/banner shown |
 
 ---
 
@@ -83,15 +83,15 @@ date: [YYYY-MM-DD]
 
 | # | Test Case | Arrange | Act | Assert |
 |---|-----------|---------|-----|--------|
-| 1 | Renders empty form on mount | Mount `[CreatePage]` | — | All fields empty; Save button enabled |
-| 2 | Shows inline error when required field is empty | Mount `[CreatePage]` | Click Save without filling fields | Validation error shown on required fields |
-| 3 | Shows inline error when [Field A] too short | Mount `[CreatePage]` | Enter 1-char value in [Field A] | Validation error "Min 2 characters" shown |
-| 4 | Calls `createItem` with valid form data | Mock `createItem` resolves | Fill form, click Save | `createItem` called with correct payload |
-| 5 | Navigates to list after successful create | Mock `createItem` resolves | Fill form, click Save | Router push called with `/path`; success toast shown |
-| 6 | Shows error toast on API failure | Mock `createItem` rejects | Fill form, click Save | Error toast shown; stays on create page |
-| 7 | Cancel without changes navigates back | Mount `[CreatePage]` | Click Cancel (form untouched) | Router push called with `/path` |
-| 8 | Cancel with changes shows confirm dialog | Mount `[CreatePage]` | Fill a field, then click Cancel | Unsaved-changes confirm dialog shown |
-| 9 | Stay on page when cancel dialog is dismissed | Fill a field, click Cancel, dismiss dialog | Dismiss confirm dialog | Stays on create page; form unchanged |
+| 1 | Hiển thị form rỗng khi mount | Mount `[CreatePage]` | — | Tất cả fields empty; nút Save enabled |
+| 2 | Hiển thị inline error khi required field empty | Mount `[CreatePage]` | Click Save mà không điền fields | Validation error shown trên required fields |
+| 3 | Hiển thị inline error khi [Field A] quá ngắn | Mount `[CreatePage]` | Enter giá trị 1 ký tự trong [Field A] | Validation error "Min 2 characters" shown |
+| 4 | Gọi `createItem` với form data hợp lệ | Mock `createItem` resolves | Điền form, click Save | `createItem` called với payload chính xác |
+| 5 | Navigate đến list sau khi create thành công | Mock `createItem` resolves | Điền form, click Save | Router push called với `/path`; success toast shown |
+| 6 | Hiển thị error toast khi API thất bại | Mock `createItem` rejects | Điền form, click Save | Error toast shown; ở lại trang create |
+| 7 | Cancel không có changes navigate về | Mount `[CreatePage]` | Click Cancel (form chưa touched) | Router push called với `/path` |
+| 8 | Cancel có changes hiển thị confirm dialog | Mount `[CreatePage]` | Điền field, sau đó click Cancel | Unsaved-changes confirm dialog shown |
+| 9 | Ở lại trang khi cancel dialog dismissed | Điền field, click Cancel, dismiss dialog | Dismiss confirm dialog | Ở lại trang create; form không đổi |
 
 ---
 
@@ -99,15 +99,15 @@ date: [YYYY-MM-DD]
 
 | # | Test Case | Arrange | Act | Assert |
 |---|-----------|---------|-----|--------|
-| 1 | Pre-fills form with existing item data | Mock `fetchItem` returns item | Mount `[EditPage]` with id=1 | Form fields populated with item values |
-| 2 | Shows loading while fetching item | Mock `fetchItem` pending | Mount `[EditPage]` | Form skeleton/spinner visible |
-| 3 | Redirects to list when item not found | Mock `fetchItem` returns 404 | Mount `[EditPage]` with unknown id | Router push called with `/path`; warning toast shown |
-| 4 | Shows inline error on invalid field | Mount `[EditPage]`, item loaded | Clear required field, click Save | Validation error shown on field |
-| 5 | Calls `updateItem` with modified data | Mock `updateItem` resolves | Change a field, click Save | `updateItem` called with id and updated payload |
-| 6 | Shows success toast and stays on page after save | Mock `updateItem` resolves | Change a field, click Save | Success toast shown; still on edit page |
-| 7 | Shows error toast on API failure | Mock `updateItem` rejects | Change a field, click Save | Error toast shown; stays on edit page |
-| 8 | Cancel without changes navigates back | Mount `[EditPage]`, item loaded | Click Cancel (no changes) | Router push called with `/path` |
-| 9 | Cancel with changes shows confirm dialog | Mount `[EditPage]`, item loaded | Change a field, click Cancel | Unsaved-changes confirm dialog shown |
+| 1 | Pre-fills form với existing item data | Mock `fetchItem` trả về item | Mount `[EditPage]` với id=1 | Form fields populated với item values |
+| 2 | Hiển thị loading khi fetching item | Mock `fetchItem` pending | Mount `[EditPage]` | Form skeleton/spinner visible |
+| 3 | Redirect về list khi item not found | Mock `fetchItem` trả về 404 | Mount `[EditPage]` với unknown id | Router push called với `/path`; warning toast shown |
+| 4 | Hiển thị inline error trên field không hợp lệ | Mount `[EditPage]`, item loaded | Clear required field, click Save | Validation error shown trên field |
+| 5 | Gọi `updateItem` với data đã sửa đổi | Mock `updateItem` resolves | Change field, click Save | `updateItem` called với id và payload đã cập nhật |
+| 6 | Hiển thị success toast và ở lại trang sau khi save | Mock `updateItem` resolves | Change field, click Save | Success toast shown; vẫn ở lại trang edit |
+| 7 | Hiển thị error toast khi API thất bại | Mock `updateItem` rejects | Change field, click Save | Error toast shown; ở lại trang edit |
+| 8 | Cancel không có changes navigate về | Mount `[EditPage]`, item loaded | Click Cancel (no changes) | Router push called với `/path` |
+| 9 | Cancel có changes hiển thị confirm dialog | Mount `[EditPage]`, item loaded | Change field, click Cancel | Unsaved-changes confirm dialog shown |
 
 ---
 
@@ -115,12 +115,12 @@ date: [YYYY-MM-DD]
 
 | # | Test Case | Arrange | Act | Assert |
 |---|-----------|---------|-----|--------|
-| 1 | Renders all fields in create mode | Mount `<Form mode="create">` | — | All fields visible and empty |
-| 2 | Pre-fills fields in edit mode | Mount `<Form mode="edit" :initialData="item">` | — | Fields populated with initialData values |
-| 3 | Emits `submit` with valid data | Mount form, fill all required fields | Click Save | `submit` event emitted with form payload |
-| 4 | Does not emit `submit` when validation fails | Mount form, leave required field empty | Click Save | `submit` event NOT emitted |
-| 5 | Emits `cancel` on Cancel click | Mount form | Click Cancel | `cancel` event emitted |
-| 6 | Disables Save button when `loading=true` | Mount `<Form :loading="true">` | — | Save button disabled |
+| 1 | Hiển thị tất cả fields trong create mode | Mount `<Form mode="create">` | — | Tất cả fields visible và empty |
+| 2 | Pre-fills fields trong edit mode | Mount `<Form mode="edit" :initialData="item">` | — | Fields populated với initialData values |
+| 3 | Emit `submit` với data hợp lệ | Mount form, điền tất cả required fields | Click Save | `submit` event emitted với form payload |
+| 4 | Không emit `submit` khi validation thất bại | Mount form, leave required field empty | Click Save | `submit` event NOT emitted |
+| 5 | Emit `cancel` khi click Cancel | Mount form | Click Cancel | `cancel` event emitted |
+| 6 | Disable nút Save khi `loading=true` | Mount `<Form :loading="true">` | — | Nút Save disabled |
 
 ---
 
@@ -128,12 +128,12 @@ date: [YYYY-MM-DD]
 
 | # | Test Case | Arrange | Act | Assert |
 |---|-----------|---------|-----|--------|
-| 1 | `fetchItems` sets `items` and `pagination` | Mock API returns paginated list | Call `fetchItems()` | `items.value` and `pagination.value` updated |
+| 1 | `fetchItems` sets `items` và `pagination` | Mock API trả về paginated list | Call `fetchItems()` | `items.value` và `pagination.value` updated |
 | 2 | `fetchItems` sets `loading` during call | Mock API pending | Call `fetchItems()` | `loading.value` is `true` during call, `false` after |
 | 3 | `fetchItems` sets `error` on failure | Mock API rejects | Call `fetchItems()` | `error.value` contains message |
-| 4 | `createItem` calls API and returns entity | Mock API resolves with new item | Call `createItem(data)` | Returns created item |
-| 5 | `updateItem` calls API with correct id and data | Mock API resolves | Call `updateItem(1, data)` | API called with `PUT /api/[resource]/1` |
-| 6 | `deleteItem` calls API with correct id | Mock API resolves | Call `deleteItem(1)` | API called with `DELETE /api/[resource]/1` |
+| 4 | `createItem` calls API và returns entity | Mock API resolves với new item | Call `createItem(data)` | Trả về item đã tạo |
+| 5 | `updateItem` calls API với correct id và data | Mock API resolves | Call `updateItem(1, data)` | API called với `PUT /api/[resource]/1` |
+| 6 | `deleteItem` calls API với correct id | Mock API resolves | Call `deleteItem(1)` | API called với `DELETE /api/[resource]/1` |
 
 ---
 
@@ -141,12 +141,12 @@ date: [YYYY-MM-DD]
 
 | Concern | Strategy |
 |---------|----------|
-| List query | Server-side pagination (default limit: 10) |
-| Search | Debounced input (300ms) to reduce API calls |
-| Database indexes | Index on `[searchable_field]` and `[filter_field]` |
-| Filtering | Use indexed columns only in WHERE clause |
-| Caching | [If applicable: cache strategy, TTL] |
-| Lazy loading | [If applicable: component lazy load, image lazy] |
+| List query | Server-side pagination (mặc định limit: 10) |
+| Search | Debounced input (300ms) để giảm API calls |
+| Database indexes | Index trên `[searchable_field]` và `[filter_field]` |
+| Filtering | Chỉ sử dụng indexed columns trong WHERE clause |
+| Caching | [Nếu applicable: cache strategy, TTL] |
+| Lazy loading | [Nếu applicable: component lazy load, image lazy] |
 
 ---
 
@@ -154,13 +154,13 @@ date: [YYYY-MM-DD]
 
 | Concern | Control |
 |---------|---------|
-| Authentication | All endpoints require valid JWT token |
-| Authorization | Role-based access control (RBAC) per endpoint |
-| Input Validation | Server-side validation on all request body fields |
-| SQL Injection | Use parameterized queries / ORM (no raw string concat) |
-| Sensitive Data | Never return passwords or tokens in responses |
-| Audit Trail | Log all create/update/delete actions with user + timestamp |
-| Rate Limiting | Apply rate limiting on write endpoints (POST, PUT, DELETE) |
+| Authentication | Tất cả endpoints yêu cầu JWT token hợp lệ |
+| Authorization | Role-based access control (RBAC) cho mỗi endpoint |
+| Input Validation | Server-side validation trên tất cả request body fields |
+| SQL Injection | Sử dụng parameterized queries / ORM (không raw string concat) |
+| Sensitive Data | Không bao giờ trả về passwords hoặc tokens trong responses |
+| Audit Trail | Log tất cả create/update/delete actions với user + timestamp |
+| Rate Limiting | Áp dụng rate limiting trên write endpoints (POST, PUT, DELETE) |
 
 ---
 

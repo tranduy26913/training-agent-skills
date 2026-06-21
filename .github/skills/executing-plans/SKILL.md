@@ -3,87 +3,87 @@ name: executing-plans
 description: Use when you have a written implementation plan to execute in a separate session
 ---
 
-# Overview
-Load plan, review critically, execute all phases and tasks sequentially, report when complete.
+# Tổng Quan
+Load kế hoạch, review mang tính phê bình, thực thi tất cả phases và tasks tuần tự, báo cáo khi hoàn thành.
 
-**Announce at start:** "I'm using the executing-plans skill to implement this plan."
+**Thông báo khi bắt đầu:** "Tôi đang sử dụng skill executing-plans để triển khai kế hoạch này."
 
-**Required skills:** Allways reference the following skills when executing plans:
-- **test-driven-development** - REQUIRED: Use for all implementation tasks that involve writing code (TDD)
-- **coding-guidelines** - REQUIRED: Use for all implementation tasks that involve writing code
-- **vue-best-practices** - REQUIRED: Use for all Vue.js implementation tasks
-- **prime-vue** - REQUIRED: Use for any PrimeVue component in Vue.js implementation
-- **vueuse-functions** - REQUIRED: Use for any VueUse function in Vue.js implementation
-- **vue-testing-best-practices** - REQUIRED: Use for all Vue.js testing tasks
-- **vue-router-best-practices** - REQUIRED: Use for any Vue Router implementation tasks
+**Required skills:** Luôn reference các skill sau khi thực thi kế hoạch:
+- **test-driven-development** - REQUIRED: Sử dụng cho mọi task triển khai liên quan đến viết code (TDD)
+- **coding-guidelines** - REQUIRED: Sử dụng cho mọi task triển khai liên quan đến viết code
+- **vue-best-practices** - REQUIRED: Sử dụng cho mọi task triển khai Vue.js
+- **prime-vue** - REQUIRED: Sử dụng cho mọi component PrimeVue trong triển khai Vue.js
+- **vueuse-functions** - REQUIRED: Sử dụng cho mọi function VueUse trong triển khai Vue.js
+- **vue-testing-best-practices** - REQUIRED: Sử dụng cho mọi task testing Vue.js
+- **vue-router-best-practices** - REQUIRED: Sử dụng cho mọi task triển khai Vue Router
 
-# Document Structure Principles
-- Follow common file:`project_structure_spec.md` and `common-system-guide.md`
-- Follow the specifications in the design spec (`docs/<topic>/specs/<topic>-design/`) — this is the source of truth for how to implement
+# Nguyên Tắc Cấu Trúc Tài Liệu
+- Tuân theo file chung: `project_structure_spec.md` và `common-system-guide.md`
+- Tuân theo các đặc tả trong design spec (`docs/<topic>/specs/<topic>-design/`) — đây là source of truth cho cách triển khai
 
-# The Process (MUST FOLLOW EXACTLY)
-## Step 1: Load and Review Plan
-1. Only one plan will be loaded and executed at a time.
-2. Review critically — identify hard blockers that would prevent execution entirely
-3. Resolve any ambiguities independently using codebase context; do **not** ask the user unless a blocker cannot be resolved by any means
-4. Create TodoWrite and proceed immediately
+# Quy Trình (PHẢI TUÂN THEO CHÍNH XÁC)
+## Bước 1: Load và Review Kế Hoạch
+1. Chỉ một kế hoạch được load và thực thi tại một thời điểm.
+2. Review mang tính phê bình — xác định các hard blocker sẽ ngăn việc thực thi hoàn toàn
+3. Tự giải quyết mọi ambiguity bằng codebase context; **không** hỏi người dùng trừ khi blocker không thể giải quyết bằng bất kỳ cách nào
+4. Tạo TodoWrite và tiến hành ngay lập tức
 
-## Step 2: Execute Phase and Tasks (all sequential)
-**Phases are sequential. Tasks within a phase are also executed sequentially, one after another.**
+## Bước 2: Thực Thi Phase và Tasks (tất cả tuần tự)
+**Các phase là tuần tự. Các task trong cùng một phase cũng được thực thi tuần tự, cái này sau cái kia.**
 
-Execution rules:
-1. Within each phase, execute each task in order.
-2. Keep track of completed tasks before moving to the next.
-3. When all tasks in a phase are completed, verify build and tests — no syntax errors or failing the entire test suite are allowed before proceeding to the next phase.
-4. When a phase is completed, turn step 1 of the next phase into a TodoWrite and execute it
+Quy tắc thực thi:
+1. Trong mỗi phase, thực thi từng task theo thứ tự.
+2. Theo dõi các task đã hoàn thành trước khi chuyển sang task tiếp theo.
+3. Khi tất cả các task trong một phase hoàn thành, verify build và tests — không có syntax errors hoặc failing toàn bộ test suite nào được phép trước khi tiến hành phase tiếp theo.
+4. Khi một phase hoàn thành, chuyển bước 1 của phase tiếp theo thành TodoWrite và thực thi nó
 
-For each task:
-1. Execute the task instructions exactly as written
-2. Read the relevant specs, load the relevant skills, and reference them as needed
+Với mỗi task:
+1. Thực thi các hướng dẫn của task chính xác như đã viết
+2. Đọc các spec liên quan, load các skill liên quan, và reference chúng khi cần
 
-When all phases and tasks are completed, proceed to the post-completion review.
+Khi tất cả phases và tasks đã hoàn thành, tiến hành post-completion review.
 
-## Step 3: Post-Completion Review
+## Bước 3: Post-Completion Review
 
-After **ALL** tasks are completed, dispatch review:
+Sau khi **TẤT CẢ** tasks đã hoàn thành, dispatch review:
 
-**Locate the design spec package first:** `docs/<topic>/specs/<topic>-design/`  
+**Xác định vị trí design spec package trước:** `docs/<topic>/specs/<topic>-design/`
 
 #### A — Code Review
 Load skill: `code-review`
 
-Provide:
-- `WHAT_WAS_IMPLEMENTED`: one-line summary of what was built
-- `SPEC_FILES`: paths to `01-backend.md`, `02-frontend.md`, `03-behavior.md` in the spec package
+Cung cấp:
+- `WHAT_WAS_IMPLEMENTED`: tóm tắt một dòng về những gì đã được build
+- `SPEC_FILES`: paths đến `01-backend.md`, `02-frontend.md`, `03-behavior.md` trong spec package
 
 #### B — UT Coverage Review
 Load skill: `ut-review`
 
-Provide:
-- `QUALITY_SPEC`: path to `04-quality.md` in the spec package
-- Focus: **UT only** — do not add or run E2E tests
+Cung cấp:
+- `QUALITY_SPEC`: path đến `04-quality.md` trong spec package
+- Focus: **Chỉ UT** — không thêm hoặc chạy E2E tests
 
-#### After all complete:
-1. Fix all **Critical** and **Important** issues from the code review report
-2. Add all missing UT cases identified by the UT coverage review
-3. Re-run `npx vitest run` — all UT tests must pass
+#### Sau khi tất cả hoàn thành:
+1. Sửa tất cả các vấn đề **Critical** và **Important** từ báo cáo code review
+2. Thêm tất cả các UT cases còn thiếu được xác định bởi UT coverage review
+3. Chạy lại `npx vitest run` — tất cả UT tests phải pass
 
-## When to Stop and Ask for Help
-**STOP executing immediately when:**
-- Hit a blocker (missing dependency, test fails, instruction unclear)
-- Plan has critical gaps preventing starting
-- You don't understand an instruction
-- Verification fails repeatedly
+## Khi Nào Dừng và Xin Trợ Giúp
+**DỪNG thực thi ngay lập tức khi:**
+- Gặp blocker (dependency thiếu, test fail, hướng dẫn không rõ ràng)
+- Kế hoạch có gaps quan trọng ngăn việc bắt đầu
+- Bạn không hiểu một hướng dẫn
+- Verification fail nhiều lần
 
-## When have next-step suggestions
-**If you have a next-step suggestion for the user, use tool vscode_askQuestions:**
+## Khi có next-step suggestions
+**Nếu bạn có next-step suggestion cho người dùng, sử dụng tool vscode_askQuestions:**
 
-## Remember
-- Review plan critically first
-- Follow plan steps exactly
-- Don't skip verifications
-- Reference skills when plan says to
-- Phases are sequential; tasks within a phase are also sequential
-- If a phase has only one task, execute it directly
-- Stop when blocked, don't guess
-- Never start implementation on main/master branch without explicit user consent
+## Nhớ
+- Review kế hoạch mang tính phê bình trước
+- Tuân theo các bước kế hoạch chính xác
+- Không bỏ qua verifications
+- Reference skills khi kế hoạch yêu cầu
+- Phases là tuần tự; tasks trong cùng một phase cũng tuần tự
+- Nếu một phase chỉ có một task, thực thi trực tiếp
+- Dừng khi bị blocker, không đoán
+- Không bao giờ bắt đầu triển khai trên branch main/master nếu không có sự đồng ý rõ ràng từ người dùng

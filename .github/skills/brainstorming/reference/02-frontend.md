@@ -80,9 +80,9 @@ client/src/pages/[feature]/
 
 #### Components
 
-- **[Filters]**: Search input, Filter A dropdown, Filter B dropdown, Add button
-- **[Table]**: Data grid with columns, Edit / Delete action buttons per row
-- **[Pagination]**: Page navigation, items-per-page selector
+- **[Filters]**: Ô tìm kiếm, dropdown Filter A, dropdown Filter B, nút Add
+- **[Table]**: Lưới dữ liệu với các cột, nút hành động Edit / Delete cho mỗi dòng
+- **[Pagination]**: Điều hướng trang, bộ chọn số items mỗi trang
 
 ### 2.4 [CreatePage] / [EditPage] Wireframe (`/path/create`, `/path/:id/edit`)
 
@@ -104,35 +104,35 @@ client/src/pages/[feature]/
 
 #### Components
 
-- **[Form]**: All input fields, form labels, Save and Cancel buttons
-- **[OptionalViewer]** _(EditPage only)_: Audit/activity history panel
+- **[Form]**: Tất cả các ô input, labels của form, nút Save và Cancel
+- **[OptionalViewer]** _(chỉ EditPage)_: Panel lịch sử audit/activity
 
 ---
 
 ## 3. Screen Item Specifications
 
-> All items on each page are listed in a flat table. Rows with bold `ItemName` and empty `Control` indicate a **Component boundary** (group header). Labels displayed on screen are listed as `Label` control type.
-> `DisplayText` column contains the i18n key for items that render visible text (Label, Button, placeholder text, etc.). Use `—` for controls with no display text.
+> Tất cả items trên mỗi page được liệt kê trong một bảng flat. Các rows với `ItemName` **bold** và `Control` trống biểu thị một **Component boundary** (group header). Labels hiển thị trên screen được liệt kê là `Label` control type.
+> Cột `DisplayText` chứa i18n key cho các items render visible text (Label, Button, placeholder text, v.v.). Sử dụng `—` cho controls không có display text.
 
 ### 3.1 [ListPage] (`/path`)
 
 | # | ItemName | Control | Type | Required | Validation | Placeholder | DisplayText | Description | Notes |
 |---|----------|---------|------|----------|-----------|-------------|-------------|-------------|-------|
 | **—** | **[Filters]** | | | | | | | | **Component** |
-| 1 | Page Title | Label | — | — | — | — | `[feature].list.pageTitle` | Title of the page | — |
-| 2 | Add Button | Button | — | — | — | — | `[feature].list.addButton` | Opens create page | → `handleAddClick` · [03-behavior.md](./03-behavior.md) |
-| 3 | Search | TextInput | `string` | No | — | `[feature].list.searchPlaceholder` | — | Search items by keyword | 300ms debounce |
-| 4 | [Filter A] | Dropdown | `string` | No | — | `[feature].list.filterAPlaceholder` | — | Filter by [field A] | Triggers immediately |
-| 5 | [Filter B] | Dropdown | `string` | No | — | `[feature].list.filterBPlaceholder` | — | Filter by [field B] | Triggers immediately |
+| 1 | Page Title | Label | — | — | — | — | `[feature].list.pageTitle` | Tiêu đề của trang | — |
+| 2 | Add Button | Button | — | — | — | — | `[feature].list.addButton` | Mở trang tạo mới | → `handleAddClick` · [03-behavior.md](./03-behavior.md) |
+| 3 | Search | TextInput | `string` | No | — | `[feature].list.searchPlaceholder` | — | Tìm kiếm items theo từ khóa | debounce 300ms |
+| 4 | [Filter A] | Dropdown | `string` | No | — | `[feature].list.filterAPlaceholder` | — | Lọc theo [field A] | Kích hoạt ngay lập tức |
+| 5 | [Filter B] | Dropdown | `string` | No | — | `[feature].list.filterBPlaceholder` | — | Lọc theo [field B] | Kích hoạt ngay lập tức |
 | **—** | **[Table]** | | | | | | | | **Component** |
-| 6 | [Column A] Header | Label | `string` | — | — | — | `[feature].list.colA` | Column header for fieldA | — |
-| 7 | [Column A] Value | Label | `string` | — | — | — | — | Displays `fieldA` value per row | — |
-| 8 | [Column B] Header | Label | `string\|number` | — | — | — | `[feature].list.colB` | Column header for fieldB | — |
-| 9 | [Column B] Value | Label | `string\|number` | — | — | — | — | Displays `fieldB` value per row | — |
-| 10 | Edit | Button | — | — | — | — | `common.button.edit` | Navigate to edit page | → `handleEditClick` · [03-behavior.md](./03-behavior.md) |
-| 11 | Delete | Button | — | — | — | — | `common.button.delete` | Delete this row | → `handleDeleteClick` · [03-behavior.md](./03-behavior.md) |
+| 6 | [Column A] Header | Label | `string` | — | — | — | `[feature].list.colA` | Header cột cho fieldA | — |
+| 7 | [Column A] Value | Label | `string` | — | — | — | — | Hiển thị giá trị `fieldA` mỗi dòng | — |
+| 8 | [Column B] Header | Label | `string\|number` | — | — | — | `[feature].list.colB` | Header cột cho fieldB | — |
+| 9 | [Column B] Value | Label | `string\|number` | — | — | — | — | Hiển thị giá trị `fieldB` mỗi dòng | — |
+| 10 | Edit | Button | — | — | — | — | `common.button.edit` | Điều hướng đến trang edit | → `handleEditClick` · [03-behavior.md](./03-behavior.md) |
+| 11 | Delete | Button | — | — | — | — | `common.button.delete` | Xóa dòng này | → `handleDeleteClick` · [03-behavior.md](./03-behavior.md) |
 | **—** | **[Pagination]** | | | | | | | | **Component** |
-| 12 | Page Selector | Pagination | `number` | — | — | — | — | Navigate between pages | Default 10/page; options: 10, 25, 50 |
+| 12 | Page Selector | Pagination | `number` | — | — | — | — | Điều hướng giữa các trang | Mặc định 10/trang; tùy chọn: 10, 25, 50 |
 
 ---
 
@@ -142,14 +142,14 @@ client/src/pages/[feature]/
 |---|----------|---------|------|----------|-----------|-------------|-------------|-------------|-------|
 | **—** | **[Form]** | | | | | | | | **Component** |
 | 1 | Page Title | Label | — | — | — | — | `[feature].create.pageTitle` | Title of the create page | — |
-| 2 | [Field A] Label | Label | — | — | — | — | `[feature].form.fieldALabel` | "[Field A]" | Marks field as required (*) |
-| 3 | [Field A] | TextInput | `string` | Yes | Min 2, Max 100 chars | `[feature].form.fieldAPlaceholder` | — | Primary identifier field | — |
-| 4 | [Field B] Label | Label | — | — | — | — | `[feature].form.fieldBLabel` | "[Field B]" | Marks field as required (*) |
-| 5 | [Field B] | Dropdown | `string` | Yes | Must select one | `[feature].form.fieldBPlaceholder` | — | Category/type field | — |
+| 2 | [Field A] Label | Label | — | — | — | — | `[feature].form.fieldALabel` | "[Field A]" | Đánh dấu field bắt buộc (*) |
+| 3 | [Field A] | TextInput | `string` | Yes | Min 2, Max 100 chars | `[feature].form.fieldAPlaceholder` | — | Field định danh chính | — |
+| 4 | [Field B] Label | Label | — | — | — | — | `[feature].form.fieldBLabel` | "[Field B]" | Đánh dấu field bắt buộc (*) |
+| 5 | [Field B] | Dropdown | `string` | Yes | Must select one | `[feature].form.fieldBPlaceholder` | — | Field category/type | — |
 | 6 | [Field C] Label | Label | — | — | — | — | `[feature].form.fieldCLabel` | "[Field C]" | — |
-| 7 | [Field C] | Textarea | `string` | No | Max 500 chars | `[feature].form.fieldCPlaceholder` | — | Additional details | — |
-| 8 | Cancel | Button | — | — | — | — | `common.button.cancel` | Cancel and go back | → `handleCancel()` · [03-behavior.md](./03-behavior.md) |
-| 9 | Save | Button | — | — | — | — | `common.button.save` | Submit form | → `handleSubmit()` · [03-behavior.md](./03-behavior.md) |
+| 7 | [Field C] | Textarea | `string` | No | Max 500 chars | `[feature].form.fieldCPlaceholder` | — | Chi tiết bổ sung | — |
+| 8 | Cancel | Button | — | — | — | — | `common.button.cancel` | Hủy và quay lại | → `handleCancel()` · [03-behavior.md](./03-behavior.md) |
+| 9 | Save | Button | — | — | — | — | `common.button.save` | Gửi form | → `handleSubmit()` · [03-behavior.md](./03-behavior.md) |
 
 ---
 
@@ -158,18 +158,18 @@ client/src/pages/[feature]/
 | # | ItemName | Control | Type | Required | Validation | Placeholder | DisplayText | Description | Notes |
 |---|----------|---------|------|----------|-----------|-------------|-------------|-------------|-------|
 | **—** | **[Form]** | | | | | | | | **Component** |
-| 1 | Page Title | Label | — | — | — | — | `[feature].edit.pageTitle` | Title of the edit page | — |
-| 2 | [Field A] Label | Label | — | — | — | — | `[feature].form.fieldALabel` | "[Field A]" | Marks field as required (*) |
-| 3 | [Field A] | TextInput | `string` | Yes | Min 2, Max 100 chars | `[feature].form.fieldAPlaceholder` | — | Pre-filled from existing data | — |
-| 4 | [Field B] Label | Label | — | — | — | — | `[feature].form.fieldBLabel` | "[Field B]" | Marks field as required (*) |
-| 5 | [Field B] | Dropdown | `string` | Yes | Must select one | `[feature].form.fieldBPlaceholder` | — | Pre-selected from existing data | — |
+| 1 | Page Title | Label | — | — | — | — | `[feature].edit.pageTitle` | Tiêu đề của trang edit | — |
+| 2 | [Field A] Label | Label | — | — | — | — | `[feature].form.fieldALabel` | "[Field A]" | Đánh dấu field bắt buộc (*) |
+| 3 | [Field A] | TextInput | `string` | Yes | Min 2, Max 100 chars | `[feature].form.fieldAPlaceholder` | — | Được điền sẵn từ dữ liệu hiện có | — |
+| 4 | [Field B] Label | Label | — | — | — | — | `[feature].form.fieldBLabel` | "[Field B]" | Đánh dấu field bắt buộc (*) |
+| 5 | [Field B] | Dropdown | `string` | Yes | Must select one | `[feature].form.fieldBPlaceholder` | — | Được chọn sẵn từ dữ liệu hiện có | — |
 | 6 | [Read-only Field] Label | Label | — | — | — | — | `[feature].form.readonlyFieldLabel` | "[Read-only Field]" | — |
-| 7 | [Read-only Field] | Label | `string` | — | — | — | — | Displays value, not editable | Read-only display |
-| 8 | Cancel | Button | — | — | — | — | `common.button.cancel` | Cancel and go back | → `handleCancel()` · [03-behavior.md](./03-behavior.md) |
-| 9 | Save | Button | — | — | — | — | `common.button.save` | Submit update | → `handleSubmit()` · [03-behavior.md](./03-behavior.md) |
+| 7 | [Read-only Field] | Label | `string` | — | — | — | — | Hiển thị giá trị, không chỉnh sửa | Hiển thị read-only |
+| 8 | Cancel | Button | — | — | — | — | `common.button.cancel` | Hủy và quay lại | → `handleCancel()` · [03-behavior.md](./03-behavior.md) |
+| 9 | Save | Button | — | — | — | — | `common.button.save` | Gửi cập nhật | → `handleSubmit()` · [03-behavior.md](./03-behavior.md) |
 | **—** | **[OptionalViewer]** | | | | | | | | **Component** |
-| 10 | Activity History Title | Label | — | — | — | — | `[feature].edit.activityTitle` | "Activity History" section header | — |
-| 11 | Activity Log Entries | Label | — | — | — | — | — | Audit log items list | Loaded from activity API |
+| 10 | Activity History Title | Label | — | — | — | — | `[feature].edit.activityTitle` | Header section "Activity History" | — |
+| 11 | Activity Log Entries | Label | — | — | — | — | — | Danh sách các mục audit log | Được tải từ activity API |
 
 ---
 
@@ -178,11 +178,11 @@ client/src/pages/[feature]/
 ### 4.1 [ListPage].vue
 
 **Responsibilities:**
-- Initialize filters and pagination state
-- Fetch items on mount and on filter/page change
-- Delegate table interactions (edit, delete) to router or child handlers
+- Khởi tạo trạng thái filters và pagination
+- Fetch items khi mount và khi filter/page thay đổi
+- Ủy quyền các tương tác table (edit, delete) cho router hoặc child handlers
 
-**Props:** _(none - this is a routed page)_
+**Props:** _(none - đây là routed page)_
 
 ---
 
@@ -192,15 +192,15 @@ client/src/pages/[feature]/
 
 | Prop | Type | Required | Description |
 |------|------|----------|-------------|
-| `items` | `Item[]` | Yes | Array of items to display |
-| `loading` | `boolean` | Yes | Shows loading skeleton |
+| `items` | `Item[]` | Yes | Mảng các items để hiển thị |
+| `loading` | `boolean` | Yes | Hiển thị loading skeleton |
 
 **Emits:**
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `edit` | `id: number` | Triggered when Edit button is clicked |
-| `delete` | `id: number` | Triggered when Delete button is clicked |
+| `edit` | `id: number` | Được kích hoạt khi click nút Edit |
+| `delete` | `id: number` | Được kích hoạt khi click nút Delete |
 
 ---
 
@@ -210,13 +210,13 @@ client/src/pages/[feature]/
 
 | Prop | Type | Required | Description |
 |------|------|----------|-------------|
-| `modelValue` | `FilterState` | Yes | Current filter values (v-model) |
+| `modelValue` | `FilterState` | Yes | Giá trị filter hiện tại (v-model) |
 
 **Emits:**
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `update:modelValue` | `FilterState` | Updated filter values |
+| `update:modelValue` | `FilterState` | Giá trị filter đã cập nhật |
 
 ---
 
@@ -226,27 +226,27 @@ client/src/pages/[feature]/
 
 | Prop | Type | Required | Description |
 |------|------|----------|-------------|
-| `mode` | `'create' \| 'edit'` | Yes | Determines form behavior |
-| `initialData` | `Item \| null` | No | Pre-fills form fields in edit mode |
-| `loading` | `boolean` | No | Disables submit button during save |
+| `mode` | `'create' \| 'edit'` | Yes | Xác định hành vi của form |
+| `initialData` | `Item \| null` | No | Điền sẵn các fields trong edit mode |
+| `loading` | `boolean` | No | Vô hiệu hóa nút submit khi đang lưu |
 
 **Emits:**
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `submit` | `FormData` | Validated form data |
-| `cancel` | - | User cancelled the form |
+| `submit` | `FormData` | Dữ liệu form đã validate |
+| `cancel` | - | Người dùng hủy form |
 
 ---
 
-### 4.5 [OptionalViewer].vue _(if applicable)_
+### 4.5 [OptionalViewer].vue _(nếu có)_
 
 **Props:**
 
 | Prop | Type | Required | Description |
 |------|------|----------|-------------|
-| `itemId` | `number` | Yes | ID of the current item |
-| `logs` | `ActivityLog[]` | Yes | Activity history entries |
+| `itemId` | `number` | Yes | ID của item hiện tại |
+| `logs` | `ActivityLog[]` | Yes | Các entry lịch sử hoạt động |
 
 ---
 
@@ -254,7 +254,7 @@ client/src/pages/[feature]/
 
 ### use[Feature].ts
 Method:
-- `fetchItems(filters: FilterState, pagination: PaginationInfo): Promise<void>` - Fetches items from API with given filters and pagination, updates state
+- `fetchItems(filters: FilterState, pagination: PaginationInfo): Promise<void>` - Lấy danh sách items từ API với bộ lọc và phân trang đã cho, cập nhật state
 ---
 
 ## 6. Store
@@ -262,23 +262,25 @@ Method:
 ### File: `client/src/stores/[feature].store.ts`
 
 State:
-- items: Item[]
-- currentItem: Item | null
-- activityLogs: ActivityLog[]
-- pagination: PaginationInfo
-- filters: ItemFilters
-- loading: boolean
-- error: string | null
+- items: Item[] - Danh sách các items
+- currentItem: Item | null - Item hiện tại đang xem/chỉnh sửa
+- activityLogs: ActivityLog[] - Lịch sử hoạt động
+- pagination: PaginationInfo - Thông tin phân trang
+- filters: ItemFilters - Bộ lọc hiện tại
+- loading: boolean - Trạng thái đang tải
+- error: string | null - Lỗi (nếu có)
 
 Actions:
-- `setItems(items: Item[]): void` - Sets the list of items in the store
+- `setItems(items: Item[]): void` - Thiết lập danh sách items vào store
 
 **Store Dependencies:**
 
 | Store | Role |
 |-------|------|
-| `use[Feature]Store` | Manages feature data state |
-| `useAuthStore` | Provides auth token and user context |
+| `use[Feature]Store` | Quản lý state dữ liệu của feature |
+| `useAuthStore` | Cung cấp auth token và ngữ cảnh người dùng |
+| `useUiStore` | Hiển thị thông báo thành công/lỗi (toast notifications) |
+| `useAuthStore` | Provides auth token và user context |
 | `useUiStore` | Triggers success/error toast notifications |
 
 ---
@@ -287,8 +289,8 @@ Actions:
 ```markdown
 ### File: `types/[feature].types.ts`
 Types:
-- `Item`: Main data model representing an item in this feature
-- `ItemFilters`: Filter criteria for listing items
+- `Item`: Model dữ liệu chính đại diện cho một item trong feature này
+- `ItemFilters`: Tiêu chí lọc cho danh sách items
 
 ---
 

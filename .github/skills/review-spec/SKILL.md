@@ -3,44 +3,44 @@ name: review-spec
 description: Review the specified specification document against the provided checklist and template. Identify missing information, inconsistencies, ambiguities, violations of standards, and template deviations.
 ---
 
-Generate a review report containing all findings.
+Tạo báo cáo review chứa tất cả findings.
 
-## Inputs
-The user must provide:
-* One or more specification files to review.
-* Requirements of the feature or system being specified (if not clear from the document).
+## Đầu Vào
+Người dùng phải cung cấp:
+* Một hoặc nhiều file specification cần review.
+* Yêu cầu của feature hoặc hệ thống đang được specify (nếu không rõ ràng từ tài liệu).
 
-# Review Process
+# Quy Trình Review
 
-1. Read all specified specification files.
-2. Review the document against each rule in the checklist.
-3. Report only issues that can be justified by the document content.
-4. Provide actionable correction guidance for every issue found.
+1. Đọc tất cả các file specification được chỉ định.
+2. Review tài liệu theo từng quy tắc trong checklist.
+3. Chỉ báo cáo các vấn đề có thể được chứng minh bởi nội dung tài liệu.
+4. Cung cấp hướng dẫn chỉnh sửa có thể hành động cho mọi vấn đề được phát hiện.
 
-# Review checklist
-- Requirements ambiguous enough to cause someone to build the wrong thing
-- Specification must match the provided template structure and formatting
-Template in folder: `.github/skills/brainstorming/reference/`
-- Internal contradictions, conflicting requirements
-- The specifications must not contain internal contradictions or conflicting requirements.
-- Focused enough for a single plan — not covering multiple independent subsystems
-- Specification documents are not allowed to describe source code.
+# Checklist Review
+- Yêu cầu mơ hồ đủ để khiến ai đó build sai thứ
+- Specification phải khớp với cấu trúc và định dạng template được cung cấp
+Template trong folder: `.github/skills/brainstorming/reference/`
+- Mâu thuẫn nội bộ, yêu cầu xung đột
+- Specifications không được chứa mâu thuẫn nội bộ hoặc yêu cầu xung đột.
+- Đủ tập trung cho một kế hoạch duy nhất — không bao gồm nhiều subsystem độc lập
+- Tài liệu specification không được phép mô tả source code.
 
-# Reporting Rules
+# Quy Tắc Báo Cáo
 
-* Every finding must include:
-  * Error description
-  * File location
-  * Recommended correction
-* Use file path and line number whenever available.
-* Avoid duplicate findings.
-* Merge findings that share the same root cause.
-* Sort findings according to their appearance in the document.
-* If no issue is found, explicitly state that the review passed.
+* Mọi finding phải bao gồm:
+  * Mô tả lỗi
+  * Vị trí file
+  * Hướng chỉnh sửa được đề xuất
+* Sử dụng file path và line number khi có sẵn.
+* Tránh các findings trùng lặp.
+* Hợp nhất các findings chia sẻ cùng root cause.
+* Sắp xếp findings theo thứ tự xuất hiện trong tài liệu.
+* Nếu không tìm thấy vấn đề nào, nêu rõ rằng review đã pass.
 
-# Output Format
-Only respond with a review report following the required output format. Do not include any additional commentary or explanation.
-If no issue is found:
+# Định Dạng Output
+Chỉ respond với báo cáo review theo định dạng output được yêu cầu. Không bao gồm bất kỳ bình luận hoặc giải thích bổ sung nào.
+Nếu không tìm thấy vấn đề nào:
 
 ```text
 Không phát hiện lỗi theo checklist.

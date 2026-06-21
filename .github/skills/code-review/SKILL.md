@@ -1,61 +1,61 @@
 ---
 name: code-review
-description: Two-pass code review — Technical (rule-based) + Design Spec compliance. Produces a structured findings report.
+description: Code review hai lượt — Technical (rule-based) + Design Spec compliance. Tạo báo cáo findings có cấu trúc.
 context: fork
 ---
 
 # Code Review
 
-**Announce at start:** "I'm using the code-review skill."
+**Thông báo khi bắt đầu:** "Tôi đang sử dụng skill code-review."
 
-## Overview
+## Tổng Quan
 
-This skill performs a structured, two-pass code review of a git diff range:
+Skill này thực hiện một code review hai lượt có cấu trúc trên một git diff range:
 
-1. **Pass 1 — Technical Review**: checks all changed files against the rule catalog in `review-rules.md`. Each rule has an ID (`R-XXX`) covering Code Quality, Architecture, TypeScript, Vue 3, Security, and Performance. Every finding must cite its Rule ID.
+1. **Lượt 1 — Technical Review**: kiểm tra tất cả files đã thay đổi theo catalog quy tắc trong `review-rules.md`. Mỗi quy tắc có một ID (`R-XXX`) bao gồm Code Quality, Architecture, TypeScript, Vue 3, Security, và Performance. Mọi finding phải cite Rule ID của nó.
 
-2. **Pass 2 — Design Spec Review** _(when spec files are provided)_: verifies that the implementation matches the agreed design exactly — endpoints, DTOs, validation, screen items, i18n keys, event handlers, and UI states as defined in `01-backend.md`, `02-frontend.md`, and `03-behavior.md`.
+2. **Lượt 2 — Design Spec Review** _(khi có spec files được cung cấp)_: verify rằng implementation khớp chính xác với design đã thống nhất — endpoints, DTOs, validation, screen items, i18n keys, event handlers, và UI states như được định nghĩa trong `01-backend.md`, `02-frontend.md`, và `03-behavior.md`.
 
-After both passes, the skill produces a **Review Report** with a findings table (Rule | File:Line | Severity | Description | Fix), a summary by category, and a clear **Ready to merge?** verdict with a required-actions checklist.
+Sau cả hai lượt, skill tạo ra một **Review Report** với bảng findings (Rule | File:Line | Severity | Description | Fix), một summary theo category, và verdict **Ready to merge?** rõ ràng cùng với checklist required-actions.
 
-**Core principle:** Every finding must cite a Rule ID (or "spec") and state whether it is fixable in this session.
-
----
-
-## When to Run
-
-- After completing a feature or major task
-- Before merge to main
-- When stuck (fresh perspective)
+**Nguyên tắc cốt lõi:** Mọi finding phải cite một Rule ID (hoặc "spec") và nêu rõ nó có thể được sửa trong session này hay không.
 
 ---
 
-## Inputs
+## Khi Nào Chạy
 
-| Input | Required | Description |
-|-------|----------|-------------|
-| `WHAT_WAS_IMPLEMENTED` | ✅ | One-line summary of what was built |
-| `SPEC_FILES` | optional | Paths to `01-backend.md`, `02-frontend.md`, `03-behavior.md` |
+- Sau khi hoàn thành một feature hoặc task lớn
+- Trước khi merge vào main
+- Khi bị stuck (góc nhìn mới)
 
 ---
 
-## Pass 1 — Technical Review
+## Đầu Vào
+
+| Đầu vào | Bắt buộc | Mô tả |
+|---------|----------|-------|
+| `WHAT_WAS_IMPLEMENTED` | ✅ | Tóm tắt một dòng về những gì đã được build |
+| `SPEC_FILES` | optional | Paths đến `01-backend.md`, `02-frontend.md`, `03-behavior.md` |
+
+---
+
+## Lượt 1 — Technical Review
 
 Load `code-review/review-rules.md`.
 
-For each changed file, check every applicable rule. Record each violation as a finding:
+Với mỗi file đã thay đổi, kiểm tra mọi quy tắc áp dụng. Ghi lại mỗi vi phạm như một finding:
 
-| Field | Value |
-|-------|-------|
+| Trường | Giá trị |
+|--------|---------|
 | Rule | `R-XXX` |
-| File:Line | exact location |
+| File:Line | vị trí chính xác |
 | Severity | Critical / Important / Minor |
-| Description | what is wrong and why it matters |
-| Fix | `Yes — [how]` or `No — [reason]` |
+| Description | cái gì sai và tại sao nó quan trọng |
+| Fix | `Yes — [how]` hoặc `No — [reason]` |
 
-Apply all rule categories that are relevant to the file type:
-- Run build and tests first — any failures are Critical findings
-- All files: R-001 to R-010 (Code Quality)
+Áp dụng tất cả các category quy tắc liên quan đến loại file:
+- Chạy build và tests trước — bất kỳ failure nào là Critical findings
+- Tất cả files: R-001 to R-010 (Code Quality)
 - Backend/Express files: R-011 to R-017 (Architecture), R-041 to R-045 (Security), R-051 to R-053 (Performance), R-071 to R-076 (Express)
 - Vue component files: R-031 to R-038 (Vue 3), R-052 to R-054 (Performance), R-061 to R-067 (PrimeVue), R-101 to R-106 (i18n)
 - TypeScript files: R-021 to R-025 (TypeScript)
@@ -65,36 +65,36 @@ Apply all rule categories that are relevant to the file type:
 
 ---
 
-## Pass 2 — Design Spec Review
+## Lượt 2 — Design Spec Review
 
-> Skip if `SPEC_FILES` not provided.
+> Bỏ qua nếu `SPEC_FILES` không được cung cấp.
 
-For each spec file provided, verify implementation matches exactly:
+Với mỗi spec file được cung cấp, verify implementation khớp chính xác:
 
 **`01-backend.md`:**
-- All endpoints exist with correct method, path, request body, response shape
-- All validation rules applied
-- All error codes returned as specified
+- Tất cả endpoints tồn tại với method, path, request body, response shape đúng
+- Tất cả validation rules được áp dụng
+- Tất cả error codes được trả về như đã specify
 
 **`02-frontend.md`:**
-- All screen items present (controls, props, emits match)
-- All i18n keys used (no raw display strings)
-- Component boundary structure matches
+- Tất cả screen items có mặt (controls, props, emits khớp)
+- Tất cả i18n keys được sử dụng (không có raw display strings)
+- Component boundary structure khớp
 
 **`03-behavior.md`:**
-- All event handlers implemented
-- All UI states handled (loading, empty, error, success)
-- All navigation flows and confirm dialogs present
+- Tất cả event handlers được triển khai
+- Tất cả UI states được xử lý (loading, empty, error, success)
+- Tất cả navigation flows và confirm dialogs có mặt
 
-Record each deviation as a finding with:
+Ghi lại mỗi deviation như một finding với:
 - Severity: Critical (functionality broken) / Important (spec deviated) / Minor (cosmetic)
-- Fix: `Yes — [how]` or `No — [reason]`
+- Fix: `Yes — [how]` hoặc `No — [reason]`
 
 ---
 
-## Report Format
+## Định Dạng Báo Cáo
 
-After both passes, output the full review report:
+Sau cả hai lượt, output toàn bộ review report:
 
 ```
 ## Code Review Report
@@ -127,11 +127,11 @@ _(Fill with actual findings — remove example rows)_
 
 ---
 
-## After Report
+## Sau Báo Cáo
 
-- Fix all **Critical** findings immediately
-- Fix all **Important** findings before proceeding
-- Log **Minor** findings for later improvement
-- If a finding is wrong: push back with technical reasoning and evidence
+- Sửa tất cả các **Critical** findings ngay lập tức
+- Sửa tất cả các **Important** findings trước khi tiếp tục
+- Log các **Minor** findings để cải thiện sau
+- Nếu một finding sai: push back với technical reasoning và evidence
 
-See rules at: `code-review/review-rules.md`
+Xem quy tắc tại: `code-review/review-rules.md`

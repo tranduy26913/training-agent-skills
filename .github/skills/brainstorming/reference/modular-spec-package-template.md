@@ -1,23 +1,23 @@
 # Modular Spec Package Template
 
-This document defines the required structure for all spec deliverables written using the **brainstorming** skill.
+Tài liệu này định nghĩa cấu trúc bắt buộc cho tất cả các spec deliverables được viết bằng skill **brainstorming**.
 
 ---
 
 ## Package Structure
 
-Every spec deliverable is a **multi-file package** saved to:
+Mỗi spec deliverable là một **multi-file package** được lưu vào:
 
 ```text
 docs/<topic>/specs/<topic>-design/
-├── 00-index.md         ← REQUIRED: canonical entry point
-├── 01-backend.md       ← REQUIRED: API and data
-├── 02-frontend.md      ← REQUIRED: UI and components
-├── 03-behavior.md      ← REQUIRED: events, flows, UI states
-└── 04-quality.md       ← REQUIRED: testing, NFRs, logging
+├── 00-index.md         ← BẮT BUỘC: canonical entry point
+├── 01-backend.md       ← BẮT BUỘC: API and data
+├── 02-frontend.md      ← BẮT BUỘC: UI and components
+├── 03-behavior.md      ← BẮT BUỘC: events, flows, UI states
+└── 04-quality.md       ← BẮT BUỘC: testing, NFRs, logging
 ```
 
-Use the file templates in this folder as the starting point:
+Sử dụng các file templates trong folder này làm điểm bắt đầu:
 - [00-index.md](./00-index.md)
 - [01-backend.md](./01-backend.md)
 - [02-frontend.md](./02-frontend.md)
@@ -80,8 +80,8 @@ Use the file templates in this folder as the starting point:
 
 ## Common Rules
 
-- Do not include implementation details or source code in any file; focus on specifications, contracts, and design
-- Use Vietnamese for content; headers may remain English
+- Không bao gồm implementation details hoặc source code trong bất kỳ file nào; tập trung vào specifications, contracts, và design
+- Sử dụng tiếng Việt cho nội dung; headers có thể giữ tiếng Anh
 - **TypeScript types:** Mô tả chỉ liệt kê tên + property (không dùng code block). Trỏ file thực tế để tra cứu khi cần
 - **Database schema:** Mô tả dạng Prisma model (bảng property với `@@map`, indexes, relations, FK cascade) — không viết raw `CREATE TABLE` SQL
 - **Response/request JSON examples:** Code block được phép (chỉ thể hiện contract, không phải type definition)
@@ -91,31 +91,31 @@ Use the file templates in this folder as the starting point:
 
 ## Ordering & Naming Rules
 
-- Files MUST be numbered `00–04` with the names above
-- `00-index.md` is the canonical entry point — always start here
-- Each file must include a `> Related:` line linking to all other 4 files
-- Content language: Vietnamese (headers/section titles may remain English)
-- All required sections must be present; mark inapplicable sections as "Not applicable — [reason]"
+- Files PHẢI được đánh số `00–04` với các tên ở trên
+- `00-index.md` là canonical entry point — luôn bắt đầu ở đây
+- Mỗi file phải bao gồm một dòng `> Related:` linking đến tất cả 4 files khác
+- Content language: Tiếng Việt (headers/section titles có thể giữ tiếng Anh)
+- Tất cả các sections bắt buộc phải có mặt; đánh dấu các sections không áp dụng là "Not applicable — [reason]"
 
 ---
 
 ## Screen Item Specification Table Format
 
-The unified column set for all screen item tables in `02-frontend.md`:
+Bộ cột unified cho tất cả các bảng screen item trong `02-frontend.md`:
 
 | Column | Purpose |
 |--------|---------|
 | `#` | Row number |
-| `ItemName` | Item or component name; **bold** for component boundary rows |
-| `Control` | Control type: `Label`, `TextInput`, `Dropdown`, `Textarea`, `Button`, `Pagination`, etc. Empty for component boundary rows |
-| `Type` | Data type (`string`, `number`, `boolean`, etc.) or `—` for non-data controls |
+| `ItemName` | Item hoặc component name; **bold** cho component boundary rows |
+| `Control` | Control type: `Label`, `TextInput`, `Dropdown`, `Textarea`, `Button`, `Pagination`, v.v. Empty cho component boundary rows |
+| `Type` | Data type (`string`, `number`, `boolean`, v.v.) hoặc `—` cho non-data controls |
 | `Required` | `Yes` / `No` / `—` |
-| `Validation` | Validation rules or `—` |
-| `Placeholder` | i18n key for placeholder text, or `—` |
-| `DisplayText` | i18n key for visible text on Labels, Buttons, page titles, etc. Use `—` for controls with no static display text |
-| `Description` | What this item does |
-| `Notes` | Events, references to `03-behavior.md`, or special behaviors |
+| `Validation` | Validation rules hoặc `—` |
+| `Placeholder` | i18n key cho placeholder text, hoặc `—` |
+| `DisplayText` | i18n key cho visible text trên Labels, Buttons, page titles, v.v. Sử dụng `—` cho controls không có static display text |
+| `Description` | Item này làm gì |
+| `Notes` | Events, references đến `03-behavior.md`, hoặc special behaviors |
 
-> Component boundary rows use: `| **—** | **[ComponentName]** | | | | | | | | **Component** |`
+> Component boundary rows sử dụng: `| **—** | **[ComponentName]** | | | | | | | | **Component** |`
 
 ---

@@ -7,95 +7,95 @@ context: fork
 
 # UT Review
 
-**Announce at start:** "I'm using the ut-review skill."
+**Thông báo khi bắt đầu:** "Tôi đang sử dụng skill ut-review."
 
-## Overview
+## Tổng Quan
 
-This skill audits unit test coverage and keeps the test suite and the design spec (`04-quality.md`) in sync.
+Skill này audit unit test coverage và giữ test suite cùng design spec (`04-quality.md`) đồng bộ.
 
 **When `04-quality.md` path is provided — Spec-Driven mode (Phase 0):**
-- **Step 0-A (spec → code)**: reads every row in the UT tables (`# | Test Case | Arrange | Act | Assert`), finds which test cases are missing in the codebase, adds them following the exact Arrange/Act/Assert from the spec, then runs `npx vitest run` to verify all pass.
-- **Step 0-B (code → spec)**: finds test cases that were written during implementation but are not yet in `04-quality.md`, and adds them to the correct table — keeping the spec file in sync with the actual test suite.
+- **Step 0-A (spec → code)**: đọc mọi row trong các bảng UT (`# | Test Case | Arrange | Act | Assert`), tìm các test cases nào còn thiếu trong codebase, thêm chúng theo đúng Arrange/Act/Assert từ spec, sau đó chạy `npx vitest run` để verify tất cả pass.
+- **Step 0-B (code → spec)**: tìm các test cases đã được viết trong quá trình triển khai nhưng chưa có trong `04-quality.md`, và thêm chúng vào bảng đúng — giữ file spec đồng bộ với test suite thực tế.
 
-**When no spec is provided — General mode (Phase 1–5):**  
-Discovers all unit test files, audits coverage against standard UT criteria (happy path, edge cases, error paths, auth guards), adds missing tests, fixes failing tests, and verifies the full suite passes.
+**Khi không có spec được cung cấp — General mode (Phase 1–5):**
+Khám phá tất cả unit test files, audit coverage theo các tiêu chí UT chuẩn (happy path, edge cases, error paths, auth guards), thêm các tests thiếu, sửa các tests đang fail, và verify toàn bộ suite pass.
 
-**Scope:** UT only — does not add or run E2E tests.
-
----
-
-## Required Skills — Load First
-
-Before executing any step, load these skills:
-
-- `vue-testing-best-practices` — for Vue/Vitest patterns
-- `test-driven-development` — for TDD discipline
-- `systematic-debugging` — when fixing failing tests
-- `verification-before-completion` — before claiming done
+**Scope:** Chỉ UT — không thêm hoặc chạy E2E tests.
 
 ---
 
-## Phase 0 — Spec-Driven Audit _(when 04-quality.md path is provided)_
+## Required Skills — Load Trước
 
-> Use this phase when a design spec exists for the feature being reviewed.
+Trước khi thực thi bất kỳ bước nào, load các skills sau:
+
+- `vue-testing-best-practices` — cho Vue/Vitest patterns
+- `test-driven-development` — cho TDD discipline
+- `systematic-debugging` — khi sửa failing tests
+- `verification-before-completion` — trước khi tuyên bố done
+
+---
+
+## Phase 0 — Spec-Driven Audit _(khi path 04-quality.md được cung cấp)_
+
+> Sử dụng phase này khi một design spec tồn tại cho feature đang được review.
 
 ### Step 0-A: Gap Detection (spec → code)
-1. Read `04-quality.md` at the provided path.
-2. For each table in the UT section (`# | Test Case | Arrange | Act | Assert`):
-   - Find the corresponding test file in the codebase
-   - Check whether each test case is implemented (match by test name or described behavior)
-3. Build a **gap list**: test cases in spec but missing in code.
-4. Add each missing test following the exact `Arrange / Act / Assert` columns from the spec table.
-5. Run `npx vitest run` — all tests must pass.
+1. Đọc `04-quality.md` tại path được cung cấp.
+2. Với mỗi bảng trong section UT (`# | Test Case | Arrange | Act | Assert`):
+   - Tìm file test tương ứng trong codebase
+   - Kiểm tra xem mỗi test case đã được triển khai chưa (khớp theo test name hoặc described behavior)
+3. Xây dựng **gap list**: các test cases trong spec nhưng thiếu trong code.
+4. Thêm mỗi missing test theo đúng các cột `Arrange / Act / Assert` từ bảng spec.
+5. Chạy `npx vitest run` — tất cả tests phải pass.
 
 ### Step 0-B: Sync-Back (code → spec)
-> **When new test cases were written during implementation that are not in 04-quality.md:**
+> **Khi các test cases mới đã được viết trong quá trình triển khai mà chưa có trong 04-quality.md:**
 
-1. For each test case in code that has no corresponding row in `04-quality.md`:
-   - Determine the correct table section (page or composable)
-   - Add a new row: `| N | [Test Case name] | [Arrange] | [Act] | [Assert] |`
-2. Save `04-quality.md` — spec must stay in sync with the actual test suite.
-3. Report: spec cases (before/after), code cases (before/after), rows added to spec.
+1. Với mỗi test case trong code không có row tương ứng trong `04-quality.md`:
+   - Xác định section bảng đúng (page hoặc composable)
+   - Thêm một row mới: `| N | [Test Case name] | [Arrange] | [Act] | [Assert] |`
+2. Lưu `04-quality.md` — spec phải đồng bộ với test suite thực tế.
+3. Báo cáo: spec cases (trước/sau), code cases (trước/sau), rows đã thêm vào spec.
 
 ---
 
-## Phase 1 — Discover
+## Phase 1 — Khám Phá
 
-1. Identify test runner from `package.json` (Vitest, Jest…).
-2. Find all unit test files: `**/*.{test,spec}.{ts,js,vue}`.
-3. Run existing tests and capture baseline output:
-   - `npm run test` or `npx vitest run`
-4. Note: total tests, passing, failing, skipped.
+1. Xác định test runner từ `package.json` (Vitest, Jest…).
+2. Tìm tất cả unit test files: `**/*.{test,spec}.{ts,js,vue}`.
+3. Chạy tests hiện có và capture baseline output:
+   - `npm run test` hoặc `npx vitest run`
+4. Ghi nhận: tổng tests, passing, failing, skipped.
 
 ---
 
 ## Phase 2 — Audit Coverage
 
-For each module / component under review:
+Với mỗi module / component đang được review:
 
-| Check | Required |
-|-------|----------|
+| Kiểm tra | Bắt buộc |
+|----------|----------|
 | Happy path | ✅ |
 | Edge cases (empty, null, boundary values) | ✅ |
 | Error / failure paths | ✅ |
 | Auth / permission guards | ✅ |
 | UI interactions (click, submit, navigate) | ✅ component test |
-| API calls | ✅ mock at boundary |
+| API calls | ✅ mock tại boundary |
 
-Flag any **missing** or **weak** tests (e.g. tests that only check snapshots without assertions).
+Đánh dấu bất kỳ tests **thiếu** hoặc **yếu** nào (ví dụ: tests chỉ check snapshots mà không có assertions).
 
 ---
 
-## Phase 3 — Add Missing Tests
+## Phase 3 — Thêm Tests Thiếu
 
 ### Unit Tests (Vitest + Vue Test Utils)
 
-- Follow **black-box** approach: test behavior, not implementation.
-- Use `createTestingPinia()` for stores.
-- Use `flushPromises()` after async operations.
-- Never snapshot-only tests — always include meaningful assertions.
-- Group with `describe` blocks matching the file under test.
-- One `it` / `test` per behavior.
+- Tuân theo cách tiếp cận **black-box**: test behavior, không phải implementation.
+- Sử dụng `createTestingPinia()` cho stores.
+- Sử dụng `flushPromises()` sau các async operations.
+- Không bao giờ snapshot-only tests — luôn bao gồm các assertions có ý nghĩa.
+- Nhóm với `describe` blocks khớp với file đang test.
+- Một `it` / `test` cho mỗi behavior.
 
 ---
 
@@ -112,21 +112,21 @@ For each failing test:
 
 ---
 
-## Phase 5 — Verify All Pass
+## Phase 5 — Verify Tất Cả Pass
 
-1. Run the full unit test suite:
+1. Chạy toàn bộ unit test suite:
    ```
    npx vitest run
    ```
-2. All tests must be **green** before declaring done.
-3. Add a short summary: tests added, tests fixed, coverage delta (if available).
+2. Tất cả tests phải **xanh** trước khi tuyên bố done.
+3. Thêm một summary ngắn: tests đã thêm, tests đã sửa, coverage delta (nếu có).
 
 ---
 
-## Rules
+## Quy Tắc
 
-- **Never disable or skip a test** without a written comment explaining why and a linked issue.
-- **Never mock implementation details** — mock boundaries (HTTP, DB, file system).
-- **Keep tests fast** — unit tests < 100 ms each; E2E only for flows unit tests cannot cover.
-- Follow existing naming conventions in the codebase.
-- Apply `clean-code` and `vue-best-practices` skills when writing new test files.
+- **Không bao giờ disable hoặc skip một test** nếu không có comment giải thích tại sao và một linked issue.
+- **Không bao giờ mock implementation details** — mock boundaries (HTTP, DB, file system).
+- **Giữ tests nhanh** — unit tests < 100 ms mỗi cái; E2E chỉ cho các flows mà unit tests không thể cover.
+- Tuân theo các naming conventions hiện có trong codebase.
+- Áp dụng các skills `clean-code` và `vue-best-practices` khi viết các test files mới.

@@ -5,73 +5,73 @@ description: "You MUST use this before any creative work - creating features, bu
 
 # Brainstorming Ideas Into Designs
 
-Help turn ideas into fully formed designs and specs through natural collaborative dialogue.
+Giúp biến ý tưởng thành thiết kế và đặc tả hoàn chỉnh thông qua trao đổi cộng tác tự nhiên.
 
-Start by understanding the current project context, then ask questions one at a time to refine the idea. Once you understand what you're building, present the design and get user approval.
+Bắt đầu bằng việc hiểu ngữ cảnh dự án hiện tại, sau đó đặt câu hỏi từng cái một để tinh chỉnh ý tưởng. Khi đã hiểu rõ những gì cần xây dựng, trình bày thiết kế và xin phê duyệt từ người dùng.
 
 <HARD-GATE>
-Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
+KHÔNG được invoke bất kỳ skill triển khai nào, viết code, scaffold dự án, hoặc thực hiện bất kỳ hành động triển khai nào cho đến khi đã trình bày thiết kế và người dùng đã phê duyệt. Điều này áp dụng cho MỌI dự án bất kể độ đơn giản.
 </HARD-GATE>
 
 <TEMPLATE-COMPLIANCE-GATE>
-When writing any spec deliverable, the output MUST follow the multi-file spec package structure 100%.
-- Follow [modular-spec-package-template](reference/modular-spec-package-template.md).
-- Required package files: `00-index.md`, `01-backend.md`, `02-frontend.md`, `03-behavior.md`, `04-quality.md`.
-- Treat the spec package as the required default, not an optional format.
-- Keep every required top-level section, subsection, file ownership rule, and ordering defined by the template.
-- Do not rename, merge, remove, or reorder required sections or required package files.
-- Fill section content, but do not alter the required skeleton.
-If any required section, required file, or required ownership rule is missing, the spec is considered invalid and must be corrected before presenting to the user.
+Khi viết bất kỳ deliverable spec nào, output PHẢI tuân theo cấu trúc package spec đa file 100%.
+- Tuân theo [modular-spec-package-template](reference/modular-spec-package-template.md).
+- Các file package bắt buộc: `00-index.md`, `01-backend.md`, `02-frontend.md`, `03-behavior.md`, `04-quality.md`.
+- Xem package spec là mặc định bắt buộc, không phải định dạng tùy chọn.
+- Giữ nguyên mọi section cấp cao nhất, subsection, quy tắc sở hữu file, và thứ tự do template định nghĩa.
+- Không đổi tên, gộp, xóa, hoặc sắp xếp lại các section bắt buộc hoặc các file package bắt buộc.
+- Điền nội dung section, nhưng không thay đổi skeleton bắt buộc.
+Nếu bất kỳ section bắt buộc, file bắt buộc, hoặc quy tắc sở hữu bắt buộc nào bị thiếu, spec được coi là không hợp lệ và phải được sửa trước khi trình bày cho người dùng.
 </TEMPLATE-COMPLIANCE-GATE>
 
 ## Checklist
 
-You MUST create a task for each of these items and complete them in order:
+BẮT BUỘC tạo task cho mỗi mục và hoàn thành theo thứ tự:
 
-1. **Define type of the requirement** — Determine if the requirement is to create a new specification or to request a change. If the user already has a source, there's no need to ask again. If it's a change request, it must be added according to rule **Change Request**.
-1. **Explore project context** — check files, docs. Do not check e2e, test
-2. **Ask clarifying questions, Combine all the questions and ask them all at once, use #tool:vscode/askQuestions to gather answers** — Understand purpose/constraints/success criteria
-3. **Propose 2-3 approaches** — with trade-offs and your recommendation
-<!-- 4. **Present design** — in sections scaled to their complexity, get user approval after each section -->
-4. **Write design doc** — save to `docs/<topic>/specs/<topic>-design/` with `index.md` as the canonical entry point. Use Vietnamese for the content, while keeping the headers/section titles in English. Follow [modular-spec-package-template](reference/modular-spec-package-template.md) with 100% structural compliance.
-5. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
-6. **User reviews written spec** — ask user to review the spec file before proceeding
-7. **No code blocks in spec** - If the spec requires code snippets, describe them in pseudo code instead of using code blocks.
+1. **Define type of the requirement** — Xác định yêu cầu là tạo spec mới hay yêu cầu thay đổi. Nếu người dùng đã có source thì không cần hỏi lại. Nếu là change request, phải thêm theo quy tắc **Change Request**.
+1. **Explore project context** — kiểm tra files, docs. Không kiểm tra e2e, test
+2. **Ask clarifying questions, Combine all the questions and ask them all at once, use #tool:vscode/askQuestions to gather answers** — Hiểu mục đích/ràng buộc/tiêu chí thành công
+3. **Propose 2-3 approaches** — đưa ra 2-3 phương án với trade-offs và khuyến nghị của bạn
+<!-- 4. **Present design** — trình bày theo sections tỷ lệ với độ phức tạp, xin phê duyệt sau mỗi section -->
+4. **Write design doc** — lưu vào `docs/<topic>/specs/<topic>-design/` với `index.md` làm entry point chính thức. Dùng tiếng Việt cho nội dung, giữ headers/section titles tiếng Anh. Tuân theo [modular-spec-package-template](reference/modular-spec-package-template.md) với compliance 100% cấu trúc.
+5. **Spec self-review** — kiểm tra nhanh inline xem có placeholders, mâu thuẫn, mơ hồ, scope không (xem bên dưới)
+6. **User reviews written spec** — yêu cầu người dùng review spec file trước khi tiếp tục
+7. **No code blocks in spec** - Nếu spec cần code snippets, mô tả bằng pseudo code thay vì dùng code blocks.
 
-**Template of `<topic>-design`: (mandatory, strict)**
-- The specification file must be formatted in well formed Markdown.
-- The specification deliverable must be a **5-file spec package** using [modular-spec-package-template](reference/modular-spec-package-template.md):
+**Template của `<topic>-design`: (bắt buộc, nghiêm ngặt)**
+- File specification PHẢI được định dạng bằng Markdown chuẩn.
+- Deliverable specification PHẢI là **package spec 5-file** sử dụng [modular-spec-package-template](reference/modular-spec-package-template.md):
   - `00-index.md` — executive summary, objective & scope, changelog, architecture overview, cross-file links
   - `01-backend.md` — DB schema, DTOs, API endpoints, validation rules, error handling
   - `02-frontend.md` — wireframes, component tree, screen item specs, composable/store, TS types
   - `03-behavior.md` — page events & handlers, UI states, confirm dialogs, navigation flows, sequence diagrams
-    <!-- > **Optional**: For features with complex user-system interactions (multiple actors, alternative flows, exception handling), invoke `use-case-writer` skill first to generate structured UC specs (13-field format). Save output to `docs/<topic>/specs/UC-XX_name.md` and reference from this file. -->
+    <!-- > **Optional**: Đối với các feature có tương tác user-system phức tạp (nhiều actors, alternative flows, exception handling), invoke skill `use-case-writer` trước để tạo UC specs có cấu trúc (định dạng 13-field). Lưu output vào `docs/<topic>/specs/UC-XX_name.md` và reference từ file này. -->
   - `04-quality.md` — per-page UT test cases (Arrange/Act/Assert), backend integration tests, performance, security, accessibility, logging
-- Structural compliance is mandatory: section hierarchy, ordering, and package/file ownership from the template are required and cannot be modified.
-- If project-specific content does not apply to a required section, keep that section and explicitly mark it as "Not applicable" with a short reason.
+- Compliance cấu trúc là bắt buộc: thứ bậc section, thứ tự, và sở hữu file/package từ template là bắt buộc và không thể sửa đổi.
+- Nếu nội dung cụ thể của dự án không áp dụng được cho một section bắt buộc, giữ section đó và đánh dấu rõ ràng là "Not applicable" kèm lý do ngắn gọn.
 
 ## Rule when Change Request
-Objective: Maintain a "Single Source of Truth" by ensuring all logic or UI changes are reflected in the documentation (.md spec) before any code implementation.
+Objective: Duy trì "Single Source of Truth" bằng cách đảm bảo tất cả thay đổi logic hoặc UI được phản ánh trong tài liệu (.md spec) trước khi bất kỳ triển khai code nào.
 ### Workflow for Handling Change Requests:
 1. **Impact Analysis & Conflict Detection:**
-- Compare the incoming CR against the existing .md specification.
-- Identify affected functions, components, or database schemas.
-- Flag any contradictions between the new CR and existing legacy logic.
+- So sánh CR hiện tại với spec .md hiện có.
+- Xác định các functions, components, hoặc database schemas bị ảnh hưởng.
+- Đánh dấu bất kỳ mâu thuẫn nào giữa CR mới và logic legacy hiện có.
 2. **Spec-First Documentation (Traceability):**
-- Version Control: Do not overwrite the entire deliverable. Update the Change Log in `index.md` and then update only the owning concern file(s).
-- Contextual Tagging: Use inline markers within the technical details:
-  - [NEW]: For entirely new features.
-  - [UPDATE - CR-XXXX]: For modified existing logic.
-  - [DEPRECATED]: For features to be removed (keep until implementation is verified).
-- Visual Alignment: Update any Mermaid diagrams (Flowcharts/Sequence diagrams) in the owning file(s) to reflect the new business logic visually.
+- Version Control: Không ghi đè toàn bộ deliverable. Cập nhật Change Log trong `index.md` và sau đó chỉ cập nhật (các) file sở hữu liên quan.
+- Contextual Tagging: Sử dụng inline markers trong chi tiết kỹ thuật:
+  - [NEW]: Cho các feature hoàn toàn mới.
+  - [UPDATE - CR-XXXX]: Cho các logic hiện có đã sửa đổi.
+  - [DEPRECATED]: Cho các feature sẽ bị xóa (giữ cho đến khi verify implementation).
+- Visual Alignment: Cập nhật bất kỳ Mermaid diagrams nào (Flowcharts/Sequence diagrams) trong (các) file sở hữu để phản ánh business logic mới.
 3. **User-Centric Documentation:**
-- Generate a `### Summary of Changes` block using non-technical business language. In a spec package, keep this in `index.md`.
-- Clearly define: What changed, Why it changed, and How it affects existing data or user workflows.
+- Tạo block `### Summary of Changes` bằng ngôn ngữ business không kỹ thuật. Trong package spec, giữ block này trong `index.md`.
+- Định nghĩa rõ ràng: Những gì đã thay đổi, Tại sao thay đổi, và Ảnh hưởng như thế nào đến data hoặc workflows hiện có.
 4. **Implementation & Sync:**
-- Proceed to code refactoring only after the .md spec is confirmed as the new baseline.
-- Ensure source code comments reference the specific CR (e.g., // Updated per CR-101).
+- Chỉ tiến hành refactoring code sau khi spec .md được xác nhận là baseline mới.
+- Đảm bảo comments trong source code reference CR cụ thể (ví dụ: // Updated per CR-101).
 5. **Change Logging**
-- Each CR creates an entry with: CR ID, brief summary, author, date, and spec version.
+- Mỗi CR tạo một entry với: CR ID, tóm tắt ngắn, author, date, và version spec.
 
 ## Process Flow
 ```dot
@@ -103,64 +103,64 @@ digraph brainstorming {
 
 **Understanding the idea:**
 
-- Check out the current project state first (files, docs, recent commits)
-- Before asking detailed questions, assess scope: if the request describes multiple independent subsystems (e.g., "build a platform with chat, file storage, billing, and analytics"), flag this immediately. Don't spend questions refining details of a project that needs to be decomposed first.
-- If the project is too large for a single spec package, help the user decompose into sub-projects: what are the independent pieces, how do they relate, what order should they be built? Then brainstorm the first sub-project through the normal design flow. Each sub-project gets its own spec package → plan → implementation cycle.
-- For appropriately-scoped projects, ask questions one at a time to refine the idea
-- Prefer multiple choice questions when possible, but open-ended is fine too
-- Only one question per message - if a topic needs more exploration, break it into multiple questions
-- Focus on understanding: purpose, constraints, success criteria
+- Check out trạng thái dự án hiện tại trước (files, docs, recent commits)
+- Trước khi đặt câu hỏi chi tiết, đánh giá scope: nếu yêu cầu mô tả nhiều subsystem độc lập (ví dụ: "xây dựng platform với chat, file storage, billing, và analytics"), flag ngay lập tức. Đừng dành câu hỏi để tinh chỉnh chi tiết của một dự án cần được phân rã trước.
+- Nếu dự án quá lớn cho một package spec duy nhất, giúp người dùng phân rã thành các sub-project: những piece độc lập nào, chúng liên quan thế nào, thứ tự xây dựng ra sao? Sau đó brainstorm sub-project đầu tiên qua flow thiết kế bình thường. Mỗi sub-project nhận một package spec → plan → implementation cycle riêng.
+- Đối với các dự án có scope phù hợp, đặt câu hỏi từng cái một để tinh chỉnh ý tưởng
+- Ưu tiên câu hỏi nhiều lựa chọn khi có thể, nhưng câu hỏi mở cũng được
+- Chỉ một câu hỏi mỗi message - nếu một chủ đề cần khám phá thêm, chia thành nhiều câu hỏi
+- Tập trung hiểu: purpose, constraints, success criteria
 
 **Exploring approaches:**
 
-- Propose 2-3 different approaches with trade-offs
-- Present options conversationally with your recommendation and reasoning
-- Lead with your recommended option and explain why
+- Đề xuất 2-3 cách tiếp cận khác nhau với trade-offs
+- Trình bày các lựa chọn một cách trò chuyện với khuyến nghị và lý do của bạn
+- Dẫn đầu với lựa chọn được khuyến nghị và giải thích tại sao
 
 **Design for isolation and clarity:**
 
-- Break the system into smaller units that each have one clear purpose, communicate through well-defined interfaces, and can be understood and tested independently
-- For each unit, you should be able to answer: what does it do, how do you use it, and what does it depend on?
-- Can someone understand what a unit does without reading its internals? Can you change the internals without breaking consumers? If not, the boundaries need work.
-- Smaller, well-bounded units are also easier for you to work with - you reason better about code you can hold in context at once, and your edits are more reliable when files are focused. When a file grows large, that's often a signal that it's doing too much.
+- Chia hệ thống thành các units nhỏ hơn mà mỗi unit có một mục đích rõ ràng, giao tiếp qua các interfaces được định nghĩa tốt, và có thể được hiểu và test độc lập
+- Với mỗi unit, bạn nên có thể trả lời: nó làm gì, cách sử dụng nó, và nó phụ thuộc vào gì?
+- Ai đó có thể hiểu một unit làm gì mà không cần đọc nội bộ của nó không? Bạn có thể thay đổi nội bộ mà không phá vỡ consumers không? Nếu không, các boundaries cần work.
+- Các units nhỏ, well-bounded cũng dễ làm việc hơn - bạn reasoning tốt hơn về code bạn có thể giữ trong context cùng một lúc, và các edits của bạn đáng tin cậy hơn khi files tập trung. Khi một file phát triển lớn, đó thường là dấu hiệu nó đang làm quá nhiều.
 
 **Working in existing codebases:**
 
-- Explore the current structure before proposing changes. Follow existing patterns.
-- Where existing code has problems that affect the work (e.g., a file that's grown too large, unclear boundaries, tangled responsibilities), include targeted improvements as part of the design - the way a good developer improves code they're working in.
-- Don't propose unrelated refactoring. Stay focused on what serves the current goal.
+- Explore cấu trúc hiện tại trước khi đề xuất thay đổi. Follow các patterns hiện có.
+- Khi existing code có problems ảnh hưởng đến work (ví dụ: file đã phát triển quá lớn, boundaries không rõ ràng, responsibilities rối), bao gồm các improvements có mục tiêu như một phần của design - cách một developer giỏi cải thiện code họ đang làm việc.
+- Không đề xuất refactoring không liên quan. Stay focused vào những gì phục vụ mục tiêu hiện tại.
 
 ## After the Design
 
 **Documentation:**
 
-- Write the validated design to `docs/<topic>/specs/<topic>-design/index.md` plus the required concern files from the modular template.
+- Write validated design vào `docs/<topic>/specs/<topic>-design/index.md` cùng với các file concern bắt buộc từ modular template.
   - (User preferences for spec location override this default)
 
 **Spec Checklist:**
-After writing the spec document, look at it with fresh eyes:
+Sau khi viết spec document, nhìn lại với con mắt tươi mới:
 
-1. **Placeholder scan:** Any "TBD", "TODO", incomplete sections, or vague requirements? Fix them.
-2. **Internal consistency:** Do any sections contradict each other? Does the architecture match the feature descriptions?
-3. **Scope check:** Is this focused enough for a single implementation plan, or does it need decomposition?
-4. **Ambiguity check:** Could any requirement be interpreted two different ways? If so, pick one and make it explicit.
-5. **Template compliance check (mandatory):** Verify 100% section/subsection presence, required file set, ownership, and ordering against [modular-spec-package-template](reference/modular-spec-package-template.md). If any mismatch exists, fix before user review.
+1. **Placeholder scan:** Có bất kỳ "TBD", "TODO", sections chưa hoàn thành, hoặc requirements mơ hồ không? Sửa chúng.
+2. **Internal consistency:** Có sections nào mâu thuẫn với nhau không? Architecture có khớp với các mô tả feature không?
+3. **Scope check:** Đây có phải là focused đủ cho một implementation plan duy nhất, hay cần decomposition?
+4. **Ambiguity check:** Có bất kỳ requirement nào có thể được hiểu theo hai cách khác nhau không? Nếu vậy, chọn một và làm rõ.
+5. **Template compliance check (bắt buộc):** Verify 100% sự hiện diện của section/subsection, bộ file bắt buộc, ownership, và ordering theo [modular-spec-package-template](reference/modular-spec-package-template.md). Nếu có bất kỳ mismatch nào, sửa trước khi user review.
 
-Fix any issues inline. No need to re-review — just fix and move on.
+Sửa bất kỳ issues nào inline. Không cần review lại — chỉ sửa và tiếp tục.
 
 **User Review Gate:**
-After the spec review loop passes, ask the user to review the written spec package before proceeding:
+Sau khi spec review loop vượt qua, yêu cầu người dùng review package spec đã viết trước khi tiếp tục:
 
 > "Spec package written and committed to `<path>/index.md`. Please review the entry file first, then the concern files it references, and let me know if you want any changes before we start writing out the implementation plan."
 
-Wait for the user's response. If they request changes, make them and re-run the spec review loop. Only proceed once the user approves.
+Chờ phản hồi của người dùng. Nếu họ yêu cầu thay đổi, thực hiện và chạy lại spec review loop. Chỉ tiếp tục sau khi người dùng phê duyệt.
 
 **Implementation:**
-Invoke the `writing-plans` skill to create a detailed implementation plan. Do NOT invoke any other skill — `writing-plans` is the next and only step after user approves the spec.
+Invoke skill `writing-plans` để tạo detailed implementation plan. KHÔNG invoke bất kỳ skill nào khác — `writing-plans` là bước tiếp theo và duy nhất sau khi user approves spec.
 
 ## Key Principles
-- **Multiple choice preferred** - Easier to answer than open-ended when possible
-- **YAGNI ruthlessly** - Remove unnecessary features from all designs
-- **Explore alternatives** - Always propose 2-3 approaches before settling
-- **Incremental validation** - Present design, get approval before moving on
-- **Be flexible** - Go back and clarify when something doesn't make sense
+- **Multiple choice preferred** - Dễ trả lời hơn open-ended khi có thể
+- **YAGNI ruthlessly** - Loại bỏ các features không cần thiết khỏi tất cả designs
+- **Explore alternatives** - Luôn đề xuất 2-3 approaches trước khi settle
+- **Incremental validation** - Trình bày design, nhận approval trước khi tiếp tục
+- **Be flexible** - Quay lại làm rõ khi có gì đó không hợp lý
