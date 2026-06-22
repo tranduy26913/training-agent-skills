@@ -15,8 +15,7 @@ Do NOT invoke any implementation skill, write any code, scaffold any project, or
 
 <TEMPLATE-COMPLIANCE-GATE>
 When writing any spec deliverable, the output MUST follow the multi-file spec package structure 100%.
-- Follow [modular-spec-package-template](reference/modular-spec-package-template.md).
-- Required package files: `00-index.md`, `01-backend.md`, `02-frontend.md`, `03-behavior.md`, `04-quality.md`.
+- Required package files in reference: `00-index.md`, `01-backend.md`, `02-frontend.md`, `03-behavior.md`, `04-quality.md`.
 - Treat the spec package as the required default, not an optional format.
 - Keep every required top-level section, subsection, file ownership rule, and ordering defined by the template.
 - Do not rename, merge, remove, or reorder required sections or required package files.
@@ -33,22 +32,9 @@ You MUST create a task for each of these items and complete them in order:
 2. **Ask clarifying questions, Combine all the questions and ask them all at once, use #tool:vscode/askQuestions to gather answers** — Understand purpose/constraints/success criteria
 3. **Propose 2-3 approaches** — with trade-offs and your recommendation
 <!-- 4. **Present design** — in sections scaled to their complexity, get user approval after each section -->
-4. **Write design doc** — save to `docs/<topic>/specs/<topic>-design/` with `index.md` as the canonical entry point. Use Vietnamese for the content, while keeping the headers/section titles in English. Follow [modular-spec-package-template](reference/modular-spec-package-template.md) with 100% structural compliance.
+4. **Write design doc** — save to `docs/<topic>/specs/<topic>-design/` with `index.md` as the canonical entry point. Use Vietnamese for the content, while keeping the headers/section titles in English. Follow [template](reference/) with 100% structural compliance.
 5. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
 6. **User reviews written spec** — ask user to review the spec file before proceeding
-7. **No code blocks in spec** - If the spec requires code snippets, describe them in pseudo code instead of using code blocks.
-
-**Template of `<topic>-design`: (mandatory, strict)**
-- The specification file must be formatted in well formed Markdown.
-- The specification deliverable must be a **5-file spec package** using [modular-spec-package-template](reference/modular-spec-package-template.md):
-  - `00-index.md` — executive summary, objective & scope, changelog, architecture overview, cross-file links
-  - `01-backend.md` — DB schema, DTOs, API endpoints, validation rules, error handling
-  - `02-frontend.md` — wireframes, component tree, screen item specs, composable/store, TS types
-  - `03-behavior.md` — page events & handlers, UI states, confirm dialogs, navigation flows, sequence diagrams
-    <!-- > **Optional**: For features with complex user-system interactions (multiple actors, alternative flows, exception handling), invoke `use-case-writer` skill first to generate structured UC specs (13-field format). Save output to `docs/<topic>/specs/UC-XX_name.md` and reference from this file. -->
-  - `04-quality.md` — per-page UT test cases (Arrange/Act/Assert), backend integration tests, performance, security, accessibility, logging
-- Structural compliance is mandatory: section hierarchy, ordering, and package/file ownership from the template are required and cannot be modified.
-- If project-specific content does not apply to a required section, keep that section and explicitly mark it as "Not applicable" with a short reason.
 
 ## Rule when Change Request
 Objective: Maintain a "Single Source of Truth" by ensuring all logic or UI changes are reflected in the documentation (.md spec) before any code implementation.
@@ -102,8 +88,7 @@ digraph brainstorming {
 ## The Process
 
 **Understanding the idea:**
-
-- Check out the current project state first (files, docs, recent commits)
+- Check out the current project state first (files, docs). Exclude e2e and test files - focus on source of truth for design and implementation.
 - Before asking detailed questions, assess scope: if the request describes multiple independent subsystems (e.g., "build a platform with chat, file storage, billing, and analytics"), flag this immediately. Don't spend questions refining details of a project that needs to be decomposed first.
 - If the project is too large for a single spec package, help the user decompose into sub-projects: what are the independent pieces, how do they relate, what order should they be built? Then brainstorm the first sub-project through the normal design flow. Each sub-project gets its own spec package → plan → implementation cycle.
 - For appropriately-scoped projects, ask questions one at a time to refine the idea
@@ -138,15 +123,13 @@ digraph brainstorming {
   - (User preferences for spec location override this default)
 
 **Spec Checklist:**
-After writing the spec document, look at it with fresh eyes:
-
+After writing the spec document, review with rules:
 1. **Placeholder scan:** Any "TBD", "TODO", incomplete sections, or vague requirements? Fix them.
 2. **Internal consistency:** Do any sections contradict each other? Does the architecture match the feature descriptions?
 3. **Scope check:** Is this focused enough for a single implementation plan, or does it need decomposition?
 4. **Ambiguity check:** Could any requirement be interpreted two different ways? If so, pick one and make it explicit.
-5. **Template compliance check (mandatory):** Verify 100% section/subsection presence, required file set, ownership, and ordering against [modular-spec-package-template](reference/modular-spec-package-template.md). If any mismatch exists, fix before user review.
-
-Fix any issues inline. No need to re-review — just fix and move on.
+5. **Template compliance check (mandatory):** Verify 100% section/subsection presence, required file set, ownership, and ordering against [template](reference/). If any mismatch exists, fix before user review.
+6. **No code blocks:** No TypeScript code blocks.
 
 **User Review Gate:**
 After the spec review loop passes, ask the user to review the written spec package before proceeding:

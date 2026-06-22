@@ -292,4 +292,8 @@ Types:
 
 ---
 
-```
+
+## 8. i18n Keys
+| Key | VN Text | EN Text | JP Text | Description |
+|-----|--------------|-------------|-------------|-------------|
+| `[feature].list.pageTitle` | "Danh sách [Feature]" | "[Feature] List" | "[Feature] 一覧" | Title of the list page |

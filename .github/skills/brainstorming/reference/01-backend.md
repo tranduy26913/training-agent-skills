@@ -14,9 +14,7 @@ date: [YYYY-MM-DD]
 
 ## 1. Data Models
 
-### 1.1 Database Schema
-
-> Mô tả schema theo dạng khai báo **Prisma model** (bảng property). Nếu project dùng ORM khác (TypeORM, Sequelize, Drizzle, ...) thay thuộc tính `@` / `@@` cho phù hợp.
+### 1.1 Database Schema (Prisma models)
 
 #### `ModelName` (table `[table_name]`)
 
@@ -89,8 +87,8 @@ Flow:
 Response (200 OK):
 ```json
 {
-  "data": [{resource objects}], (CHỈ MÔ TẢ TÊN MODEL, KHÔNG LIỆT KÊ CHI TIẾT CÁC TRƯỜNG)
-  "pagination": {...pagination metadata}
+  "data": Model[], (Name of MODEL described in `1.2 TypeScript Models` section)
+  "pagination": PaginationInfo
 }
 ```
 
@@ -112,12 +110,7 @@ Request:
 POST /api/[resource]
 Authorization: Bearer <token>
 Content-Type: application/json
-
-{
-  "fieldA": "value",
-  "fieldB": "value",
-  "fieldC": "optional value"
-}
+Body: Model (Name of MODEL described in `1.2 TypeScript Models` section)
 ```
 
 Flow:
@@ -131,7 +124,7 @@ Flow:
 Response (201 Created):
 ```json
 {
-  "data": [{resource objects}], (CHỈ MÔ TẢ TÊN MODEL, KHÔNG LIỆT KÊ CHI TIẾT CÁC TRƯỜNG)
+  "data": Model[], (Name of MODEL described in `1.2 TypeScript Models` section)
 }
 ```
 
@@ -166,7 +159,7 @@ Flow:
 Response (200 OK):
 ```json
 {
-  "data": {resource objects}  (CHỈ MÔ TẢ TÊN MODEL, KHÔNG LIỆT KÊ CHI TIẾT CÁC TRƯỜNG)
+  "data": Model, (Name of MODEL described in `1.2 TypeScript Models` section)
 }
 ```
 
@@ -189,10 +182,7 @@ Request:
 PUT /api/[resource]/1
 Authorization: Bearer <token>
 Content-Type: application/json
-
-{
-  "fieldA": "new value"
-}
+Body: Model (Name of MODEL, Do not list detailed fields)
 ```
 
 Flow:
@@ -207,7 +197,7 @@ Flow:
 Response (200 OK):
 ```json
 {
-  "data": {resource objects}  (CHỈ MÔ TẢ TÊN MODEL, KHÔNG LIỆT KÊ CHI TIẾT CÁC TRƯỜNG)
+  "data": Model, (Name of MODEL described in `1.2 TypeScript Models` section)
 }
 ```
 
@@ -293,8 +283,7 @@ All errors must follow this format:
 ```json
 {
   "error": "Human-readable error message",
-  "code": "ERROR_CODE",
-  "details": {}
+  "code": "ERROR_CODE"
 }
 ```
 
