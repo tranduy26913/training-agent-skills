@@ -31,26 +31,9 @@ const menuItems: MenuItem[] = [
     roles: ['admin'],
   },
   {
-    labelKey: 'sidebar.employees',
-    icon: 'pi pi-id-card',
-    to: '/employees',
-    roles: ['admin'],
-  },
-  {
     labelKey: 'sidebar.vocabularies',
     icon: 'pi pi-book',
     to: '/vocabularies',
-    roles: ['admin'],
-  },
-  {
-    labelKey: 'sidebar.notebooklm',
-    icon: 'pi pi-book',
-    to: '/notebooklm',
-  },
-  {
-    labelKey: 'sidebar.notebooklmOperations',
-    icon: 'pi pi-chart-line',
-    to: '/notebooklm/jobs',
     roles: ['admin'],
   },
   {

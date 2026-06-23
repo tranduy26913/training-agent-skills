@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-// ログインスキーマ / Login request validation schema
+// Login request validation schema.
 export const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(1, 'Password is required'),
@@ -8,8 +8,8 @@ export const loginSchema = z.object({
 
 export type LoginInput = z.infer<typeof loginSchema>;
 
-// プロフィール更新スキーマ / Update profile request validation schema
-// ~2.7MB base64 (= 2MB raw file * 1.37 encoding overhead)
+// Update profile request validation schema.
+// ~2.7MB base64 (= 2MB raw file * 1.37 encoding overhead).
 const MAX_AVATAR_BASE64_LENGTH = 2_800_000;
 
 export const updateProfileSchema = z.object({
@@ -33,7 +33,7 @@ export const updateProfileSchema = z.object({
 
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 
-// パスワード変更スキーマ / Change password request validation schema
+// Change password request validation schema.
 export const changePasswordSchema = z
   .object({
     currentPassword: z.string().min(1, 'Current password is required'),

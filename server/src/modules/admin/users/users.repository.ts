@@ -1,6 +1,4 @@
 // Users + audit-log data access using Prisma Client.
-// Mirrors the public API of the previous mysql2-based repository so the
-// service layer does not need to change.
 import { prisma } from '@database/prisma';
 import type { Prisma } from '@prisma/client';
 import type { UserFilters, AuditLogDTO, AuditLog } from '@models/users.model';
@@ -54,7 +52,6 @@ export class UsersRepository {
 
     return where;
   }
-
   // Find users with filters, sort, and pagination. Returns rows without the
   // password field and the total count for the page meta.
   async findAllWithFilters(filters: UserFilters) {
@@ -63,13 +60,7 @@ export class UsersRepository {
     const limit = filters.limit || 20;
     const skip = (page - 1) * limit;
 
-    const orderBy =
-      ALLOWED_SORT_FIELDS[filters.sortBy || ''] ??
-      { createdAt: 'desc' as const };
-    if (filters.sortOrder === 'asc') {
-      const key = Object.keys(orderBy)[0] as keyof Prisma.UserOrderByWithRelationInput;
-      (orderBy as any)[key] = 'asc';
-    }
+    const orderBy = this.resolveOrderBy(filters.sortBy, filters.sortOrder);
 
     const [data, total] = await Promise.all([
       prisma.user.findMany({
@@ -83,6 +74,17 @@ export class UsersRepository {
     ]);
 
     return { data, total };
+  }
+
+  // Resolve the Prisma orderBy input from the requested sort field and order.
+  private resolveOrderBy(
+    sortBy: string | undefined,
+    sortOrder: 'asc' | 'desc' | undefined,
+  ): Prisma.UserOrderByWithRelationInput {
+    const base = ALLOWED_SORT_FIELDS[sortBy || ''] ?? { createdAt: 'desc' as const };
+    const key = Object.keys(base)[0] as keyof Prisma.UserOrderByWithRelationInput;
+    const direction = sortOrder === 'asc' ? 'asc' : 'desc';
+    return { [key]: direction } as Prisma.UserOrderByWithRelationInput;
   }
 
   // Find a user by id, excluding the password hash.
@@ -166,15 +168,15 @@ export class UsersRepository {
         adminId: entry.admin_id,
         targetUserId: entry.target_user_id,
         action: entry.action,
-        // Prisma expects JsonValue-compatible input; the application value is
-        // already a plain object/null/undefined.
-        changedFields: entry.changed_fields as never,
+        // Prisma expects a JsonValue-compatible input; the application value
+        // is already a plain object, null, or undefined.
+        changedFields: (entry.changed_fields ?? undefined) as Prisma.InputJsonValue,
       },
     });
   }
 
   // Return audit logs for a target user, joined with the admin's name.
-  // Returns rows in the API snake_case shape (admin_id, target_user_id, ...).
+  // Rows are mapped to the API snake_case shape (admin_id, target_user_id, ...).
   async getAuditLogs(targetUserId: number, limit = 20): Promise<AuditLog[]> {
     const rows = await prisma.auditLog.findMany({
       where: { targetUserId },

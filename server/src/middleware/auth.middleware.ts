@@ -1,8 +1,9 @@
 import { Response, NextFunction } from 'express';
-import { verifyToken } from '../utils/token.util';
-import { sendError } from '../utils/response.util';
-import type { AuthenticatedRequest } from '../types/express.d';
+import { verifyToken } from '@utils/token.util';
+import { sendError } from '@utils/response.util';
+import type { AuthenticatedRequest } from '@types-express';
 
+// Verify the Bearer token and attach the payload to req.user.
 export function authMiddleware(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -20,6 +21,7 @@ export function authMiddleware(req: AuthenticatedRequest, res: Response, next: N
   }
 }
 
+// Middleware factory that restricts access to the given roles.
 export function requireRole(...roles: string[]) {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
     if (!req.user) {

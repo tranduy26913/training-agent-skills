@@ -1,4 +1,4 @@
-// Users module request/response models
+// Users module request/response models.
 import type { User as PrismaUser } from '@prisma/client';
 import type {
   AuditAction,
@@ -7,8 +7,8 @@ import type {
   ChangedFields,
 } from './common.model';
 
-// Application-side User type: Prisma-generated row, password field allowed
-// (callers must select against the public shape before returning to clients).
+// Application-side User type: Prisma-generated row. Callers must select
+// against the public shape before returning to clients.
 export type User = PrismaUser;
 
 // API response shape for the audit-log list. Keeps snake_case to match the

@@ -17,13 +17,13 @@ if (process.env.NODE_ENV !== 'production') {
   globalThis.__prismaClient = prisma;
 }
 
-// Test the connection. Replaces the old mysql2 testConnection helper.
+// Verify the database is reachable.
 export async function testConnection(): Promise<void> {
   await prisma.$connect();
-  // Lightweight query to confirm the DB is reachable.
   await prisma.$queryRaw`SELECT 1`;
 }
 
+// Disconnect the client gracefully.
 export async function disconnect(): Promise<void> {
   await prisma.$disconnect();
 }

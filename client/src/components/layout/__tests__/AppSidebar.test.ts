@@ -12,13 +12,13 @@ describe('AppSidebar', () => {
     setActivePinia(createPinia());
   });
 
-  it('renders NotebookLM menu item', () => {
+  it('renders Vocabularies menu item', () => {
     const authStore = useAuthStore();
     authStore.user = {
       id: 1,
       name: 'Test User',
       email: 'test@example.com',
-      role: 'user',
+      role: 'admin',
       status: 'active',
     };
 
@@ -40,8 +40,8 @@ describe('AppSidebar', () => {
       },
     });
 
-    const notebookLink = wrapper.find('a[href="/notebooklm"]');
-    expect(notebookLink.exists()).toBe(true);
-    expect(wrapper.text()).toContain('NotebookLM');
+    const vocabLink = wrapper.find('a[href="/vocabularies"]');
+    expect(vocabLink.exists()).toBe(true);
+    expect(wrapper.text()).toContain('Vocabularies');
   });
 });

@@ -8,7 +8,7 @@ import type { CreateUserInput, UpdateUserInput } from './users.validation';
 // Re-export ServiceError for controller usage.
 export { ServiceError };
 
-// Public user shape returned by repository (no password hash).
+// Public user shape returned by the repository (no password hash).
 type PublicUser = NonNullable<Awaited<ReturnType<UsersRepository['findByIdWithoutPassword']>>>;
 
 // Users business logic service.

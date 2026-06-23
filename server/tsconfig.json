@@ -14,14 +14,15 @@
     "declarationMap": true,
     "sourceMap": true,
     "baseUrl": "./src",
-    "ignoreDeprecations": "6.0",
     "paths": {
       "@/*": ["./*"],
+      "@config": ["./config/index.ts"],
       "@models/*": ["./models/*"],
       "@middleware/*": ["./middleware/*"],
       "@database/*": ["./database/*"],
       "@utils/*": ["./utils/*"],
       "@types/*": ["./types/*"],
+      "@modules/*": ["./modules/*"],
       "@types-express": ["./types/express.d.ts"],
       "@app": ["./app.ts"]
     }

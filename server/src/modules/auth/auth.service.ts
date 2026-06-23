@@ -18,7 +18,7 @@ const USER_PUBLIC_SELECT = {
 // Authentication service backed by Prisma.
 export class AuthService {
   // Login with email + password. Returns null for unknown email, inactive
-  // accounts, or wrong password (caller decides how to map that to HTTP).
+  // accounts, or wrong password (caller decides the HTTP mapping).
   async login(input: LoginInput): Promise<LoginResponseData | null> {
     const user = await prisma.user.findUnique({
       where: { email: input.email },

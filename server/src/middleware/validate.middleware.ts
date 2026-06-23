@@ -1,7 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodSchema } from 'zod';
-import { sendError } from '../utils/response.util';
+import { sendError } from '@utils/response.util';
 
+// Middleware factory that validates req.body or req.query against a Zod
+// schema. On failure responds with 422 and the joined error messages.
 export function validate(schema: ZodSchema, source: 'body' | 'query' = 'body') {
   return (req: Request, res: Response, next: NextFunction): void => {
     const input = source === 'query' ? req.query : req.body;

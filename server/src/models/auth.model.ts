@@ -1,14 +1,14 @@
-// 認証モデル定義 / Auth module request/response models
+// Auth module request/response models.
 import type { UserRole } from './common.model';
 
-// JWTペイロード / JWT token payload
+// JWT token payload.
 export interface JwtPayload {
   userId: number;
   email: string;
   role: UserRole;
 }
 
-// ログインレスポンスのユーザー情報 / User info returned on login
+// User info returned on login.
 export interface AuthUser {
   id: number;
   name: string;
@@ -17,7 +17,7 @@ export interface AuthUser {
   status: string;
 }
 
-// ログインレスポンス / Login response data
+// Login response data.
 export interface LoginResponseData {
   token: string;
   user: AuthUser;
