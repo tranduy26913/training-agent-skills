@@ -257,6 +257,16 @@ server/
 │   ├── app.ts                    # Express app setup (middleware, routes)
 │   ├── server.ts                 # HTTP server entry point
 │   │
+│   ├── core/                     # ★ CORE ABSTRACTION LAYER ★
+│   │   ├── index.ts              # Barrel export
+│   │   ├── api-provider.service.ts # Factory — register & get AI providers
+│   │   └── providers/            # Concrete AI provider implementations
+│   │       ├── index.ts          # Barrel export
+│   │       ├── types.ts          # IAiProvider interface, shared types
+│   │       ├── gemini.provider.ts # Google Gemini API provider
+│   │       ├── comfy.provider.ts  # ComfyUI workflow provider
+│   │       └── zai.provider.ts   # Zai AI API provider
+│   │
 │   ├── config/                   # Configuration
 │   │   ├── index.ts              # Aggregated config export
 │   │   ├── auth.config.ts        # JWT secrets, token expiry
@@ -335,6 +345,7 @@ Backend dùng path alias style `@alias/`, định nghĩa trong `server/tsconfig.
 | `@database/*` | `database/*` |
 | `@utils/*` | `utils/*` |
 | `@modules/*` | `modules/*` |
+| `@core/*` | `core/*` |
 | `@types-express` | `types/express.d.ts` |
 | `@app` | `app.ts` |
 

@@ -23,6 +23,7 @@
       "@utils/*": ["./utils/*"],
       "@types/*": ["./types/*"],
       "@modules/*": ["./modules/*"],
+      "@core/*": ["./core/*"],
       "@types-express": ["./types/express.d.ts"],
       "@app": ["./app.ts"]
     }
