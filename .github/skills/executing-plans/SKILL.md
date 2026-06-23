@@ -6,11 +6,10 @@ description: Use when you have a written implementation plan to execute in a sep
 # Overview
 Load plan, review critically, execute all phases and tasks sequentially, report when complete.
 
-**Announce at start:** "I'm using the executing-plans skill to implement this plan."
-
-**Required skills:** Allways reference the following skills when executing plans:
-- **test-driven-development** - REQUIRED: Use for all implementation tasks that involve writing code (TDD)
+## Required skills - Allways reference the following skills when executing plans:
+### With backend tasks:
 - **coding-guidelines** - REQUIRED: Use for all implementation tasks that involve writing code
+### With frontend tasks:
 - **vue-best-practices** - REQUIRED: Use for all Vue.js implementation tasks
 - **prime-vue** - REQUIRED: Use for any PrimeVue component in Vue.js implementation
 - **vueuse-functions** - REQUIRED: Use for any VueUse function in Vue.js implementation
@@ -41,7 +40,7 @@ For each task:
 1. Execute the task instructions exactly as written
 2. Read the relevant specs, load the relevant skills, and reference them as needed
 
-When all phases and tasks are completed, proceed to the post-completion review.
+When all phases and tasks are completed, proceed to the Step 3: Post-Completion Review.
 
 ## Step 3: Post-Completion Review
 

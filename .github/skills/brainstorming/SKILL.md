@@ -32,7 +32,7 @@ You MUST create a task for each of these items and complete them in order:
 2. **Ask clarifying questions, Combine all the questions and ask them all at once, use #tool:vscode/askQuestions to gather answers** — Understand purpose/constraints/success criteria
 3. **Propose 2-3 approaches** — with trade-offs and your recommendation
 <!-- 4. **Present design** — in sections scaled to their complexity, get user approval after each section -->
-4. **Write design doc** — save to `docs/<topic>/specs/<topic>-design/` with `index.md` as the canonical entry point. Use Vietnamese for the content, while keeping the headers/section titles in English. Follow [template](reference/) with 100% structural compliance.
+4. **Write design doc** — save to `docs/<topic>/specs/<topic>-design/` with `index.md` as the canonical entry point. Use Vietnamese for the content, while keeping the headers/section titles in English. Follow [template](reference/) or `docs/templates` with 100% structural compliance.
 5. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
 6. **User reviews written spec** — ask user to review the spec file before proceeding
 
@@ -115,21 +115,24 @@ digraph brainstorming {
 - Where existing code has problems that affect the work (e.g., a file that's grown too large, unclear boundaries, tangled responsibilities), include targeted improvements as part of the design - the way a good developer improves code they're working in.
 - Don't propose unrelated refactoring. Stay focused on what serves the current goal.
 
-## After the Design
-
-**Documentation:**
-
-- Write the validated design to `docs/<topic>/specs/<topic>-design/index.md` plus the required concern files from the modular template.
-  - (User preferences for spec location override this default)
-
-**Spec Checklist:**
+## After writing the spec package
+**Spec Review Checklist:**
 After writing the spec document, review with rules:
 1. **Placeholder scan:** Any "TBD", "TODO", incomplete sections, or vague requirements? Fix them.
 2. **Internal consistency:** Do any sections contradict each other? Does the architecture match the feature descriptions?
 3. **Scope check:** Is this focused enough for a single implementation plan, or does it need decomposition?
 4. **Ambiguity check:** Could any requirement be interpreted two different ways? If so, pick one and make it explicit.
-5. **Template compliance check (mandatory):** Verify 100% section/subsection presence, required file set, ownership, and ordering against [template](reference/). If any mismatch exists, fix before user review.
+5. **Template compliance check (mandatory):** Verify 100% section/subsection presence, required file set, ownership, and ordering against [template](reference/) or `docs/templates`. If any mismatch exists, fix before user review.
 6. **No code blocks:** No TypeScript code blocks.
+7. **Language usage:** Content in Vietnamese, headers/section titles in English. No English content except for technical terms, code, or section titles.
+8. **Backend.md:**
+- Database schema in Prisma model format, not raw SQL.
+- API endpoints with request/response must describe by Name of Model (in `1.2 TypeScript Models` section).
+- Model in request/response must same with the Name of Model described in `1.2 TypeScript Models` section.
+9. **Frontend.md:**
+- Screen Item Specifications must use PrimeVue component names, or Component names from the project, not generic HTML tags.
+- Do not describe by TypeScript code blocks.
+- With TypeScript types: property must map to the TypeScript type defined in `1.2 TypeScript Models` section, not raw code blocks.
 
 **User Review Gate:**
 After the spec review loop passes, ask the user to review the written spec package before proceeding:
