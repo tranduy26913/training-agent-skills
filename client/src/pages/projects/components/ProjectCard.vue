@@ -18,16 +18,16 @@ const actionMenu = ref();
 
 // Random accent color based on project id
 const accentColors = [
-  'bg-blue-500',
-  'bg-green-500',
-  'bg-purple-500',
-  'bg-amber-500',
-  'bg-rose-500',
-  'bg-cyan-500',
-  'bg-indigo-500',
-  'bg-teal-500',
+  { bar: '#3B82F6', icon: '#3B82F6' },  // blue
+  { bar: '#22C55E', icon: '#22C55E' },  // green
+  { bar: '#A855F7', icon: '#A855F7' },  // purple
+  { bar: '#EAB308', icon: '#EAB308' },  // yellow
+  { bar: '#EC4899', icon: '#EC4899' },  // pink
+  { bar: '#0EA5E9', icon: '#0EA5E9' },  // sky
+  { bar: '#6366F1', icon: '#6366F1' },  // indigo
+  { bar: '#14B8A6', icon: '#14B8A6' },  // teal
 ];
-const accentColor = computed(() => accentColors[props.project.id % accentColors.length]);
+const accent = computed(() => accentColors[props.project.id % accentColors.length]);
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
@@ -59,15 +59,15 @@ function toggleMenu(event: MouseEvent) {
 
 <template>
   <div
-    class="bg-surface-50 dark:bg-surface-700 rounded-lg shadow-sm border border-surface-200 dark:border-surface-600 hover:shadow-md hover:bg-surface-100 dark:hover:bg-surface-600 hover:border-surface-200 dark:hover:border-surface-600 transition-all duration-200 cursor-pointer flex flex-col overflow-hidden"
+    class="bg-surface-50 dark:bg-surface-700 rounded-lg shadow-sm border border-surface-200 dark:border-surface-600 hover:shadow-md hover:bg-surface-100 dark:hover:bg-surface-600 hover:border-surface-200 dark:hover:border-surface-600 hover:scale-[1.01] transition-all duration-200 cursor-pointer flex flex-col overflow-hidden"
     @click="handleCardClick"
   >
     <!-- Top accent bar (random color) -->
-    <div :class="['h-1', accentColor]"></div>
+    <div class="h-1" :style="{ backgroundColor: accent.bar }"></div>
 
     <!-- Header: Icon + Name -->
     <div class="p-4 pb-2 flex items-start gap-3">
-      <i class="pi pi-folder-open text-primary text-xl mt-0.5"></i>
+      <i class="pi pi-folder-open text-xl mt-0.5" :style="{ color: accent.icon }"></i>
       <h3 class="text-lg font-semibold text-surface-900 dark:text-surface-100 line-clamp-2">
         {{ project.name }}
       </h3>
