@@ -88,10 +88,10 @@ function handleDeleteCancelled() {
     <!-- Page Header -->
     <div class="flex items-center justify-between mb-6">
       <h1 class="text-2xl font-bold text-surface-900 dark:text-surface-100">
-        Quản lý Project
+        {{ $t('projects.list.pageTitle') }}
       </h1>
       <Button
-        label="Tạo Project"
+        :label="$t('projects.list.createButton')"
         icon="pi pi-plus"
         @click="handleCreateClick"
       />
@@ -120,9 +120,9 @@ function handleDeleteCancelled() {
       class="flex flex-col items-center justify-center py-16 text-surface-400 dark:text-surface-500"
     >
       <i class="pi pi-folder-open text-6xl mb-4"></i>
-      <p class="text-lg mb-4">Chưa có Project nào</p>
+      <p class="text-lg mb-4">{{ $t('projects.list.empty') }}</p>
       <Button
-        label="Tạo Project"
+        :label="$t('projects.list.createButton')"
         icon="pi pi-plus"
         @click="handleCreateClick"
       />

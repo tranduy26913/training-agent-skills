@@ -29,7 +29,24 @@ const i18n = createI18n({
   locale: 'en',
   missingWarn: false,
   fallbackWarn: false,
-  messages: { en: {} },
+  messages: {
+    en: {
+      projects: {
+        detail: 'Project Detail',
+        form: {
+          name: 'Project Name',
+          description: 'Description',
+          projectPrompt: 'Project Prompt',
+          owner: 'Owner',
+          createdAt: 'Created At',
+          updatedAt: 'Last Updated',
+        },
+      },
+      common: {
+        back: 'Back',
+      },
+    },
+  },
 });
 
 const mockProject: Project = {

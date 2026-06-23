@@ -40,7 +40,7 @@ function formatDate(dateStr: string): string {
     <!-- Back button -->
     <div class="mb-4">
       <Button
-        label="Quay lại"
+        :label="$t('common.back')"
         icon="pi pi-arrow-left"
         class="p-button-text"
         @click="handleBackClick"
@@ -48,7 +48,7 @@ function formatDate(dateStr: string): string {
     </div>
 
     <h1 class="text-2xl font-bold text-surface-900 dark:text-surface-100 mb-6">
-      Chi tiết Project
+      {{ $t('projects.detail') }}
     </h1>
 
     <!-- Loading -->
@@ -64,10 +64,9 @@ function formatDate(dateStr: string): string {
       v-else-if="store.currentProject"
       class="max-w-2xl space-y-6"
     >
-      <!-- Name -->
       <div>
         <label class="block text-sm font-semibold text-surface-500 dark:text-surface-400 mb-1">
-          Tên Project
+          {{ $t('projects.form.name') }}
         </label>
         <p class="text-surface-900 dark:text-surface-100">
           {{ store.currentProject.name }}
@@ -77,7 +76,7 @@ function formatDate(dateStr: string): string {
       <!-- Description -->
       <div>
         <label class="block text-sm font-semibold text-surface-500 dark:text-surface-400 mb-1">
-          Mô tả
+          {{ $t('projects.form.description') }}
         </label>
         <p class="text-surface-900 dark:text-surface-100 whitespace-pre-wrap">
           {{ store.currentProject.description || '—' }}
@@ -87,7 +86,7 @@ function formatDate(dateStr: string): string {
       <!-- Project Prompt -->
       <div>
         <label class="block text-sm font-semibold text-surface-500 dark:text-surface-400 mb-1">
-          Project Prompt
+          {{ $t('projects.form.projectPrompt') }}
         </label>
         <p class="text-surface-900 dark:text-surface-100 whitespace-pre-wrap text-sm">
           {{ store.currentProject.projectPrompt || '—' }}
@@ -97,7 +96,7 @@ function formatDate(dateStr: string): string {
       <!-- Owner -->
       <div>
         <label class="block text-sm font-semibold text-surface-500 dark:text-surface-400 mb-1">
-          Người tạo
+          {{ $t('projects.form.owner') }}
         </label>
         <p class="text-surface-900 dark:text-surface-100">
           {{ store.currentProject.ownerName }}
@@ -107,7 +106,7 @@ function formatDate(dateStr: string): string {
       <!-- Created At -->
       <div>
         <label class="block text-sm font-semibold text-surface-500 dark:text-surface-400 mb-1">
-          Ngày tạo
+          {{ $t('projects.form.createdAt') }}
         </label>
         <p class="text-surface-900 dark:text-surface-100">
           {{ formatDate(store.currentProject.createdAt) }}
@@ -117,7 +116,7 @@ function formatDate(dateStr: string): string {
       <!-- Updated At -->
       <div>
         <label class="block text-sm font-semibold text-surface-500 dark:text-surface-400 mb-1">
-          Cập nhật lần cuối
+          {{ $t('projects.form.updatedAt') }}
         </label>
         <p class="text-surface-900 dark:text-surface-100">
           {{ formatDate(store.currentProject.updatedAt) }}

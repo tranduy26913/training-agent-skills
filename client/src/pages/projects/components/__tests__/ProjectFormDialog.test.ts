@@ -3,9 +3,37 @@
  */
 import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
+import { createI18n } from 'vue-i18n';
 import PrimeVue from 'primevue/config';
 import ProjectFormDialog from '../ProjectFormDialog.vue';
 import type { Project } from '@apptypes/projects.types';
+
+const i18n = createI18n({
+  legacy: false,
+  locale: 'en',
+  missingWarn: false,
+  fallbackWarn: false,
+  messages: {
+    en: {
+      projects: {
+        form: {
+          name: 'Project Name',
+          namePlaceholder: 'Enter project name',
+          description: 'Description',
+          descriptionPlaceholder: 'Enter project description',
+          projectPrompt: 'Project Prompt',
+          promptPlaceholder: 'Enter system prompt for AI',
+          createTitle: 'Create Project',
+          editTitle: 'Edit Project',
+        },
+      },
+      common: {
+        cancel: 'Cancel',
+        save: 'Save',
+      },
+    },
+  },
+});
 
 const mockProject: Project = {
   id: 1,
@@ -34,7 +62,7 @@ function createWrapper(options: {
       project: options.project ?? null,
     },
     global: {
-      plugins: [PrimeVue],
+      plugins: [i18n, PrimeVue],
       stubs: {
         Dialog: {
           template: '<div><slot name="footer" /></div>',

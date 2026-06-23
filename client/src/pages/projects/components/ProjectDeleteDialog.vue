@@ -21,7 +21,7 @@ function handleCancel() {
 <template>
   <Dialog
     :visible="visible"
-    header="Xoá Project"
+    :header="$t('projects.delete.header')"
     :modal="true"
     :closable="true"
     :draggable="false"
@@ -29,18 +29,18 @@ function handleCancel() {
     @hide="handleCancel"
   >
     <p class="text-surface-700 dark:text-surface-300">
-      Bạn có chắc muốn xoá Project <strong>{{ projectName }}</strong>?
+      {{ $t('projects.delete.confirm', { name: projectName }) }}
     </p>
 
     <template #footer>
       <Button
-        label="Không"
+        :label="$t('common.no')"
         icon="pi pi-times"
         class="p-button-text"
         @click="handleCancel"
       />
       <Button
-        label="Xoá"
+        :label="$t('common.yes')"
         icon="pi pi-trash"
         severity="danger"
         @click="handleConfirm"

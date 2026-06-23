@@ -66,7 +66,7 @@ function handleDelete(event: MouseEvent) {
     <!-- Footer: UpdatedAt + Actions -->
     <div class="px-4 py-3 border-t border-surface-100 dark:border-surface-700 flex items-center justify-between">
       <span class="text-xs text-surface-400 dark:text-surface-500">
-        Cập nhật: {{ formatDate(project.updatedAt) }}
+        {{ $t('projects.form.updatedAt') }}: {{ formatDate(project.updatedAt) }}
       </span>
       <div class="flex gap-1">
         <Button

@@ -3,8 +3,30 @@
  */
 import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
+import { createI18n } from 'vue-i18n';
 import PrimeVue from 'primevue/config';
 import ProjectDeleteDialog from '../ProjectDeleteDialog.vue';
+
+const i18n = createI18n({
+  legacy: false,
+  locale: 'en',
+  missingWarn: false,
+  fallbackWarn: false,
+  messages: {
+    en: {
+      projects: {
+        delete: {
+          header: 'Delete Project',
+          confirm: 'Are you sure you want to delete Project {name}?',
+        },
+      },
+      common: {
+        yes: 'Yes',
+        no: 'No',
+      },
+    },
+  },
+});
 
 function createWrapper(options: { visible?: boolean; projectName?: string } = {}) {
   return mount(ProjectDeleteDialog, {
@@ -13,7 +35,7 @@ function createWrapper(options: { visible?: boolean; projectName?: string } = {}
       projectName: options.projectName ?? 'Test Project',
     },
     global: {
-      plugins: [PrimeVue],
+      plugins: [i18n, PrimeVue],
       stubs: {
         Dialog: {
           template: '<div><slot name="footer" /></div>',

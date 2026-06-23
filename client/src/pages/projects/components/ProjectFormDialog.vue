@@ -99,7 +99,7 @@ function handleOverlayClose() {
 <template>
   <Dialog
     :visible="visible"
-    :header="mode === 'create' ? 'Tạo Project' : 'Chỉnh sửa Project'"
+    :header="mode === 'create' ? $t('projects.form.createTitle') : $t('projects.form.editTitle')"
     :modal="true"
     :closable="true"
     :draggable="false"
@@ -110,11 +110,11 @@ function handleOverlayClose() {
       <!-- Name -->
       <div>
         <label class="block text-sm font-medium mb-1 text-surface-700 dark:text-surface-300">
-          Tên Project <span class="text-red-500">*</span>
+          {{ $t('projects.form.name') }} <span class="text-red-500">*</span>
         </label>
         <InputText
           v-model="nameField"
-          :placeholder="'Nhập tên project'"
+          :placeholder="$t('projects.form.namePlaceholder')"
           :class="{ 'p-invalid': errors.name }"
           class="w-full"
         />
@@ -126,11 +126,11 @@ function handleOverlayClose() {
       <!-- Description -->
       <div>
         <label class="block text-sm font-medium mb-1 text-surface-700 dark:text-surface-300">
-          Mô tả
+          {{ $t('projects.form.description') }}
         </label>
         <Textarea
           v-model="descriptionField"
-          :placeholder="'Nhập mô tả project'"
+          :placeholder="$t('projects.form.descriptionPlaceholder')"
           :class="{ 'p-invalid': errors.description }"
           class="w-full"
           :autoResize="true"
@@ -149,11 +149,11 @@ function handleOverlayClose() {
       <!-- Project Prompt -->
       <div>
         <label class="block text-sm font-medium mb-1 text-surface-700 dark:text-surface-300">
-          Project Prompt
+          {{ $t('projects.form.projectPrompt') }}
         </label>
         <Textarea
           v-model="projectPromptField"
-          :placeholder="'Nhập system prompt cho AI'"
+          :placeholder="$t('projects.form.promptPlaceholder')"
           :class="{ 'p-invalid': errors.projectPrompt }"
           class="w-full"
           :autoResize="true"
@@ -172,13 +172,13 @@ function handleOverlayClose() {
 
     <template #footer>
       <Button
-        :label="'Huỷ'"
+        :label="$t('common.cancel')"
         icon="pi pi-times"
         class="p-button-text"
         @click="handleCancel"
       />
       <Button
-        :label="'Lưu'"
+        :label="$t('common.save')"
         icon="pi pi-check"
         :loading="loading"
         :disabled="loading"

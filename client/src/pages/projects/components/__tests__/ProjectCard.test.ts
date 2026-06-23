@@ -13,7 +13,7 @@ const i18n = createI18n({
   locale: 'en',
   missingWarn: false,
   fallbackWarn: false,
-  messages: { en: { common: { edit: 'Edit', delete: 'Delete' } } },
+  messages: { en: { common: { edit: 'Edit', delete: 'Delete' }, projects: { form: { updatedAt: 'Last Updated' } } } },
 });
 
 const mockProject: Project = {

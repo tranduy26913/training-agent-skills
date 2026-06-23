@@ -32,7 +32,45 @@ const i18n = createI18n({
   missingWarn: false,
   fallbackWarn: false,
   messages: {
-    en: {},
+    en: {
+      projects: {
+        list: {
+          pageTitle: 'Projects',
+          createButton: 'Create Project',
+          empty: 'No projects yet',
+        },
+        form: {
+          name: 'Project Name',
+          description: 'Description',
+          projectPrompt: 'Project Prompt',
+          owner: 'Owner',
+          createdAt: 'Created At',
+          updatedAt: 'Last Updated',
+          createTitle: 'Create Project',
+          editTitle: 'Edit Project',
+        },
+        delete: {
+          header: 'Delete Project',
+          confirm: 'Are you sure you want to delete Project {name}?',
+        },
+        messages: {
+          createdSuccess: 'Project created successfully',
+          updatedSuccess: 'Project updated successfully',
+          deletedSuccess: 'Project deleted successfully',
+          fetchError: 'Failed to load projects',
+          notFound: 'Project not found',
+        },
+      },
+      common: {
+        back: 'Back',
+        cancel: 'Cancel',
+        save: 'Save',
+        yes: 'Yes',
+        no: 'No',
+        edit: 'Edit',
+        delete: 'Delete',
+      },
+    },
   },
 });
 
@@ -105,7 +143,7 @@ describe('ProjectListPage', () => {
   // F-LIST-03: Shows empty state when no projects
   it('shows empty state when no projects', () => {
     const wrapper = createWrapper({ projects: [] });
-    expect(wrapper.text()).toContain('Chưa có Project nào');
+    expect(wrapper.text()).toContain('No projects yet');
   });
 
   // F-LIST-07: handleCardClick navigates to detail
