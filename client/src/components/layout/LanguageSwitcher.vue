@@ -1,14 +1,14 @@
 <script setup lang="ts">
 /**
- * Language switcher dropdown / 言語切替ドロップダウン
- * Supports: English, Vietnamese, Japanese
+ * Language switcher dropdown.
+ * Supports: English, Vietnamese, Japanese.
  */
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Select from 'primevue/select';
-import flagUs from '@/assets/images/flags/us.svg';
-import flagVn from '@/assets/images/flags/vn.svg';
-import flagJp from '@/assets/images/flags/jp.svg';
+import flagUs from '@assets/images/flags/us.svg';
+import flagVn from '@assets/images/flags/vn.svg';
+import flagJp from '@assets/images/flags/jp.svg';
 
 interface LanguageOption {
   code: string;

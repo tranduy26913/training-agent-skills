@@ -18,7 +18,7 @@ export interface AppTableColumn<T = object> {
    */
   truncate?: boolean;
   /**
-   * Viewport px threshold — hide this column when window.innerWidth < hideBelow.
+   * Viewport px threshold  Ehide this column when window.innerWidth < hideBelow.
    * Ignored when frozen = true (frozen columns are always visible).
    */
   hideBelow?: number;

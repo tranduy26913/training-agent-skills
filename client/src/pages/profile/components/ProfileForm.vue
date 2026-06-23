@@ -1,7 +1,6 @@
 <script setup lang="ts">
 /**
- * ProfileForm component
- * プロフィールフォームコンポーネント
+ * ProfileForm component.
  * Handles avatar upload, editable fields (name, birthday, note, avatar),
  * and read-only fields (email, role).
  */
@@ -15,26 +14,26 @@ import Textarea from 'primevue/textarea';
 import DatePicker from 'primevue/datepicker';
 import Button from 'primevue/button';
 import Badge from 'primevue/badge';
-import type { AuthUser } from '@/types/auth.types';
-import type { UpdateProfileDto } from '@/types/profile.types';
+import type { AuthUser } from '@apptypes/auth.types';
+import type { UpdateProfileDto } from '@apptypes/profile.types';
 
 const { t } = useI18n();
 
-// Props / プロパティ定義
+// Props
 const props = defineProps<{
   user: AuthUser;
   loading?: boolean;
 }>();
 
-// Emits / イベント定義
+// Emits
 const emit = defineEmits<{
   submit: [data: UpdateProfileDto];
 }>();
 
-// 今日の日付（誕生日の最大値）/ Today's date as max for birthday picker
+// Today's date as max for the birthday picker.
 const today = new Date();
 
-// バリデーションスキーマ / Validation schema
+// Validation schema.
 const validationSchema = computed(() =>
   toTypedSchema(
     z.object({
@@ -49,7 +48,7 @@ const validationSchema = computed(() =>
   ),
 );
 
-// フォームセットアップ / Form setup
+// Form setup.
 const { defineField, handleSubmit, errors, setValues } = useForm({
   validationSchema,
   initialValues: {
@@ -65,7 +64,7 @@ const [birthday] = defineField('birthday');
 const [note] = defineField('note', { validateOnModelUpdate: false });
 const [avatar] = defineField('avatar');
 
-// ユーザー変更時にフォームを再初期化 / Re-initialize form when user prop changes
+// Re-initialize form when user prop changes.
 watch(
   () => props.user,
   (newUser) => {
@@ -79,10 +78,10 @@ watch(
   { deep: true },
 );
 
-// アバタープレビュー / Avatar preview computed
+// Avatar preview computed.
 const avatarPreview = computed(() => avatar.value || props.user.avatar || null);
 
-// ユーザーのイニシャル / User initials for fallback
+// User initials for fallback.
 const initials = computed(() => {
   const n = props.user.name ?? '';
   return n
@@ -93,13 +92,13 @@ const initials = computed(() => {
     .join('');
 });
 
-// アバターファイル選択処理 / Handle avatar file selection
+// Handle avatar file selection.
 function onAvatarChange(event: Event): void {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
   if (!file) return;
 
-  // 2MBサイズチェック / 2MB size check
+  // 2MB size check.
   if (file.size > 2 * 1024 * 1024) {
     alert(t('profile.avatarTooBig'));
     input.value = '';
@@ -113,7 +112,7 @@ function onAvatarChange(event: Event): void {
   reader.readAsDataURL(file);
 }
 
-// フォーム送信ハンドラ / Form submit handler
+// Form submit handler.
 const onSubmit = handleSubmit((values) => {
   const dto: UpdateProfileDto = {
     name: values.name,
@@ -130,7 +129,7 @@ const onSubmit = handleSubmit((values) => {
   emit('submit', dto);
 });
 
-// ロールバッジの色 / Role badge severity
+// Role badge severity.
 function roleSeverity(role: string): string {
   if (role === 'admin') return 'danger';
   if (role === 'moderator') return 'warning';
@@ -140,9 +139,9 @@ function roleSeverity(role: string): string {
 
 <template>
   <form class="flex flex-col gap-6" @submit.prevent="onSubmit">
-    <!-- アバターセクション / Avatar section -->
+    <!-- Avatar section -->
     <div class="flex flex-col items-center gap-3">
-      <!-- アバタープレビュー / Avatar preview -->
+      <!-- Avatar preview -->
       <div
         class="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center bg-primary-500 text-white text-2xl font-semibold"
         data-testid="avatar-preview"
@@ -151,7 +150,7 @@ function roleSeverity(role: string): string {
         <span v-else>{{ initials }}</span>
       </div>
 
-      <!-- ファイル選択ボタン / File select button -->
+      <!-- File select button -->
       <label class="cursor-pointer">
         <span class="text-sm text-primary-500 hover:underline">{{ t('profile.avatar') }}</span>
         <input
@@ -164,7 +163,7 @@ function roleSeverity(role: string): string {
       </label>
     </div>
 
-    <!-- 名前フィールド / Name field -->
+    <!-- Name field -->
     <div class="flex flex-col gap-1">
       <label class="text-sm font-medium text-surface-700 dark:text-surface-200">
         {{ t('profile.name') }} <span class="text-red-500">*</span>
@@ -179,7 +178,7 @@ function roleSeverity(role: string): string {
       <small v-if="errors.name" class="text-red-500 text-xs">{{ errors.name }}</small>
     </div>
 
-    <!-- メール（読み取り専用）/ Email (read-only) -->
+    <!-- Email (read-only) -->
     <div class="flex flex-col gap-1">
       <label class="text-sm font-medium text-surface-700 dark:text-surface-200">{{ t('profile.email') }}</label>
       <InputText
@@ -190,7 +189,7 @@ function roleSeverity(role: string): string {
       />
     </div>
 
-    <!-- ロール（読み取り専用）/ Role (read-only badge) -->
+    <!-- Role (read-only badge) -->
     <div class="flex flex-col gap-1">
       <label class="text-sm font-medium text-surface-700 dark:text-surface-200">{{ t('profile.role') }}</label>
       <div>
@@ -202,7 +201,7 @@ function roleSeverity(role: string): string {
       </div>
     </div>
 
-    <!-- 誕生日フィールド / Birthday field -->
+    <!-- Birthday field -->
     <div class="flex flex-col gap-1">
       <label class="text-sm font-medium text-surface-700 dark:text-surface-200">{{ t('profile.birthday') }}</label>
       <DatePicker
@@ -214,7 +213,7 @@ function roleSeverity(role: string): string {
       />
     </div>
 
-    <!-- メモフィールド / Note field -->
+    <!-- Note field -->
     <div class="flex flex-col gap-1">
       <label class="text-sm font-medium text-surface-700 dark:text-surface-200">{{ t('profile.note') }}</label>
       <Textarea
@@ -228,7 +227,7 @@ function roleSeverity(role: string): string {
       <small v-if="errors.note" class="text-red-500 text-xs">{{ errors.note }}</small>
     </div>
 
-    <!-- 送信ボタン / Submit button -->
+    <!-- Submit button -->
     <div class="flex justify-end">
       <Button
         type="submit"

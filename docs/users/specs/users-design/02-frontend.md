@@ -21,16 +21,21 @@ client/src/
 │   ├── UserEditPage.vue              # Trang chỉnh sửa user + audit sidebar
 │   ├── users.routes.ts               # Route definitions
 │   ├── components/
-│   │   ├── UserTable.vue             # PrimeVue DataTable wrapper
+│   │   ├── UserTable.vue             # AppDataTable wrapper (columns, slots)
 │   │   ├── UserFilters.vue           # Search + filter controls + Clear Filters
-│   │   ├── UserForm.vue              # Form dùng chung create/edit
+│   │   ├── UserForm.vue              # Form dùng chung create/edit (VeeValidate + Zod)
 │   │   └── AuditLogViewer.vue        # Hiển thị lịch sử audit
 │   └── composables/
-│       └── useUsers.ts               # API call wrappers
+│       └── useUsers.ts               # API call wrappers (thin, re-export types)
 ├── stores/
 │   └── users.store.ts                # Pinia store quản lý user state
-└── composables/
-    └── useEmailValidation.ts         # Email duplicate check với debounce 500ms
+├── composables/
+│   └── useEmailValidation.ts         # Email duplicate check với debounce 500ms (watchDebounced)
+├── services/
+│   └── users.service.ts              # UsersApiClient extends BaseApiClient
+└── types/
+    ├── users.types.ts                # User, CreateUserDto, UpdateUserDto, UserFilters, AuditLog
+    └── api.types.ts                  # Shared types (UserRole, UserStatus, PaginationInfo, etc.)
 ```
 
 ---
@@ -55,7 +60,7 @@ DefaultLayout
 
 ```
 UserListPage
-  ├── UserFilters    (emits: filterChange)
+  ├── UserFilters    (emits: filter-change)
   └── UserTable      (emits: edit, delete, pageChange, sortChange)
 
 UserCreatePage
@@ -69,12 +74,23 @@ UserEditPage
 ### Route Definitions (`users.routes.ts`)
 
 ```typescript
-[
-  { path: '',        name: 'UserList',   component: () => import('./UserListPage.vue'),   meta: { title: 'Users' } },
-  { path: 'create',  name: 'UserCreate', component: () => import('./UserCreatePage.vue'), meta: { title: 'Create User' } },
-  { path: ':id/edit',name: 'UserEdit',   component: () => import('./UserEditPage.vue'),   meta: { title: 'Edit User' } },
-]
+import type { RouteRecordRaw } from 'vue-router';
+
+export const userRoutes: RouteRecordRaw[] = [
+  {
+    path: '/users',
+    component: () => import('@layouts/DefaultLayout.vue'),
+    meta: { requiresAuth: true, roles: ['admin'] },
+    children: [
+      { path: '',        name: 'UserList',   component: () => import('./UserListPage.vue'),   meta: { title: 'Users', titleKey: 'users.title', breadcrumb: 'Users' } },
+      { path: 'create',  name: 'UserCreate', component: () => import('./UserCreatePage.vue'), meta: { title: 'Create User', titleKey: 'users.createUser' } },
+      { path: ':id/edit',name: 'UserEdit',   component: () => import('./UserEditPage.vue'),   meta: { title: 'Edit User', titleKey: 'users.editUser' } },
+    ],
+  },
+];
 ```
+
+**Route meta:** `requiresAuth: true`, `roles: ['admin']` (router guard check), `title`, `titleKey` (i18n), `breadcrumb`.
 
 ---
 
@@ -85,11 +101,11 @@ UserEditPage
 | # | ItemName | Control | Type | Required | Validation | Placeholder | DisplayText | Description | Notes |
 |---|----------|---------|------|----------|------------|-------------|-------------|-------------|-------|
 | **—** | **UserFilters** | | | | | | | **Component** | |
-| 1 | searchInput | TextInput | string | No | — | `users.searchPlaceholder` | — | Tìm kiếm theo name hoặc email | Debounce 300ms; emits filterChange |
-| 2 | roleFilter | Dropdown | string | No | enum | — | `users.role` | Lọc theo role | Options: All/Admin/User/Moderator; emits filterChange |
-| 3 | statusFilter | Dropdown | string | No | enum | — | `users.status` | Lọc theo status | Options: All/Active/Inactive/Suspended; emits filterChange |
-| 4 | dateRangePicker | DatePicker | string[] | No | — | — | `users.dateRange` | Lọc theo ngày tạo | emits filterChange |
-| 5 | clearFiltersBtn | Button | — | — | — | — | `users.clearFilters` | Reset tất cả filters và reload | emits filterChange với rỗng |
+| 1 | searchInput | TextInput | string | No | — | `users.searchPlaceholder` | — | Tìm kiếm theo name hoặc email | Debounce 300ms; emits filter-change |
+| 2 | roleFilter | Dropdown | string | No | enum | — | `users.role` | Lọc theo role | Options: All/Admin/User/Moderator; emits filter-change |
+| 3 | statusFilter | Dropdown | string | No | enum | — | `users.status` | Lọc theo status | Options: All/Active/Inactive/Suspended; emits filter-change |
+| 4 | dateRangePicker | DatePicker | string[] | No | — | — | `users.dateRange` | Lọc theo ngày tạo | emits filter-change |
+| 5 | clearFiltersBtn | Button | — | — | — | — | `users.clearFilters` | Reset tất cả filters và reload | emits filter-change với rỗng |
 | **—** | **UserTable** | | | | | | | **Component** | |
 | 6 | colId | Column | number | — | — | — | `users.id` | ID user | Sortable |
 | 7 | colName | Column | string | — | — | — | `users.name` | Tên user | Sortable |
@@ -142,12 +158,16 @@ UserEditPage
 
 ### UserTable.vue
 
+Wraps `AppDataTable` (shared component `@components/AppDataTable.vue`). 10 columns: id, name, email, role, status, created_at, updated_at, last_login_at, points, actions.
+
 **Props:**
 | Prop | Type | Required | Description |
 |------|------|----------|-------------|
-| users | `UserDto[]` | Yes | Danh sách users để hiển thị |
+| users | `User[]` | Yes | Danh sách users để hiển thị |
 | loading | `boolean` | Yes | Hiển thị skeleton khi true |
 | pagination | `PaginationInfo` | Yes | Metadata phân trang |
+| sortField | `string` | No | Field đang sort (default `created_at`) |
+| sortOrder | `1 | -1` | No | Sort direction (default `-1` = desc) |
 
 **Emits:**
 | Event | Payload | Description |
@@ -157,7 +177,13 @@ UserEditPage
 | pageChange | `page: number` | User chuyển trang |
 | sortChange | `(field: string, order: 1 \| -1)` | User click sort column (1=asc, -1=desc) |
 
-**Skeleton:** Hiển thị 5 dòng `<Skeleton>` per cell khi `loading=true`. Không dùng `loading` prop của DataTable (tránh spinner overlay).
+**Column options:** `field`, `header`, `width`, `sortable`, `frozen`, `alignFrozen`, `hideBelow` (px breakpoint), `truncate`, `columnAlign`, `headerAlign`, `formatter`.
+
+**Responsive `hideBelow` breakpoints:** 768px (id), 900px (role), 1024px (created_at), 1280px (updated_at, last_login_at, points).
+
+**Slots:** `#empty` (empty state), `#cell-status` (Tag badge), `#cell-actions` (edit/delete buttons).
+
+**Status severity map:** `active` → success, `inactive` → warn, `suspended` → danger.
 
 ---
 
@@ -166,11 +192,15 @@ UserEditPage
 **Emits:**
 | Event | Payload | Description |
 |-------|---------|-------------|
-| filterChange | `UserFilters` | Mỗi khi filter thay đổi |
+| filter-change | `UserFilters` | Mỗi khi filter thay đổi |
 
-**Internal state:** `search`, `role`, `status`, `dateRange`
+**Internal state:** `search` (shallowRef), `role` (shallowRef), `status` (shallowRef), `dateRange` (shallowRef<Date[] | null>)
 
-**Debounce:** Search input debounce 300ms (clearTimeout/setTimeout pattern)
+**Debounce:** Search input debounce 300ms (clearTimeout/setTimeout pattern). Role/status/date change emit ngay lập tức.
+
+**Date range:** Converted to ISO date strings (`YYYY-MM-DD`) qua `toISOString().split('T')[0]`.
+
+**Clear Filters:** Reset tất cả state về rỗng, emit `filter-change` với empty filters.
 
 ---
 
@@ -189,7 +219,15 @@ UserEditPage
 | submit | `{ name, email, role, status, note, birthday }` | Form data sau khi pass validation |
 | cancel | — | User click Cancel |
 
+**Validation:** VeeValidate + Zod (`toTypedSchema`). Schema dùng `computed` để reactive với i18n locale. Per-field debounced validation (400ms) qua `watchDebounced` từ `@vueuse/core`.
+
 **Email validation:** Sử dụng `useEmailValidation` composable nội bộ (với `excludeId = mode === 'edit' ? initialData.id : undefined`); spinner hiển thị khi đang check; Save button bị disable khi có email error hoặc đang check.
+
+**Edit mode:** Hiển thị thêm read-only `points` (disabled InputText) và `created_at` (disabled InputText, formatted DD/MM/YYYY HH:mm). Populate form qua `watch(initialData)` + `setValues`.
+
+**Birthday:** DatePicker với `maxDate = today`, `dateFormat = dd/mm/yy`, `showButtonBar`, `showIcon`. Submit convert sang `YYYY-MM-DD`.
+
+**Note:** Textarea với character counter `n/500`.
 
 ---
 
@@ -208,20 +246,24 @@ UserEditPage
 ## 5. Composable
 
 ### useUsers.ts (`pages/users/composables/`)
-Methods (re-export types `User`, `CreateUserDto`, `UpdateUserDto`, `UserFilters`, `AuditLog`, `PaginationInfo`):
-- `getUsers(filters?: UserFilters): Promise<PaginatedData<User>>` - Gọi API lấy danh sách
-- `getUser(id: number): Promise<User>` - Lấy chi tiết user
-- `createUser(data: CreateUserDto): Promise<User>` - Tạo user mới
-- `updateUser(id: number, data: UpdateUserDto): Promise<User>` - Cập nhật user
-- `deleteUser(id: number): Promise<void>` - Xóa user
-- `getUserActivity(id: number, limit?: number): Promise<AuditLog[]>` - Lấy lịch sử audit gần nhất
+Thin composable wrapping `usersApiService` (singleton). Re-export types: `User`, `CreateUserDto`, `UpdateUserDto`, `UserFilters`, `AuditLog`, `PaginationInfo`.
+
+Methods:
+- `getUsers(filters?: UserFilters): Promise<PaginatedData<User>>` - Gọi API lấy danh sách (delegates to `usersApiService.getUsers`)
+- `getUser(id: number): Promise<User>` - Lấy chi tiết user (`usersApiService.getById`)
+- `createUser(data: CreateUserDto): Promise<User>` - Tạo user mới (`usersApiService.create`)
+- `updateUser(id: number, data: UpdateUserDto): Promise<User>` - Cập nhật user (`usersApiService.update`)
+- `deleteUser(id: number): Promise<void>` - Xóa user (`usersApiService.delete`)
+- `getUserActivity(id: number, limit?: number): Promise<AuditLog[]>` - Lấy lịch sử audit (`usersApiService.getUserActivity`)
 
 ### useEmailValidation.ts (`composables/`)
 Composable dùng `watchDebounced` từ `@vueuse/core` với default 500ms debounce.
 - Input: `email: Ref<string>`, `excludeId?: Ref<number | undefined> | number`, `debounceMs = 500`
 - Output: `{ isChecking: Ref<boolean>, emailError: Ref<string>, reset(): void }`
-- Skip API call khi email rỗng hoặc format không hợp lệ.
-- Khi `emailError.value === 'emailAlreadyExists'` form sẽ disable submit.---
+- Skip API call khi email rỗng hoặc format không hợp lệ (regex `^[^\s@]+@[^\s@]+\.[^\s@]+$`).
+- Khi `emailError.value === 'emailAlreadyExists'` form sẽ disable submit.
+- `watch(email)` reset `emailError` ngay lập tức khi email thay đổi (không đợi debounce).
+- Server errors silently ignored (error cleared, not surfaced).---
 
 ## 6. Store
 
@@ -243,16 +285,16 @@ Getters:
 - `isLastPage: boolean` (computed từ `pagination.page >= pagination.pages`)
 
 Actions:
-- `fetchUsers(newFilters?: UserFilters): Promise<void>` → merge filters (nếu có), gọi GET SV-001; cập nhật `users` + `pagination`. Lỗi được set vào `error`.
-- `fetchUser(id: number): Promise<void>` → gọi GET SV-003; cập nhật `currentUser`. Lỗi được set vào `error`.
-- `createUser(data: CreateUserDto): Promise<void>` → gọi POST SV-002; không tự reload danh sách.
-- `updateUser(id: number, data: UpdateUserDto): Promise<void>` → gọi PUT SV-004; không tự reload.
-- `deleteUser(id: number): Promise<void>` → gọi DELETE SV-005; gọi lại `fetchUsers()` để reload danh sách.
-- `fetchUserActivity(id: number): Promise<void>` → gọi GET SV-006; cập nhật `auditLogs`. Lỗi set vào `error`.
+- `fetchUsers(newFilters?: UserFilters): Promise<void>` → merge filters (nếu có), gọi `apiGetUsers`; cập nhật `users` + `pagination`. Lỗi được set vào `error` qua `extractErrorMessage`.
+- `fetchUser(id: number): Promise<void>` → gọi `apiGetUser`; cập nhật `currentUser`. Lỗi set vào `error`.
+- `createUser(data: CreateUserDto): Promise<void>` → gọi `apiCreateUser`; **KHÔNG catch** — error propagate ra ngoài để page xử lý toast. Không tự reload danh sách.
+- `updateUser(id: number, data: UpdateUserDto): Promise<void>` → gọi `apiUpdateUser`; **KHÔNG catch** — error propagate. Không tự reload.
+- `deleteUser(id: number): Promise<void>` → gọi `apiDeleteUser`; gọi lại `fetchUsers()` để reload danh sách.
+- `fetchUserActivity(id: number): Promise<void>` → gọi `apiGetUserActivity`; cập nhật `auditLogs`. Lỗi set vào `error`.
 - `resetFilters(): void` → reset `filters` về `{}` và gọi `fetchUsers()`.
 - `clearCurrentUser(): void` → set `currentUser = null`, `auditLogs = []`.
 
-> **Note:** `createUser` và `updateUser` KHÔNG ném `{ code:'EMAIL_EXISTS' }`. Validation email trùng được xử lý hoàn toàn phía client qua `useEmailValidation` composable. Nếu server trả 409, page sẽ bắt response và hiển thị toast.
+> **Note:** `createUser` và `updateUser` KHÔNG catch error và KHÔNG ném `{ code:'EMAIL_EXISTS' }`. Error propagate nguyên vẹn ra ngoài (page component bắt qua try/catch và kiểm tra `response.status === 409`).
 ---
 
 ## 7. TypeScript Types & Interfaces

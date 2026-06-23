@@ -1,9 +1,6 @@
-/**
- * Profile feature type definitions
- * プロフィール機能の型定義
- */
+// Profile feature type definitions.
 
-/** Update profile request payload / プロフィール更新リクエスト */
+// Update profile request payload.
 export interface UpdateProfileDto {
   name: string;
   birthday?: string;
@@ -11,7 +8,7 @@ export interface UpdateProfileDto {
   avatar?: string;
 }
 
-/** Change password request payload / パスワード変更リクエスト */
+// Change password request payload.
 export interface ChangePasswordDto {
   currentPassword: string;
   newPassword: string;

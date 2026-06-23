@@ -1,16 +1,15 @@
 /**
- * ChangePasswordModal component tests
- * ChangePasswordModalコンポーネントのテスト
+ * ChangePasswordModal component tests.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { createI18n } from 'vue-i18n';
 import ChangePasswordModal from '../ChangePasswordModal.vue';
-import en from '@/locales/en';
+import en from '@locales/en';
 
-// useProfileコンポーザブルのモック / Mock useProfile composable
+// Mock useProfile composable.
 const mockChangePassword = vi.fn();
-vi.mock('@/composables/useProfile', () => ({
+vi.mock('@composables/useProfile', () => ({
   useProfile: () => ({
     changePassword: mockChangePassword,
     loading: { value: false },
@@ -19,7 +18,7 @@ vi.mock('@/composables/useProfile', () => ({
   }),
 }));
 
-// PrimeVueコンポーネントのモック / Mock PrimeVue components
+// Mock PrimeVue components.
 vi.mock('primevue/dialog', () => ({
   default: {
     template: '<div v-if="visible"><slot /><slot name="footer" /></div>',
@@ -36,12 +35,12 @@ vi.mock('primevue/password', () => ({
 }));
 vi.mock('primevue/button', () => ({
   default: {
-    // onClick from parent passes through $attrs to native button
+    // onClick from parent passes through $attrs to native button.
     template: '<button type="button" v-bind="$attrs">{{ $attrs.label }}</button>',
   },
 }));
 
-// Import mocked Dialog to use for findComponent lookup
+// Import mocked Dialog to use for findComponent lookup.
 import Dialog from 'primevue/dialog';
 
 const i18n = createI18n({ legacy: false, locale: 'en', messages: { en } });
@@ -59,46 +58,41 @@ describe('ChangePasswordModal', () => {
   });
 
   it('renders when visible is true', () => {
-    // visibleがtrueの場合はレンダリングされる
     const wrapper = mountModal(true);
     expect(wrapper.find('form').exists()).toBe(true);
   });
 
   it('does not render form when visible is false', () => {
-    // visibleがfalseの場合はフォームが表示されない
     const wrapper = mountModal(false);
     expect(wrapper.find('form').exists()).toBe(false);
   });
 
   it('calls changePassword on submit with valid data', async () => {
-    // 有効なデータで送信時にchangePasswordを呼び出す
     mockChangePassword.mockResolvedValueOnce(undefined);
 
     const wrapper = mountModal(true);
     const inputs = wrapper.findAll('input[type="password"]');
 
-    // Fill password fields
+    // Fill password fields.
     await inputs[0].setValue('currentPass123');
     await inputs[1].setValue('newPass12345');
     await inputs[2].setValue('newPass12345');
 
-    // Trigger submit
+    // Trigger submit.
     await wrapper.find('form').trigger('submit');
     await new Promise((r) => setTimeout(r, 100));
 
-    // changePassword should be called (if validation passes)
-    // We check the mock was potentially called
+    // changePassword should be called (if validation passes).
   });
 
   it('emits update:visible false when dialog fires hide event', async () => {
-    // Dialogがhideイベントを発火したときにupdate:visible falseをemitする
     const wrapper = mountModal(true);
 
-    // Find the Dialog component using the imported mocked reference
+    // Find the Dialog component using the imported mocked reference.
     const dialog = wrapper.findComponent(Dialog);
     expect(dialog.exists()).toBe(true);
 
-    // Simulate the dialog's hide event (triggered when dialog closes)
+    // Simulate the dialog's hide event (triggered when dialog closes).
     await dialog.vm.$emit('hide');
     await wrapper.vm.$nextTick();
 
@@ -108,7 +102,6 @@ describe('ChangePasswordModal', () => {
   });
 
   it('sets field error on 401 response', async () => {
-    // 401レスポンスの場合はフィールドエラーをセットする
     const authError = Object.assign(new Error('Unauthorized'), {
       response: { status: 401 },
     });
@@ -123,7 +116,7 @@ describe('ChangePasswordModal', () => {
     await wrapper.find('form').trigger('submit');
     await new Promise((r) => setTimeout(r, 100));
 
-    // Verify error state was handled (component continues to show)
+    // Verify error state was handled (component continues to show).
     expect(wrapper.find('form').exists()).toBe(true);
   });
 });

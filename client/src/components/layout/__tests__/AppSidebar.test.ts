@@ -3,8 +3,8 @@ import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { createI18n } from 'vue-i18n';
 import AppSidebar from '../AppSidebar.vue';
-import { useAuthStore } from '@/stores/auth.store';
-import en from '@/locales/en';
+import { useAuthStore } from '@stores/auth.store';
+import en from '@locales/en';
 
 describe('AppSidebar', () => {
   beforeEach(() => {

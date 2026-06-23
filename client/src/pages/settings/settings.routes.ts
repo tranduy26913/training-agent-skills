@@ -3,7 +3,7 @@ import type { RouteRecordRaw } from 'vue-router';
 export const settingsRoutes: RouteRecordRaw[] = [
   {
     path: '/settings',
-    component: () => import('@/layouts/DefaultLayout.vue'),
+    component: () => import('@layouts/DefaultLayout.vue'),
     meta: { requiresAuth: true },
     children: [
       {

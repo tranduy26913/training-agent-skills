@@ -1,19 +1,18 @@
 /**
- * useProfile composable unit tests
- * useProfileコンポーザブルのユニットテスト
+ * useProfile composable unit tests.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { useProfile } from '@/composables/useProfile';
+import { useProfile } from '@composables/useProfile';
 
-// プロフィールサービスのモック / Mock profile service
-vi.mock('@/services/profile.service', () => ({
+// Mock the profile service.
+vi.mock('@services/profile.service', () => ({
   profileService: {
     updateProfile: vi.fn(),
     changePassword: vi.fn(),
   },
 }));
 
-import { profileService } from '@/services/profile.service';
+import { profileService } from '@services/profile.service';
 
 const mockUpdateProfile = vi.mocked(profileService.updateProfile);
 const mockChangePassword = vi.mocked(profileService.changePassword);
@@ -37,7 +36,6 @@ describe('useProfile', () => {
   // ===== updateProfile =====
   describe('updateProfile', () => {
     it('returns updated user on success', async () => {
-      // 成功時に更新されたユーザーを返す
       const updatedUser = { ...mockUser, name: 'New Name' };
       mockUpdateProfile.mockResolvedValueOnce(updatedUser);
 
@@ -49,7 +47,6 @@ describe('useProfile', () => {
     });
 
     it('sets loading true during call, false after success', async () => {
-      // 呼び出し中はloadingがtrue、完了後はfalse
       let loadingDuringCall = false;
       mockUpdateProfile.mockImplementation(async () => {
         loadingDuringCall = loading.value;
@@ -66,7 +63,6 @@ describe('useProfile', () => {
     });
 
     it('sets loading false after error', async () => {
-      // エラー後もloadingがfalseになる
       mockUpdateProfile.mockRejectedValueOnce(new Error('Network error'));
 
       const { updateProfile, loading } = useProfile();
@@ -76,7 +72,6 @@ describe('useProfile', () => {
     });
 
     it('sets error and rethrows on failure', async () => {
-      // エラーをセットし、再スローする
       const error = new Error('Server error');
       mockUpdateProfile.mockRejectedValueOnce(error);
 
@@ -90,7 +85,6 @@ describe('useProfile', () => {
   // ===== changePassword =====
   describe('changePassword', () => {
     it('resolves without value on success', async () => {
-      // 成功時にundefinedで解決する
       mockChangePassword.mockResolvedValueOnce(undefined);
 
       const { changePassword } = useProfile();
@@ -105,7 +99,6 @@ describe('useProfile', () => {
     });
 
     it('sets loading true during call, false after success', async () => {
-      // 呼び出し中はloadingがtrue、完了後はfalse
       let loadingDuringCall = false;
       mockChangePassword.mockImplementation(async () => {
         loadingDuringCall = loading.value;
@@ -120,7 +113,6 @@ describe('useProfile', () => {
     });
 
     it('rethrows error with 401 status for wrong current password', async () => {
-      // 現在のパスワードが間違っている場合、401エラーを再スローする
       const authError = Object.assign(new Error('Unauthorized'), {
         response: { status: 401 },
       });

@@ -2,7 +2,7 @@ import { definePreset } from '@primevue/themes';
 import Aura from '@primevue/themes/aura';
 
 /**
- * ElevatedPreset — Aura with deeper shadow/elevation tokens for all overlay
+ * ElevatedPreset  EAura with deeper shadow/elevation tokens for all overlay
  * and surface components. Non-overlay components (DataTable, Button, etc.)
  * are handled via global CSS in assets/styles/main.css.
  */

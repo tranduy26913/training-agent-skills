@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen flex bg-surface-50 dark:bg-surface-950">
-    <!-- トースト通知 / Toast notifications -->
+    <!-- Toast notifications -->
     <Toast />
 
     <!-- Sidebar -->
@@ -22,9 +22,9 @@
 
 <script setup lang="ts">
 import { storeToRefs } from 'pinia';
-import { useUiStore } from '@/stores/ui.store';
-import AppSidebar from '@/components/layout/AppSidebar.vue';
-import AppTopbar from '@/components/layout/AppTopbar.vue';
+import { useUiStore } from '@stores/ui.store';
+import AppSidebar from '@components/layout/AppSidebar.vue';
+import AppTopbar from '@components/layout/AppTopbar.vue';
 import Toast from 'primevue/toast';
 
 const uiStore = useUiStore();

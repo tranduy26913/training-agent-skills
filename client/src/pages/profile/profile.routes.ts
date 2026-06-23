@@ -1,10 +1,10 @@
 import type { RouteRecordRaw } from 'vue-router';
 
-// プロフィールルート定義 / Profile route definition
+// Profile route definition.
 export const profileRoutes: RouteRecordRaw[] = [
   {
     path: '/profile',
-    component: () => import('@/layouts/DefaultLayout.vue'),
+    component: () => import('@layouts/DefaultLayout.vue'),
     meta: { requiresAuth: true },
     children: [
       {

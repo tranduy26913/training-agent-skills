@@ -1,15 +1,15 @@
-// 共通API型定義 / Common API type definitions shared across all services
+// Common API type definitions shared across all services.
 
-// ユーザーロール / User role
+// User role.
 export type UserRole = 'admin' | 'user' | 'moderator';
 
-// ユーザーステータス / User status
+// User status.
 export type UserStatus = 'active' | 'inactive' | 'suspended';
 
-// 監査アクション / Audit action types
+// Audit action types.
 export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE';
 
-// ページネーション情報 / Pagination info from API
+// Pagination info returned by the API.
 export interface PaginationInfo {
   page: number;
   limit: number;
@@ -17,28 +17,28 @@ export interface PaginationInfo {
   pages: number;
 }
 
-// ページネーション付きレスポンス / Paginated response from API
+// Paginated response wrapper from the API.
 export interface PaginatedData<T> {
   data: T[];
   pagination: PaginationInfo;
 }
 
-// APIエラーレスポンス / API error response
+// API error response shape.
 export interface ApiErrorResponse {
   message: string;
 }
 
-// ページネーションパラメータ / Pagination request params
+// Pagination request parameters.
 export interface PaginationParams {
   page?: number;
   limit?: number;
 }
 
-// ソートパラメータ / Sort request params
+// Sort request parameters.
 export interface SortParams {
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
 }
 
-// 変更フィールド差分 / Changed fields diff for audit logs
+// Changed fields diff recorded in audit logs.
 export type ChangedFields = Record<string, { old: unknown; new: unknown }> | null;

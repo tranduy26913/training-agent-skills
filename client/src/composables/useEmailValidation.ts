@@ -1,7 +1,7 @@
-// メールバリデーション Composable / Email duplicate check with debounce
+// Email duplicate check composable with debounce.
 import { ref, watch, type Ref } from 'vue';
 import { watchDebounced } from '@vueuse/core';
-import { usersApiService } from '@/services/users.service';
+import { usersApiService } from '@services/users.service';
 
 export interface UseEmailValidationReturn {
   isChecking: Ref<boolean>;
@@ -10,7 +10,7 @@ export interface UseEmailValidationReturn {
 }
 
 /**
- * メール重複チェック Composable / Composable for debounced server-side email duplicate check
+ * Composable for debounced server-side email duplicate check.
  * @param email - reactive email ref to watch
  * @param excludeId - optional user ID to exclude (for edit mode)
  * @param debounceMs - debounce delay in milliseconds (default: 500)
@@ -36,7 +36,7 @@ export function useEmailValidation(
   watchDebounced(
     email,
     async (newEmail) => {
-      // 空白またはフォーマット無効の場合はスキップ / Skip if email is empty or invalid format
+      // Skip if email is empty or invalid format.
       if (!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
         emailError.value = '';
         return;
@@ -51,7 +51,7 @@ export function useEmailValidation(
           emailError.value = 'emailAlreadyExists';
         }
       } catch {
-        // サーバーエラー時はクライアント側エラーを表示しない / Silently ignore server errors
+        // Silently ignore server errors.
         emailError.value = '';
       } finally {
         isChecking.value = false;
@@ -60,7 +60,7 @@ export function useEmailValidation(
     { debounce: debounceMs, immediate: false },
   );
 
-  // emailが変わったらリセット / Reset error when email changes before debounce fires
+  // Reset error when email changes before the debounce fires.
   watch(email, () => {
     emailError.value = '';
   });

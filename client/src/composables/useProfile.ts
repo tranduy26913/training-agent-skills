@@ -1,21 +1,16 @@
-/**
- * useProfile composable
- * プロフィール更新・パスワード変更のロジックを提供するコンポーザブル
- */
+// useProfile composable  Eprofile update and password change logic.
 import { ref } from 'vue';
-import { profileService } from '@/services/profile.service';
-import type { UpdateProfileDto, ChangePasswordDto } from '@/types/profile.types';
-import type { AuthUser } from '@/types/auth.types';
+import { profileService } from '@services/profile.service';
+import type { UpdateProfileDto, ChangePasswordDto } from '@apptypes/profile.types';
+import type { AuthUser } from '@apptypes/auth.types';
 
 export function useProfile() {
-  // ローディング状態 / Loading state
+  // Loading state.
   const loading = ref(false);
-  // エラーメッセージ / Error message
+  // Error message.
   const error = ref<string | null>(null);
 
-  /**
-   * プロフィールを更新する / Update user profile
-   */
+  // Update the user profile.
   async function updateProfile(data: UpdateProfileDto): Promise<AuthUser> {
     loading.value = true;
     error.value = null;
@@ -31,9 +26,7 @@ export function useProfile() {
     }
   }
 
-  /**
-   * パスワードを変更する / Change user password
-   */
+  // Change the user password.
   async function changePassword(data: ChangePasswordDto): Promise<void> {
     loading.value = true;
     error.value = null;

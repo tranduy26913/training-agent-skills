@@ -1,5 +1,5 @@
 /**
- * English translations / 英語翻訳
+ * English translations.
  */
 export default {
   common: {

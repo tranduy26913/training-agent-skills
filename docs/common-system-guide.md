@@ -24,7 +24,7 @@
 | Layer | Tech stack |
 |---|---|
 | **Frontend** | Vue 3 + TypeScript + `<script setup>`, Pinia, Vue Router 4, PrimeVue 4, TailwindCSS, VueUse, Vee-Validate + Zod, vue-i18n |
-| **Backend** | Node.js + Express 4 + TypeScript, MySQL 2 (pool), JWT (jsonwebtoken), bcryptjs, Zod, Winston |
+| **Backend** | Node.js + Express 4 + TypeScript, Prisma (MySQL), JWT (jsonwebtoken), bcryptjs, Zod, Winston |
 | **Testing – FE** | Vitest + Vue Test Utils, Playwright (E2E) |
 | **Testing – BE** | Vitest + Supertest |
 | **Build** | Vite (FE), ts-node / nodemon (BE) |
@@ -35,13 +35,14 @@
 
 ### 2.1 Nguyên tắc chung (áp dụng toàn stack)
 
-- **TypeScript strict mode** – không dùng `any` ngoại trừ những chỗ thực sự không thể tránh; khi đó phải có comment lý do.
+- **TypeScript strict mode** – không dùng `any` ngoại trừ những chỗ thực sự không thể tránh; khi đó phải có comment lý do. Không dùng `as any`, `as never`, hay non-null assertion `!` — dùng type-safe helper (vd: `getAuthUserId()`).
 - **Không over-engineer** – chỉ thêm abstraction khi dùng ≥ 2 lần. Không tạo helper cho tác vụ dùng một lần.
-- **Không comment self-documenting code** – code phải đủ rõ. Comment chỉ cho "tại sao", không cho "cái gì".
+- **Comment** – English only. Comment chỉ cho "tại sao", không cho "cái gì". Không bao giờ comment mojibake (ký tự hỏng).
 - **Naming** – dùng camelCase cho biến/hàm, PascalCase cho class/component/type/interface.
 - **Immutability** – ưu tiên `const`, không mutate tham số truyền vào hàm.
 - **Error handling** – chỉ xử lý lỗi tại **system boundary** (API call, DB query). Không wrap try/catch vô căn cứ.
 - **Single Responsibility** – mỗi hàm/component/service chỉ làm một việc.
+- **Import path alias** – cross-module dùng path alias (`@utils/`, `@services/`...), intra-module dùng relative (`./`, `../`). Không trộn lẫn hai style trong cùng file.
 
 ### 2.2 Frontend (Vue 3)
 
@@ -91,23 +92,42 @@ async function fetchData(): Promise<void> {
 ### 2.3 Backend (Express + TypeScript)
 
 ```typescript
-// ✅ Controller – chỉ parse request → gọi service → trả response
-export async function getUsers(req: Request, res: Response): Promise<void> {
-  const filters = parseUserFilters(req.query)
-  const result = await usersService.getUsers(filters)
-  sendSuccess(res, result)
+// ✅ Controller – thin layer, dùng asyncHandler, không try/catch
+import { asyncHandler } from '@middleware/async-handler.middleware'
+import { getAuthUserId } from '@utils/auth.util'
+import type { AuthenticatedRequest } from '@types-express'
+
+class UsersController {
+  async getUsers(req: AuthenticatedRequest, res: Response): Promise<void> {
+    const filters = parseUserFilters(req.query)
+    const result = await usersService.getUsers(filters)
+    sendSuccess(res, result)
+  }
+
+  async deleteUser(req: AuthenticatedRequest, res: Response): Promise<void> {
+    const id = Number(req.params.id)
+    const adminId = getAuthUserId(req)  // type-safe, trả null nếu chưa auth
+    await usersService.deleteUser(id, adminId!)
+    sendSuccess(res, { message: 'User deleted successfully' })
+  }
 }
 
+// ✅ Route – wrap handler với asyncHandler để reject → errorMiddleware
+router.delete('/:id', asyncHandler(controller.deleteUser.bind(controller)))
+
 // ✅ Service – business logic thuần, throw ServiceError khi cần
-export async function getUsers(filters: UserFilters): Promise<PaginatedResult<User>> {
-  return usersRepository.findAll(filters)
+async getUsers(filters: UserFilters): Promise<PaginatedResult<PublicUser>> {
+  const { data, total } = await this.repository.findAllWithFilters(filters)
+  return { data, pagination: { page, limit, total, pages: Math.ceil(total / limit) } }
 }
 ```
 
-- **Không viết SQL trực tiếp trong controller hay service** – dùng repository.
+- **Controller pattern**: class-based, thin, dùng `asyncHandler` wrapper — không `try/catch` lặp. Reject tự forward đến `errorMiddleware`.
+- **`AuthenticatedRequest`** thay vì `Request` — có `req.user?: JwtPayload`. Dùng `getAuthUserId(req)` / `getAuthUser(req)` thay vì `(req as any).user` hay `req.user!`.
+- **Không viết Prisma query trực tiếp trong controller hay service** – dùng repository.
 - **Zod** validate toàn bộ input từ request (body, params, query) tại middleware `validate`.
-- **Throw `ServiceError`** với status code phù hợp khi có lỗi nghiệp vụ.
-- **Không bao giờ** trả password hoặc sensitive data trong response.
+- **Throw `ServiceError`** với status code phù hợp khi có lỗi nghiệp vụ. `errorMiddleware` bắt và map ra HTTP response.
+- **Không bao giờ** trả password hoặc sensitive data trong response — repository dùng `select` để loại trừ.
 
 ---
 
@@ -117,16 +137,18 @@ export async function getUsers(filters: UserFilters): Promise<PaginatedResult<Us
 
 #### `useEmailValidation(email, excludeId?, debounceMs?)`
 
-Kiểm tra trùng email với server, có debounce.
+Kiểm tra trùng email với server, có debounce. Dùng `watchDebounced` từ `@vueuse/core`.
 
 ```typescript
-import { useEmailValidation } from '@/composables/useEmailValidation'
+import { useEmailValidation } from '@composables/useEmailValidation'
 
 const email = ref('')
 const { isChecking, emailError, reset } = useEmailValidation(email, undefined, 500)
 // emailError.value: '' | 'emailAlreadyExists'
 // isChecking.value: true khi đang gọi API
 // reset(): xóa lỗi, dừng check
+// Skip API call khi email rỗng hoặc format không hợp lệ
+// excludeId: Ref<number|undefined> | number — dùng cho edit mode (loại trừ user hiện tại)
 ```
 
 #### `useProfile()`
@@ -134,7 +156,7 @@ const { isChecking, emailError, reset } = useEmailValidation(email, undefined, 5
 Xử lý cập nhật profile và đổi mật khẩu, quản lý loading/error state.
 
 ```typescript
-import { useProfile } from '@/composables/useProfile'
+import { useProfile } from '@composables/useProfile'
 
 const { updateProfile, changePassword, loading, error } = useProfile()
 await updateProfile({ name: 'John', birthday: '1990-01-01' })
@@ -170,19 +192,16 @@ service.getById(id)               // GET /resource/:id
 service.create(data)              // POST /resource
 service.update(id, data)          // PUT /resource/:id
 service.delete(id)                // DELETE /resource/:id
+// buildQueryString (protected) — loại trừ undefined/null/'' tự động
 ```
 
 #### Danh sách services sẵn có
 
 | Service | Import | Dùng cho |
 |---|---|---|
-| `authApiService` | `@/services/auth.service` | `login()`, `me()` |
-| `usersApiService` | `@/services/users.service` | CRUD users + `checkEmail()`, `getUserActivity()` |
-| `employeesApiService` | `@/services/employees.service` | CRUD employees + filter |
-| `profileApiService` | `@/services/profile.service` | `updateProfile()`, `changePassword()` |
-| `notebooklmChatService` | `@/services/notebooklm-chat.service` | Chat session & messages |
-| `notebooklmWorkspaceService` | `@/services/notebooklm-workspace.service` | Workspace & documents |
-| `notebooklmOperationsService` | `@/services/notebooklm-operations.service` | Admin operations |
+| `authApiService` | `@services/auth.service` | `login()`, `me()` |
+| `usersApiService` | `@services/users.service` | CRUD users + `checkEmail()`, `getUserActivity()` |
+| `profileApiService` | `@services/profile.service` | `updateProfile()`, `changePassword()` |
 
 ---
 
@@ -190,13 +209,9 @@ service.delete(id)                // DELETE /resource/:id
 
 | Store | Import | Key state | Key actions |
 |---|---|---|---|
-| `useAuthStore` | `@/stores/auth.store` | `token`, `user`, `isAuthenticated`, `isAdmin`, `userRole` | `login()`, `logout()`, `updateUser()` |
-| `useUiStore` | `@/stores/ui.store` | `sidebarCollapsed`, `darkMode` | `toggleSidebar()`, `toggleDarkMode()` |
-| `useEmployeesStore` | `@/stores/employees.store` | `employees`, `pagination`, `filters`, `loading` | `fetchEmployees()`, `createEmployee()`, `updateEmployee()`, `deleteEmployee()`, `resetFilters()` |
-| `useUsersStore` | `@/stores/users.store` | `users`, `pagination`, `filters`, `currentUser` | `fetchUsers()`, `getUser()`, `createUser()`, `updateUser()`, `deleteUser()` |
-| `useNotebooklmChatStore` | `@/stores/notebooklm-chat.store` | `sessions`, `currentSession`, `messages`, `currentWorkspaceId` | `fetchSessions()`, `createSession()`, `sendMessage()`, `updateSession()` |
-| `useNotebooklmWorkspaceStore` | `@/stores/notebooklm-workspace.store` | `workspaces`, `currentWorkspace`, `documents` | `fetchWorkspaces()`, `createWorkspace()`, `ingestDocuments()` |
-| `useNotebooklmOperationsStore` | `@/stores/notebooklm-operations.store` | `operations`, `pagination`, `filters` | `fetchOperations()` |
+| `useAuthStore` | `@stores/auth.store` | `token`, `user`, `isAuthenticated`, `isAdmin`, `userRole` | `login()`, `logout()`, `updateUser()` |
+| `useUiStore` | `@stores/ui.store` | `sidebarCollapsed`, `darkMode` | `toggleSidebar()`, `toggleDarkMode()` |
+| `useUsersStore` | `@stores/users.store` | `users`, `pagination`, `filters`, `currentUser`, `auditLogs`, `loading`, `loadingUser`, `loadingActivity`, `error` | `fetchUsers()`, `fetchUser()`, `createUser()`, `updateUser()`, `deleteUser()`, `fetchUserActivity()`, `resetFilters()`, `clearCurrentUser()` |
 
 ---
 
@@ -204,11 +219,9 @@ service.delete(id)                // DELETE /resource/:id
 
 | File | Key types |
 |---|---|
-| `api.types.ts` | `PaginatedData<T>`, `PaginationInfo`, `UserRole`, `UserStatus`, `AuditAction` |
+| `api.types.ts` | `PaginatedData<T>`, `PaginationInfo`, `PaginationParams`, `SortParams`, `UserRole`, `UserStatus`, `AuditAction`, `ChangedFields`, `ApiErrorResponse` |
 | `auth.types.ts` | `LoginPayload`, `AuthUser`, `LoginResponseData` |
-| `employees.types.ts` | `Employee`, `EmployeeFilters`, `EmployeeDepartment`, `EmployeePosition`, `CreateEmployeeDto`, `UpdateEmployeeDto` |
 | `users.types.ts` | `User`, `UserFilters`, `AuditLog`, `CreateUserDto`, `UpdateUserDto` |
-| `notebooklm.types.ts` | `ChatSession`, `ChatMessage`, `Workspace`, `Document`, `SendMessageDto` |
 | `profile.types.ts` | `UpdateProfileDto`, `ChangePasswordDto` |
 | `table.types.ts` | `AppTableColumn<T>` |
 
@@ -219,6 +232,9 @@ service.delete(id)                // DELETE /resource/:id
 #### `AppDataTable<T>` – Generic table với pagination & sorting
 
 ```typescript
+import AppDataTable from '@components/AppDataTable.vue'
+import type { AppTableColumn } from '@apptypes/table.types'
+
 <AppDataTable
   :columns="columns"
   :value="usersStore.users"
@@ -226,22 +242,25 @@ service.delete(id)                // DELETE /resource/:id
   :pagination="usersStore.pagination"
   :sort-field="sortField"
   :sort-order="sortOrder"
+  table-width="1200px"
   @page-change="handlePageChange"
   @sort-change="handleSortChange"
 />
 
 // Định nghĩa columns:
-const columns: AppTableColumn<User>[] = [
-  { field: 'name', header: 'Name', sortable: true },
-  { field: 'email', header: 'Email', sortable: true, hideBelow: 768 },
-  { field: 'role', header: 'Role', frozen: true, width: '120px' },
-  {
-    field: 'created_at',
-    header: 'Created',
-    formatter: (val) => formatDate(val),
-  },
-]
+const columns = computed<AppTableColumn<User>[]>(() => [
+  { field: 'id', header: t('common.id'), width: '72px', sortable: true, hideBelow: 768, frozen: true, alignFrozen: 'left', columnAlign: 'center' },
+  { field: 'name', header: t('users.name'), width: '160px', sortable: true, truncate: true },
+  { field: 'email', header: t('users.email'), width: '220px', sortable: true, truncate: true },
+  { field: 'status', header: t('users.status'), width: '140px', sortable: true, columnAlign: 'center' },
+  { field: 'created_at', header: t('users.createdAt'), width: '160px', sortable: true, hideBelow: 1024, formatter: (row) => formatDate(row.created_at) },
+  { field: 'actions', header: t('common.actions'), width: '120px', frozen: true, alignFrozen: 'right' },
+])
 ```
+
+**Column options:** `field`, `header`, `width`, `sortable`, `frozen`, `alignFrozen`, `hideBelow` (px breakpoint), `truncate`, `columnAlign`, `headerAlign`, `formatter`.
+
+**Slots:** `#empty` (empty state), `#cell-<field>` (custom cell content), `#cell-actions` (action buttons).
 
 ---
 
@@ -253,6 +272,7 @@ const columns: AppTableColumn<User>[] = [
 
 ```typescript
 // ✅ Đúng – gọi qua store
+import { useUsersStore } from '@stores/users.store'
 const usersStore = useUsersStore()
 onMounted(() => usersStore.fetchUsers())
 
@@ -267,19 +287,23 @@ onMounted(async () => {
 
 ```typescript
 // stores/users.store.ts
-async function fetchUsers(params?: UserFilters): Promise<void> {
+async function fetchUsers(newFilters?: UserFilters): Promise<void> {
+  if (newFilters) filters.value = { ...filters.value, ...newFilters }
   loading.value = true
   error.value = null
   try {
-    const result = await usersApiService.getList(params ?? filters.value)
+    const result = await apiGetUsers(filters.value)
     users.value = result.data
     pagination.value = result.pagination
-  } catch (err) {
-    error.value = (err as Error).message
+  } catch (err: unknown) {
+    error.value = extractErrorMessage(err, 'Failed to fetch users')
   } finally {
     loading.value = false
   }
 }
+```
+
+**Lưu ý:** `createUser` và `updateUser` KHÔNG catch error trong store — error propagate ra ngoài để page component xử lý toast.
 ```
 
 ### 5.2 Filter + Debounce
@@ -305,10 +329,10 @@ watchDebounced(
 
 ```typescript
 // FilterComponent.vue
-const emit = defineEmits<{ filterChange: [filters: UserFilters] }>()
+const emit = defineEmits<{ 'filter-change': [filters: UserFilters] }>()
 
-function applyFilter(): void {
-  emit('filterChange', { search: search.value, role: role.value, status: status.value })
+function emitFilters(): void {
+  emit('filter-change', { search: search.value, role: role.value, status: status.value })
 }
 
 // Page component
@@ -327,10 +351,10 @@ import { defineStore } from 'pinia'
 import { ref, computed, shallowRef } from 'vue'
 
 export const useExampleStore = defineStore('example', () => {
-  // State
+  // State – ref cho primitives, shallowRef cho mảng/object lớn
   const items = shallowRef<Item[]>([])
-  const loading = ref(false)
-  const pagination = ref<PaginationInfo>({ page: 1, limit: 20, total: 0 })
+  const loading = shallowRef(false)
+  const pagination = ref<PaginationInfo>({ page: 1, limit: 20, total: 0, pages: 0 })
   const filters = ref<ItemFilters>({})
 
   // Computed (derived state)
@@ -407,10 +431,11 @@ const toast = useToast()
 function handleDelete(id: number): void {
   confirm.require({
     message: t('users.deleteConfirm'),
-    header: t('common.confirm'),
+    header: t('users.deleteHeader'),
     icon: 'pi pi-exclamation-triangle',
-    rejectProps: { label: t('common.cancel'), severity: 'secondary', outlined: true },
-    acceptProps: { label: t('common.delete'), severity: 'danger' },
+    acceptClass: 'p-button-danger',
+    acceptLabel: t('common.yes'),
+    rejectLabel: t('common.no'),
     accept: async () => {
       try {
         await usersStore.deleteUser(id)
@@ -421,6 +446,7 @@ function handleDelete(id: number): void {
     },
   })
 }
+```
 ```
 
 Template bắt buộc có `<ConfirmDialog />` và `<Toast />` ở layout hoặc page:
@@ -436,23 +462,36 @@ Template bắt buộc có `<ConfirmDialog />` và `<Toast />` ở layout hoặc 
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { z } from 'zod'
+import { watchDebounced } from '@vueuse/core'
 
-const schema = z.object({
-  name: z.string().min(2, 'Name too short'),
-  email: z.string().email('Invalid email'),
+const validationSchema = computed(() =>
+  toTypedSchema(
+    z.object({
+      name: z.string().min(1, t('users.nameRequired')).min(2, t('users.nameMinLength')).max(50, t('users.nameMaxLength')),
+      email: z.string().min(1, t('users.emailRequired')).email(t('users.emailInvalid')),
+    }),
+  ),
+)
+
+const { defineField, handleSubmit, errors, setValues, validateField } = useForm({
+  validationSchema,
+  initialValues: { name: '', email: '' },
 })
 
-const { handleSubmit, errors, defineField } = useForm({
-  validationSchema: toTypedSchema(schema),
-})
+// Disable auto-validation; debounced watchers control when to validate
+const [name] = defineField('name', { validateOnModelUpdate: false })
+const [email] = defineField('email', { validateOnModelUpdate: false })
 
-const [name, nameAttrs] = defineField('name')
-const [email, emailAttrs] = defineField('email')
+// Per-field debounced validation
+watchDebounced(name, () => validateField('name'), { debounce: 400 })
+watchDebounced(email, () => validateField('email'), { debounce: 400 })
 
-const onSubmit = handleSubmit(async (values) => {
-  await usersStore.createUser(values)
+const onSubmit = handleSubmit((values) => {
+  emit('submit', values)
 })
 ```
+
+**Lưu ý:** Schema dùng `computed` để reactive với i18n locale. Dùng `defineField` với `validateOnModelUpdate: false` + `watchDebounced` để kiểm soát thời điểm validate.
 
 ### 5.8 i18n – Đa ngôn ngữ
 
@@ -501,6 +540,7 @@ const tab = route.query.tab as string
 Được quản lý qua `useUiStore`:
 
 ```typescript
+import { useUiStore } from '@stores/ui.store'
 const uiStore = useUiStore()
 
 // Toggle
@@ -519,15 +559,15 @@ uiStore.toggleDarkMode()
 **Bắt buộc dùng** – không trả `res.json()` trực tiếp trong controller.
 
 ```typescript
-import { sendSuccess, sendError } from '@/utils/response.util'
+import { sendSuccess, sendError } from '@utils/response.util'
 
 // Thành công
 sendSuccess(res, data)                          // 200
-sendSuccess(res, data, 'Created', 201)          // 201
+sendSuccess(res, data, 201)                      // 201
 
 // Lỗi
 sendError(res, 'Not found', 404)
-sendError(res, 'Validation failed', 422)
+sendError(res, 'Validation failed', 400)
 ```
 
 ### 6.2 ServiceError (`server/src/models/common.model.ts`)
@@ -535,17 +575,20 @@ sendError(res, 'Validation failed', 422)
 Throw từ service, được bắt bởi `errorMiddleware`:
 
 ```typescript
-import { ServiceError } from '@/models/common.model'
+import { ServiceError } from '@models/common.model'
 
 // Trong service
 if (!user) throw new ServiceError('User not found', 404)
-if (exists) throw new ServiceError('Email already taken', 409)
+if (exists) throw new ServiceError('Email already exists', 409)
+if (id === adminId) throw new ServiceError('Cannot delete your own account', 400)
 ```
+
+`ServiceError` có 3 tham số: `message`, `code` (HTTP status), `errorCode?` (tùy chọn). `errorMiddleware` bắt và gọi `sendError(res, err.message, err.code)`.
 
 ### 6.3 Token utils (`server/src/utils/token.util.ts`)
 
 ```typescript
-import { signToken, verifyToken } from '@/utils/token.util'
+import { signToken, verifyToken } from '@utils/token.util'
 
 const token = signToken({ userId: 1, email: 'a@b.com', role: 'admin' })
 const payload = verifyToken(token)  // throws nếu invalid/expired
@@ -554,7 +597,7 @@ const payload = verifyToken(token)  // throws nếu invalid/expired
 ### 6.4 Hash utils (`server/src/utils/hash.util.ts`)
 
 ```typescript
-import { hashPassword, comparePassword } from '@/utils/hash.util'
+import { hashPassword, comparePassword } from '@utils/hash.util'
 
 const hashed = await hashPassword('plain-text-password')
 const isValid = await comparePassword('plain-text', hashed)
@@ -563,7 +606,7 @@ const isValid = await comparePassword('plain-text', hashed)
 ### 6.5 Logger (`server/src/utils/logger.util.ts`)
 
 ```typescript
-import { logger } from '@/utils/logger.util'
+import { logger } from '@utils/logger.util'
 
 logger.info('User created', { userId: 1 })
 logger.warn('Suspicious login attempt', { email })
@@ -573,45 +616,124 @@ logger.error('DB connection failed', { error: err.message })
 ### 6.6 Validation Middleware
 
 ```typescript
-import { validate } from '@/middleware/validate.middleware'
-import { createUserSchema } from './users.validation'
+import { validate } from '@middleware/validate.middleware'
+import { createUserSchema, checkEmailSchema } from './users.validation'
 
-router.post('/', authMiddleware, validate(createUserSchema), createUser)
+// Validate body (mặc định)
+router.post('/', validate(createUserSchema), createUser)
 
-// validation schema (Zod)
-export const createUserSchema = z.object({
-  body: z.object({
-    name: z.string().min(1),
-    email: z.string().email(),
-    password: z.string().min(8),
-    role: z.enum(['admin', 'user']),
-  }),
-})
+// Validate query
+router.get('/check-email', validate(checkEmailSchema, 'query'), checkEmail)
 ```
 
-### 6.7 BaseRepository (`server/src/database/base.repository.ts`)
+Schema Zod trực tiếp (không wrap trong `z.object({ body: ... })`):
 
 ```typescript
-import { BaseRepository } from '@/database/base.repository'
-import type { UserRow } from '@/models/users.model'
+// users.validation.ts
+import { z } from 'zod'
 
-class UsersRepository extends BaseRepository<UserRow> {
-  constructor() { super('users') }
+export const createUserSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters').max(50),
+  email: z.string().email('Invalid email address'),
+  role: z.enum(['admin', 'user', 'moderator']),
+  status: z.enum(['active', 'inactive', 'suspended']),
+  note: z.string().max(500).optional(),
+  birthday: z.string().optional().refine((val) => !val || new Date(val) <= new Date(), { message: 'Birthday cannot be in the future' }),
+})
 
-  // Override hoặc thêm method đặc thù
-  async findByEmail(email: string): Promise<UserRow | null> {
-    const [rows] = await pool.query<RowDataPacket[]>(
-      'SELECT * FROM users WHERE email = ? LIMIT 1',
-      [email]
-    )
-    return (rows[0] as UserRow) ?? null
-  }
-}
-
-export const usersRepository = new UsersRepository()
+export type CreateUserInput = z.infer<typeof createUserSchema>
 ```
 
-**Methods sẵn có**: `findAll(page, limit)`, `findById(id)`, `create(data)`, `update(id, data)`, `delete(id)`
+### 6.7 Auth helpers (`server/src/utils/auth.util.ts`)
+
+Type-safe helpers để truy cập authenticated user, thay thế `(req as any).user` và `req.user!`:
+
+```typescript
+import { getAuthUser, getAuthUserId } from '@utils/auth.util'
+import type { AuthenticatedRequest } from '@types-express'
+
+// Trong controller
+const adminId = getAuthUserId(req)  // number | null
+const user = getAuthUser(req)       // JwtPayload | null
+```
+
+### 6.8 asyncHandler (`server/src/middleware/async-handler.middleware.ts`)
+
+Wrap async Express handler để reject tự forward đến `errorMiddleware`:
+
+```typescript
+import { asyncHandler } from '@middleware/async-handler.middleware'
+
+router.get('/', asyncHandler(controller.getUsers.bind(controller)))
+```
+
+Controller KHÔNG cần `try/catch` — throw hoặc reject sẽ được `errorMiddleware` bắt.
+
+### 6.9 Repository Pattern (Prisma)
+
+```typescript
+// server/src/modules/admin/users/users.repository.ts
+import { prisma } from '@database/prisma'
+import type { Prisma } from '@prisma/client'
+
+const ALLOWED_SORT_FIELDS: Record<string, Prisma.UserOrderByWithRelationInput> = {
+  id: { id: 'asc' },
+  name: { name: 'asc' },
+  email: { email: 'asc' },
+  // ... whitelist để prevent SQL injection
+}
+
+const USER_PUBLIC_SELECT = {
+  id: true, name: true, email: true, role: true, status: true,
+  avatar: true, lastLoginAt: true, points: true, note: true, birthday: true,
+  createdAt: true, updatedAt: true,
+} as const
+
+export class UsersRepository {
+  private buildWhereClause(filters: UserFilters): Prisma.UserWhereInput {
+    const where: Prisma.UserWhereInput = {}
+    if (filters.search) {
+      where.OR = [
+        { name: { contains: filters.search } },
+        { email: { contains: filters.search } },
+      ]
+    }
+    if (filters.role) where.role = filters.role
+    if (filters.status) where.status = filters.status
+    return where
+  }
+
+  async findAllWithFilters(filters: UserFilters) {
+    const where = this.buildWhereClause(filters)
+    const page = filters.page || 1
+    const limit = filters.limit || 20
+    const skip = (page - 1) * limit
+    const orderBy = this.resolveOrderBy(filters.sortBy, filters.sortOrder)
+
+    const [data, total] = await Promise.all([
+      prisma.user.findMany({ where, orderBy, skip, take: limit, select: USER_PUBLIC_SELECT }),
+      prisma.user.count({ where }),
+    ])
+    return { data, total }
+  }
+
+  findByIdWithoutPassword(id: number) {
+    return prisma.user.findUnique({ where: { id }, select: USER_PUBLIC_SELECT })
+  }
+
+  findByEmail(email: string, excludeId?: number) {
+    return prisma.user.findFirst({
+      where: { email, ...(excludeId !== undefined ? { id: { not: excludeId } } : {}) },
+    })
+  }
+}
+```
+
+**Quy tắc:**
+- Dùng `select` để loại trừ `password` — không bao giờ `select *`
+- Sort whitelist: map field name → `Prisma.UserOrderByWithRelationInput`, fallback `createdAt: 'desc'`
+- Repository không chứa business logic — chỉ data access
+- `prisma` instance từ `@database/prisma` (singleton)
 
 ---
 
@@ -619,19 +741,20 @@ export const usersRepository = new UsersRepository()
 
 ### 7.1 Tạo một module mới
 
-Tạo đầy đủ 4 file trong `server/src/modules/<feature>/`:
+Tạo đầy đủ file trong `server/src/modules/<feature>/` (hoặc `server/src/modules/admin/<feature>/` cho admin-only):
 
 ```
-<feature>.routes.ts       – Express router
-<feature>.controller.ts   – Parse req → call service → sendSuccess/sendError
+<feature>.routes.ts       – Express router, dùng asyncHandler
+<feature>.controller.ts   – Class-based, thin, dùng asyncHandler + getAuthUserId
 <feature>.service.ts      – Business logic, throw ServiceError
-<feature>.validation.ts   – Zod schemas
+<feature>.repository.ts   – Prisma data access, select để loại trừ sensitive
+<feature>.validation.ts   – Zod schemas, export inferred types
 ```
 
 Đăng ký route trong `server/src/app.ts`:
 
 ```typescript
-import { featureRoutes } from './modules/feature/feature.routes'
+import { featureRoutes } from '@modules/feature/feature.routes'
 app.use(`${appConfig.apiPrefix}/feature`, featureRoutes)
 ```
 
@@ -639,61 +762,53 @@ app.use(`${appConfig.apiPrefix}/feature`, featureRoutes)
 
 ```typescript
 import { Router } from 'express'
-import { authMiddleware, requireRole } from '@/middleware/auth.middleware'
-import { validate } from '@/middleware/validate.middleware'
+import { authMiddleware, requireRole } from '@middleware/auth.middleware'
+import { validate } from '@middleware/validate.middleware'
+import { asyncHandler } from '@middleware/async-handler.middleware'
 
 const router = Router()
+const controller = new FeatureController()
 
-router.get('/', authMiddleware, getAll)
-router.post('/', authMiddleware, requireRole('admin'), validate(createSchema), create)
-router.put('/:id', authMiddleware, validate(updateSchema), update)
-router.delete('/:id', authMiddleware, requireRole('admin'), deleteItem)
+// Apply auth + role guard to all routes
+router.use(authMiddleware, requireRole('admin'))
+
+router.get('/', asyncHandler(controller.getAll.bind(controller)))
+router.post('/', validate(createSchema), asyncHandler(controller.create.bind(controller)))
+router.put('/:id', validate(updateSchema), asyncHandler(controller.update.bind(controller)))
+router.delete('/:id', asyncHandler(controller.delete.bind(controller)))
 
 export const featureRoutes = router
 ```
 
-### 7.3 Pagination trong DB query
+**Lưu ý:** `/check-email` phải đăng ký trước `/:id` để tránh route conflict.
 
-Pattern chuẩn với `LIMIT` / `OFFSET` + `COUNT(*)`:
+### 7.3 Pagination trong Service (Prisma)
+
+Pattern chuẩn với `skip` / `take` + `count`:
 
 ```typescript
-async function getUsers(filters: UserFilters): Promise<PaginatedResult<User>> {
-  const { page = 1, limit = 20, search, role, status } = filters
+async getUsers(filters: UserFilters): Promise<PaginatedResult<PublicUser>> {
+  const page = filters.page || 1
+  const limit = filters.limit || 20
+  const { data, total } = await this.repository.findAllWithFilters(filters)
 
-  const conditions: string[] = []
-  const params: unknown[] = []
-
-  if (search) {
-    conditions.push('(name LIKE ? OR email LIKE ?)')
-    params.push(`%${search}%`, `%${search}%`)
+  return {
+    data,
+    pagination: { page, limit, total, pages: Math.ceil(total / limit) },
   }
-  if (role) { conditions.push('role = ?'); params.push(role) }
-  if (status) { conditions.push('status = ?'); params.push(status) }
-
-  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
-  const offset = (page - 1) * limit
-
-  const [rows] = await pool.query<RowDataPacket[]>(
-    `SELECT id, name, email, role, status, created_at FROM users ${where} LIMIT ? OFFSET ?`,
-    [...params, limit, offset]
-  )
-  const [[{ total }]] = await pool.query<RowDataPacket[]>(
-    `SELECT COUNT(*) as total FROM users ${where}`,
-    params
-  )
-
-  return { data: rows as User[], pagination: { page, limit, total } }
 }
 ```
 
-### 7.4 Transaction
+Repository dùng `Promise.all` để chạy `findMany` + `count` song song.
+
+### 7.4 Transaction (Prisma)
 
 ```typescript
-import { withTransaction } from '@/database/transaction'
+import { prisma } from '@database/prisma'
 
-await withTransaction(async (conn) => {
-  await conn.query('INSERT INTO orders ...', [...])
-  await conn.query('UPDATE inventory ...', [...])
+await prisma.$transaction(async (tx) => {
+  await tx.user.create({ data: { ... } })
+  await tx.auditLog.create({ data: { ... } })
   // Nếu throw, tự động rollback
 })
 ```
@@ -701,10 +816,12 @@ await withTransaction(async (conn) => {
 ### 7.5 Error handling flow
 
 ```
-Service throw ServiceError(message, statusCode)
+Controller (asyncHandler) → Service throw ServiceError(message, statusCode)
     ↓
 errorMiddleware bắt → sendError(res, message, statusCode)
 ```
+
+`asyncHandler` wrap controller method, forward reject → `errorMiddleware`. Controller KHÔNG cần `try/catch`.
 
 Không bao giờ để lỗi chưa được xử lý bubble lên tầng HTTP response trực tiếp.
 
@@ -751,13 +868,12 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll, vi } 
 import request from 'supertest'
 import dotenv from 'dotenv'
 import path from 'path'
-import type { ResultSetHeader, RowDataPacket } from 'mysql2/promise'
 import app from '../../app'
-import { pool } from '../../database/connection'
+import { prisma } from '../../database/prisma'
 import { signToken } from '../../utils/token.util'
 import { hashPassword } from '../../utils/hash.util'
 
-// テストDBを使用する / Load env to use test database
+// Load env to use test database
 dotenv.config({ path: path.resolve(__dirname, '../../../../.env') })
 
 const ADMIN_ID = 1000
@@ -768,22 +884,21 @@ function getAdminToken(): string {
 }
 
 async function cleanupUserByEmail(email: string): Promise<void> {
-  const [rows] = await pool.query<RowDataPacket[]>('SELECT id FROM users WHERE email = ?', [email])
-  const user = rows[0] as { id: number } | undefined
+  const user = await prisma.user.findFirst({ where: { email } })
   if (user) {
-    // FK制約を考慮して監査ログを先に削除 / Delete audit logs first due to FK
-    await pool.query('DELETE FROM audit_logs WHERE target_user_id = ? OR admin_id = ?', [user.id, user.id])
-    await pool.query('DELETE FROM users WHERE id = ?', [user.id])
+    // Delete audit logs first due to FK
+    await prisma.auditLog.deleteMany({ where: { OR: [{ targetUserId: user.id }, { adminId: user.id }] } })
+    await prisma.user.delete({ where: { id: user.id } })
   }
 }
 
 async function createTestUser(data: { name: string; email: string; role?: string }): Promise<number> {
   const hashed = await hashPassword('password123')
-  const [result] = await pool.query<ResultSetHeader>(
-    'INSERT INTO users (name, email, password, role, status) VALUES (?, ?, ?, ?, ?)',
-    [data.name, data.email, hashed, data.role ?? 'user', 'active'],
-  )
-  return result.insertId
+  const created = await prisma.user.create({
+    data: { name: data.name, email: data.email, password: hashed, role: data.role ?? 'user', status: 'active' },
+    select: { id: true },
+  })
+  return created.id
 }
 
 describe('UsersController Tests', () => {
@@ -796,19 +911,19 @@ describe('UsersController Tests', () => {
   })
 
   afterAll(async () => {
-    await pool.end()
+    await prisma.$disconnect()
   })
 
   // Integration test – gọi endpoint thật với DB thật
   it('should create a new user', async () => {
     const res = await request(app)
-      .post('/api/users')
+      .post('/api/admin/users')
       .set('Authorization', `Bearer ${getAdminToken()}`)
       .send({ name: 'Test', email: 'test@example.com', role: 'user', status: 'active' })
       .expect(201)
 
-    expect(res.body.email).toBe('test@example.com')
-    expect(res.body).not.toHaveProperty('password')
+    expect(res.body.data.email).toBe('test@example.com')
+    expect(res.body.data).not.toHaveProperty('password')
   })
 
   // Unit test trong cùng file – mock external service nếu cần
@@ -820,8 +935,8 @@ describe('UsersController Tests', () => {
 
 #### Lưu ý quan trọng
 
-- `pool.end()` chỉ gọi trong `afterAll` của suite cuối cùng, hoặc dùng global setup/teardown
-- Không dùng `any` cho kết quả query; dùng `RowDataPacket[]` hoặc type model có `RowDataPacket`
+- `prisma.$disconnect()` chỉ gọi trong `afterAll` của suite cuối cùng, hoặc dùng global setup/teardown
+- Không dùng `any` cho kết quả query; dùng type từ Prisma hoặc `select` shape
 - Luôn import `describe`, `it`, `expect`, ... từ `vitest` để TypeScript nhận diện đúng
 - Nếu test cần nhiều suite dùng chung DB connection, cân nhắc dùng `setupFiles` trong `vitest.config.mts`
 
@@ -873,7 +988,7 @@ cd server
 npm test
 
 # Backend test một file cụ thể
-npx vitest run src/modules/users/users.controller.test.ts
+npx vitest run src/modules/admin/users/users.controller.test.ts
 
 # Frontend unit
 cd client

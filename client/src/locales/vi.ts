@@ -1,5 +1,5 @@
 /**
- * Vietnamese translations / ベトナム語翻訳
+ * Vietnamese translations.
  */
 export default {
   common: {

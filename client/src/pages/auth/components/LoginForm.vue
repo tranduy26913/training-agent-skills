@@ -5,7 +5,7 @@ import { useRouter } from 'vue-router';
 import InputText from 'primevue/inputtext';
 import Password from 'primevue/password';
 import Button from 'primevue/button';
-import { useAuthStore } from '@/stores/auth.store';
+import { useAuthStore } from '@stores/auth.store';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -16,7 +16,16 @@ const password = ref('');
 const loading = ref(false);
 const errorMessage = ref('');
 
-// ログイン処理 / Handle login submission
+// Extract a readable error message from an unknown catch value.
+function extractErrorMessage(err: unknown, fallback: string): string {
+  if (err && typeof err === 'object' && 'response' in err) {
+    const response = (err as { response?: { data?: { message?: string } } }).response;
+    return response?.data?.message || fallback;
+  }
+  return fallback;
+}
+
+// Handle login submission.
 async function handleLogin(): Promise<void> {
   errorMessage.value = '';
   loading.value = true;
@@ -24,8 +33,8 @@ async function handleLogin(): Promise<void> {
   try {
     await authStore.login({ email: email.value, password: password.value });
     router.push('/dashboard');
-  } catch (err: any) {
-    errorMessage.value = err.response?.data?.message || t('auth.loginFailed');
+  } catch (err: unknown) {
+    errorMessage.value = extractErrorMessage(err, t('auth.loginFailed'));
   } finally {
     loading.value = false;
   }

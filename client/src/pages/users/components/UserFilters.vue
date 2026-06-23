@@ -9,21 +9,21 @@ import type { UserFilters } from '../composables/useUsers';
 
 const { t } = useI18n();
 
-// Emits / イベント定義
+// Emits
 const emit = defineEmits<{
   'filter-change': [filters: UserFilters];
 }>();
 
-// フィルター状態 / Filter state
+// Filter state
 const search = shallowRef('');
 const role = shallowRef('');
 const status = shallowRef('');
 const dateRange = shallowRef<Date[] | null>(null);
 
-// デバウンスタイマー / Debounce timer for search
+// Debounce timer for search.
 let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
-// ロールオプション / Role options (computed for reactivity)
+// Role options (computed for reactivity).
 const roleOptions = computed(() => [
   { label: t('users.allRoles'), value: '' },
   { label: t('users.roles.admin'), value: 'admin' },
@@ -31,7 +31,7 @@ const roleOptions = computed(() => [
   { label: t('users.roles.moderator'), value: 'moderator' },
 ]);
 
-// ステータスオプション / Status options (computed for reactivity)
+// Status options (computed for reactivity).
 const statusOptions = computed(() => [
   { label: t('users.allStatuses'), value: '' },
   { label: t('users.statuses.active'), value: 'active' },
@@ -39,14 +39,11 @@ const statusOptions = computed(() => [
   { label: t('users.statuses.suspended'), value: 'suspended' },
 ]);
 
-// フィルター発行 / Emit current filter values
+// Emit current filter values.
 function emitFilters(): void {
   const filters: UserFilters = {};
-//   if (search.value) 
   filters.search = search.value;
-//   if (role.value) 
   filters.role = role.value;
-//   if (status.value) 
   filters.status = status.value;
   if (dateRange.value && dateRange.value[0]) {
     filters.startDate = dateRange.value[0].toISOString().split('T')[0];
@@ -57,7 +54,7 @@ function emitFilters(): void {
   emit('filter-change', filters);
 }
 
-// 検索デバウンス / Debounced search handler
+// Debounced search handler.
 function onSearchInput(): void {
   if (searchTimeout) clearTimeout(searchTimeout);
   searchTimeout = setTimeout(() => {
@@ -65,17 +62,17 @@ function onSearchInput(): void {
   }, 300);
 }
 
-// セレクト変更時即座に発行 / Emit immediately on select change
+// Emit immediately on select change.
 function onSelectChange(): void {
   emitFilters();
 }
 
-// 日付変更時即座に発行 / Emit immediately on date change
+// Emit immediately on date change.
 function onDateChange(): void {
   emitFilters();
 }
 
-// フィルタークリア / Reset all filters and re-emit
+// Reset all filters and re-emit.
 function clearFilters(): void {
   search.value = '';
   role.value = '';
@@ -87,7 +84,7 @@ function clearFilters(): void {
 
 <template>
   <div class="flex flex-wrap gap-3 items-end mb-4">
-    <!-- 検索 / Search input -->
+    <!-- Search input -->
     <div class="flex flex-col gap-1">
       <label class="text-sm text-surface-600 dark:text-surface-400">{{ t('common.search') }}</label>
       <InputText
@@ -98,7 +95,7 @@ function clearFilters(): void {
       />
     </div>
 
-    <!-- ロール / Role select -->
+    <!-- Role select -->
     <div class="flex flex-col gap-1">
       <label class="text-sm text-surface-600 dark:text-surface-400">{{ t('users.role') }}</label>
       <Select
@@ -112,7 +109,7 @@ function clearFilters(): void {
       />
     </div>
 
-    <!-- ステータス / Status select -->
+    <!-- Status select -->
     <div class="flex flex-col gap-1">
       <label class="text-sm text-surface-600 dark:text-surface-400">{{ t('users.status') }}</label>
       <Select
@@ -126,7 +123,7 @@ function clearFilters(): void {
       />
     </div>
 
-    <!-- 日付範囲 / Date range picker -->
+    <!-- Date range picker -->
     <div class="flex flex-col gap-1">
       <label class="text-sm text-surface-600 dark:text-surface-400">{{ t('users.dateRange') }}</label>
       <DatePicker
@@ -139,7 +136,7 @@ function clearFilters(): void {
       />
     </div>
 
-    <!-- フィルタークリアボタン / Clear all filters button -->
+    <!-- Clear all filters button -->
     <div class="flex flex-col justify-end">
       <Button
         :label="t('users.clearFilters')"

@@ -24,6 +24,7 @@ Tính năng quản lý user cho phép admin xem danh sách toàn bộ user, tìm
 | 1.0 | 2026-04-15 | Admin Team | Initial design |
 | 1.1 | 2026-04-16 | Admin Team | Add sortable columns và skeleton loading cho UserTable |
 | 1.2 | 2026-04-20 | Admin Team | [CR] Thêm Last Login, Points columns; thêm Note & Birthday fields; email duplicate check; nút Clear Filters |
+| 1.3 | 2026-06-23 | Admin Team | Chuẩn hóa code style: mysql2 → Prisma, asyncHandler, path alias, controller class-based, VeeValidate + Zod |
 
 ---
 
@@ -63,16 +64,17 @@ Cung cấp giao diện quản lý toàn diện cho admin quản lý user account
 │               Vue.js Frontend               │
 │  UserListPage / UserCreatePage / UserEditPage│
 └──────────────────┬──────────────────────────┘
-                   │ HTTP/REST
+                   │ HTTP/REST (Axios)
 ┌──────────────────▼──────────────────────────┐
 │            Express.js Backend               │
 │  ┌────────────────────────────────────────┐ │
-│  │  Users Module                          │ │
-│  │  Controller → Service → Repository    │ │
+│  │  Users Module (admin/)                 │ │
+│  │  Route → Controller → Service → Repo   │ │
+│  │  asyncHandler + authMiddleware + Zod   │ │
 │  └────────────────────────────────────────┘ │
-│  Auth Middleware (JWT + admin role check)    │
+│  errorMiddleware (central error handler)     │
 └──────────────────┬──────────────────────────┘
-                   │ SQL
+                   │ Prisma Client
 ┌──────────────────▼──────────────────────────┐
 │              MySQL Database                 │
 │  users table  +  audit_logs table           │

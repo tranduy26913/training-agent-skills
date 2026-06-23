@@ -1,7 +1,7 @@
-// ユーザー型定義 / Users module type definitions
+// Users module type definitions.
 import type { UserRole, UserStatus, AuditAction, PaginationParams, SortParams, ChangedFields } from './api.types';
 
-// ユーザーデータ型 / User data type
+// User data type returned by the API.
 export interface User {
   id: number;
   name: string;
@@ -9,7 +9,6 @@ export interface User {
   role: UserRole;
   status: UserStatus;
   avatar: string | null;
-  // [NEW] fields
   last_login_at: string | null;
   points: number;
   note: string | null;
@@ -18,21 +17,20 @@ export interface User {
   updated_at: string;
 }
 
-// ユーザー作成入力 / Create user DTO
+// Create user DTO.
 export interface CreateUserDto {
   name: string;
   email: string;
   role: UserRole;
   status: UserStatus;
-  // [NEW] optional fields
   note?: string;
   birthday?: string;
 }
 
-// ユーザー更新入力 / Update user DTO
+// Update user DTO.
 export type UpdateUserDto = CreateUserDto;
 
-// ユーザーフィルター / User list filter parameters
+// User list filter parameters.
 export interface UserFilters extends PaginationParams, SortParams {
   search?: string;
   role?: string;
@@ -41,7 +39,7 @@ export interface UserFilters extends PaginationParams, SortParams {
   endDate?: string;
 }
 
-// 監査ログ / Audit log entry
+// Audit log entry.
 export interface AuditLog {
   id: number;
   admin_id: number;

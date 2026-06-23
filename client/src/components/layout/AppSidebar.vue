@@ -2,8 +2,8 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { storeToRefs } from 'pinia';
-import { useAuthStore } from '@/stores/auth.store';
-import { useUiStore } from '@/stores/ui.store';
+import { useAuthStore } from '@stores/auth.store';
+import { useUiStore } from '@stores/ui.store';
 
 const { t } = useI18n();
 const authStore = useAuthStore();
@@ -66,7 +66,7 @@ const visibleMenuItems = computed(() => {
       </span>
     </div>
 
-    <!-- Navigation / ナビゲーション -->
+    <!-- Navigation -->
     <nav class="flex-1 py-4">
       <ul class="space-y-1 px-2">
         <li v-for="item in visibleMenuItems" :key="item.to">

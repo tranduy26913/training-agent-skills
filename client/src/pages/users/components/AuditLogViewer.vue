@@ -5,13 +5,13 @@ import type { AuditLog } from '../composables/useUsers';
 
 const { t } = useI18n();
 
-// Props / プロパティ定義
+// Props
 const props = defineProps<{
   logs: AuditLog[];
   loading: boolean;
 }>();
 
-// ログエントリのフォーマット / Format a single audit log entry
+// Format a single audit log entry.
 function formatLogEntry(log: AuditLog): string {
   const timestamp = new Date(log.timestamp).toLocaleString();
   const adminName = log.admin_name;
@@ -24,7 +24,7 @@ function formatLogEntry(log: AuditLog): string {
     return `${adminName} deleted this user on ${timestamp}`;
   }
 
-  // UPDATE: 変更フィールドの詳細 / Detail changed fields
+  // UPDATE: detail changed fields.
   if (log.changed_fields) {
     const changes = Object.entries(log.changed_fields)
       .map(([field, { old: oldVal, new: newVal }]) => `changed ${field} from '${oldVal}' to '${newVal}'`)
@@ -40,24 +40,24 @@ function formatLogEntry(log: AuditLog): string {
   <div class="flex flex-col gap-3">
     <h3 class="text-lg font-semibold text-surface-800 dark:text-surface-100">{{ t('users.activityLog') }}</h3>
 
-    <!-- ローディング / Loading skeleton -->
+    <!-- Loading skeleton -->
     <div v-if="loading" class="flex flex-col gap-3">
       <Skeleton v-for="i in 3" :key="i" height="3rem" />
     </div>
 
-    <!-- 空状態 / Empty state -->
+    <!-- Empty state -->
     <div v-else-if="logs.length === 0" class="text-surface-500 text-sm py-4">
       {{ t('users.noActivity') }}
     </div>
 
-    <!-- ログ一覧 / Log entries list -->
+    <!-- Log entries list -->
     <div v-else class="flex flex-col gap-2">
       <div
         v-for="log in logs"
         :key="log.id"
         class="flex items-start gap-3 p-3 rounded-lg bg-surface-50 dark:bg-surface-800"
       >
-        <!-- アクションアイコン / Action icon -->
+        <!-- Action icon -->
         <i
           :class="[
             'pi text-lg mt-0.5',

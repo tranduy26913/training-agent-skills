@@ -4,9 +4,9 @@ import { useWindowSize } from '@vueuse/core';
 import DataTable, { type DataTablePageEvent, type DataTableSortEvent } from 'primevue/datatable';
 import Column from 'primevue/column';
 import Skeleton from 'primevue/skeleton';
-import type { AppTableColumn } from '@/types/table.types';
+import type { AppTableColumn } from '@apptypes/table.types';
 
-// Props / プロパティ定義
+// Props
 const props = withDefaults(
   defineProps<{
     columns: AppTableColumn<T>[];
@@ -20,8 +20,7 @@ const props = withDefaults(
     stripedRows?: boolean;
     /** Minimum total table width, e.g. '900px'. Enables inner horizontal scroll when content exceeds container. */
     tableWidth?: string;
-  }>()
-  ,
+  }>(),
   {
     loading: false,
     skeletonRows: 5,
@@ -29,7 +28,7 @@ const props = withDefaults(
   },
 );
 
-// Emits / イベント定義
+// Emits
 const emit = defineEmits<{
   pageChange: [page: number];
   sortChange: [field: string, order: 1 | -1];
@@ -37,38 +36,38 @@ const emit = defineEmits<{
 
 const { width: windowWidth } = useWindowSize();
 
-// 表示列フィルタリング / Filter columns by viewport width (frozen columns always shown)
+// Filter columns by viewport width (frozen columns always shown).
 const visibleColumns = computed<AppTableColumn<T>[]>(() =>
   props.columns.filter(
     (col) => col.frozen || !col.hideBelow || windowWidth.value >= col.hideBelow,
   ),
 );
 
-// スケルトン or 実データ / Skeleton rows during loading or actual data
+// Skeleton rows during loading or actual data.
 const displayValue = computed<T[]>(() =>
   props.loading ? (Array(props.skeletonRows).fill({}) as T[]) : props.value,
 );
 
-// セルテキスト取得 / Get display text from formatter or raw field value
+// Get display text from formatter or raw field value.
 function getCellText(col: AppTableColumn<T>, data: T): string {
   if (col.formatter) return col.formatter(data);
   const val = (data as Record<string, unknown>)[col.field];
   return val != null ? String(val) : '';
 }
 
-// ヘッダーアライン → justify-content 変換 / Map align string to CSS justify-content value
+// Map align string to CSS justify-content value.
 function toJustify(align: 'left' | 'center' | 'right' | undefined): string {
   if (align === 'center') return 'center';
   if (align === 'right') return 'flex-end';
   return 'flex-start';
 }
 
-// ページ変更 / Page change handler
+// Page change handler.
 function onPageChange(event: DataTablePageEvent): void {
   emit('pageChange', event.page + 1);
 }
 
-// ソート変更 / Sort change handler
+// Sort change handler.
 function onSort(event: DataTableSortEvent): void {
   if (event.sortField) {
     emit('sortChange', String(event.sortField), event.sortOrder as 1 | -1);
@@ -77,7 +76,7 @@ function onSort(event: DataTableSortEvent): void {
 </script>
 
 <template>
-  <!-- テーブルコンテナ / Scroll container — prevents page-level horizontal scroll -->
+  <!-- Scroll container  Eprevents page-level horizontal scroll -->
   <div class="w-full overflow-x-auto">
   <DataTable
     :value="displayValue"
@@ -101,7 +100,7 @@ function onSort(event: DataTableSortEvent): void {
       bodyRow: { class: 'transition-colors duration-150 hover:!bg-primary-50 dark:hover:!bg-primary-950/30 cursor-default' },
     }"
   >
-    <!-- 空状態スロット / Empty state -->
+    <!-- Empty state -->
     <template #empty>
       <slot name="empty">
         <div class="text-center py-8 text-surface-500">No records found.</div>
@@ -109,7 +108,7 @@ function onSort(event: DataTableSortEvent): void {
     </template>
 
     <!--
-      列レンダリング / Column rendering
+      Column rendering
       - frozen columns are always visible (right-sticky by default)
       - truncate columns: clip text + show full value via PrimeVue tooltip
       - custom slot #cell-{field}: override cell rendering entirely
@@ -127,10 +126,10 @@ function onSort(event: DataTableSortEvent): void {
       :pt="{ headerContent: { style: { justifyContent: toJustify(col.headerAlign ?? 'center') } } }"
     >
       <template #body="{ data }">
-        <!-- ローディングスケルトン / Loading skeleton -->
+        <!-- Loading skeleton -->
         <Skeleton v-if="props.loading" height="1.5rem" />
 
-        <!-- カスタムスロット / Custom slot #cell-{field} takes precedence -->
+        <!-- Custom slot #cell-{field} takes precedence -->
         <slot
           v-else-if="$slots[`cell-${col.field}`]"
           :name="`cell-${col.field}`"
@@ -138,7 +137,7 @@ function onSort(event: DataTableSortEvent): void {
           :col="col"
         />
 
-        <!-- 省略 + ツールチップ / Truncated text with tooltip on hover -->
+        <!-- Truncated text with tooltip on hover -->
         <div
           v-else-if="col.truncate"
           class="overflow-hidden text-ellipsis whitespace-nowrap"
@@ -147,7 +146,7 @@ function onSort(event: DataTableSortEvent): void {
           {{ getCellText(col, data as T) }}
         </div>
 
-        <!-- プレーンテキスト / Plain text -->
+        <!-- Plain text -->
         <span v-else>{{ getCellText(col, data as T) }}</span>
       </template>
     </Column>

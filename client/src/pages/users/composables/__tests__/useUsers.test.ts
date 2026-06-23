@@ -1,12 +1,11 @@
 /**
- * Unit tests for useUsers composable
- * ユーザーAPIコンポーザブルのユニットテスト
+ * Unit tests for useUsers composable.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useUsers } from '@/pages/users/composables/useUsers';
-import type { CreateUserDto } from '@/types/users.types';
+import { useUsers } from '@pages/users/composables/useUsers';
+import type { CreateUserDto } from '@apptypes/users.types';
 
-// ---- Service mock / サービスモック ----
+// ---- Service mock ----
 const usersServiceMocks = vi.hoisted(() => ({
   getUsers: vi.fn(),
   getById: vi.fn(),
@@ -16,7 +15,7 @@ const usersServiceMocks = vi.hoisted(() => ({
   getUserActivity: vi.fn(),
 }));
 
-vi.mock('@/services/users.service', () => ({
+vi.mock('@services/users.service', () => ({
   usersApiService: usersServiceMocks,
 }));
 
@@ -25,7 +24,7 @@ describe('useUsers', () => {
     vi.clearAllMocks();
   });
 
-  // F-COMP-01: getUsers gọi đúng endpoint
+  // F-COMP-01: getUsers calls the correct endpoint
   it('calls getUsers with correct params', async () => {
     const filters = { page: 1, limit: 20 };
     usersServiceMocks.getUsers.mockResolvedValue({
@@ -39,7 +38,7 @@ describe('useUsers', () => {
     expect(usersServiceMocks.getUsers).toHaveBeenCalledWith(filters);
   });
 
-  // F-COMP-02: createUser gọi POST
+  // F-COMP-02: createUser calls POST
   it('calls create with correct data', async () => {
     const data: CreateUserDto = { name: 'Test', email: 'test@example.com', role: 'user', status: 'active' };
     usersServiceMocks.create.mockResolvedValue({ id: 1, ...data });
@@ -50,7 +49,7 @@ describe('useUsers', () => {
     expect(usersServiceMocks.create).toHaveBeenCalledWith(data);
   });
 
-  // F-COMP-03: updateUser gọi PUT với id
+  // F-COMP-03: updateUser calls PUT with id
   it('calls update with id and data', async () => {
     const data: CreateUserDto = { name: 'Updated', email: 'updated@example.com', role: 'user', status: 'active' };
     usersServiceMocks.update.mockResolvedValue({ id: 5, ...data });
@@ -61,7 +60,7 @@ describe('useUsers', () => {
     expect(usersServiceMocks.update).toHaveBeenCalledWith(5, data);
   });
 
-  // F-COMP-04: deleteUser gọi DELETE
+  // F-COMP-04: deleteUser calls DELETE
   it('calls delete with id', async () => {
     usersServiceMocks.delete.mockResolvedValue(undefined);
 
@@ -71,7 +70,7 @@ describe('useUsers', () => {
     expect(usersServiceMocks.delete).toHaveBeenCalledWith(3);
   });
 
-  // F-COMP-05: getUserActivity gọi activity endpoint
+  // F-COMP-05: getUserActivity calls the activity endpoint
   it('calls getUserActivity with id', async () => {
     usersServiceMocks.getUserActivity.mockResolvedValue([]);
 

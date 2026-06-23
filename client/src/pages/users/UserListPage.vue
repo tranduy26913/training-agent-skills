@@ -6,7 +6,7 @@ import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
 import ConfirmDialog from 'primevue/confirmdialog';
-import { useUsersStore } from '@/stores/users.store';
+import { useUsersStore } from '@stores/users.store';
 import UserTable from './components/UserTable.vue';
 import UserFilters from './components/UserFilters.vue';
 import type { UserFilters as UserFiltersType } from './composables/useUsers';
@@ -17,38 +17,38 @@ const confirm = useConfirm();
 const toast = useToast();
 const usersStore = useUsersStore();
 
-// 初期読み込み / Load users on mount
+// Load users on mount.
 onMounted(() => {
   usersStore.fetchUsers();
 });
 
-// フィルター変更ハンドラ / Handle filter changes
+// Handle filter changes.
 function handleFilterChange(filters: UserFiltersType): void {
   usersStore.fetchUsers({ ...filters, page: 1 });
 }
 
-// ページ変更ハンドラ / Handle page changes
+// Handle page changes.
 function handlePageChange(page: number): void {
   usersStore.fetchUsers({ ...usersStore.filters, page });
 }
 
-// 編集ハンドラ / Navigate to edit page
+// Navigate to the edit page.
 function handleEdit(id: number): void {
   router.push({ name: 'UserEdit', params: { id } });
 }
 
-// ソートフィールドとオーダー / Active sort state
+// Active sort state.
 const sortField = shallowRef<string>('created_at');
 const sortOrder = shallowRef<1 | -1>(-1);
 
-// ソート変更ハンドラ / Handle sort change from table
+// Handle sort change from the table.
 function handleSortChange(field: string, order: 1 | -1): void {
   sortField.value = field;
   sortOrder.value = order;
   usersStore.fetchUsers({ ...usersStore.filters, page: 1, sortBy: field, sortOrder: order === 1 ? 'asc' : 'desc' });
 }
 
-// 削除ハンドラ / Delete user with confirmation
+// Delete a user with confirmation.
 function handleDelete(id: number): void {
   confirm.require({
     message: t('users.deleteConfirm'),

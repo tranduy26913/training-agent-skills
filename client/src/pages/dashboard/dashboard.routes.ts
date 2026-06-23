@@ -3,7 +3,7 @@ import type { RouteRecordRaw } from 'vue-router';
 export const dashboardRoutes: RouteRecordRaw[] = [
   {
     path: '/dashboard',
-    component: () => import('@/layouts/DefaultLayout.vue'),
+    component: () => import('@layouts/DefaultLayout.vue'),
     meta: { requiresAuth: true },
     children: [
       {

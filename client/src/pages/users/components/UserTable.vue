@@ -1,15 +1,15 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Tag from 'primevue/tag';
 import Button from 'primevue/button';
-import AppDataTable from '@/components/AppDataTable.vue';
-import type { AppTableColumn } from '@/types/table.types';
+import AppDataTable from '@components/AppDataTable.vue';
+import type { AppTableColumn } from '@apptypes/table.types';
 import type { User, PaginationInfo } from '../composables/useUsers';
 
 const { t } = useI18n();
 
-// Props / 繝励Ο繝代ユ繧｣螳夂ｾｩ
+// Props
 const props = defineProps<{
   users: User[];
   loading: boolean;
@@ -18,7 +18,7 @@ const props = defineProps<{
   sortOrder?: 1 | -1;
 }>();
 
-// Emits / 繧､繝吶Φ繝亥ｮ夂ｾｩ
+// Emits
 const emit = defineEmits<{
   edit: [id: number];
   delete: [id: number];
@@ -26,14 +26,14 @@ const emit = defineEmits<{
   sortChange: [field: string, order: 1 | -1];
 }>();
 
-// 繧ｹ繝・・繧ｿ繧ｹ繧ｿ繧ｰ縺ｮ濶ｲ繝槭ャ繝斐Φ繧ｰ / Status 竊・PrimeVue severity
+// Status ↁEPrimeVue severity mapping.
 const statusSeverityMap: Record<string, 'success' | 'warn' | 'danger'> = {
   active: 'success',
   inactive: 'warn',
   suspended: 'danger',
 };
 
-// 譌･莉倥ヵ繧ｩ繝ｼ繝槭ャ繝・/ Format date string to DD/MM/YYYY HH:mm (null-safe)
+// Format date string to DD/MM/YYYY HH:mm (null-safe).
 function formatDate(dateString: string | null | undefined): string {
   if (!dateString) return '-';
   const date = new Date(dateString);
@@ -46,13 +46,13 @@ function formatDate(dateString: string | null | undefined): string {
 }
 
 /*
- * 蛻怜ｮ夂ｾｩ / Column definitions
+ * Column definitions.
  *
  * hideBelow breakpoints (hide columns on smaller screens):
- *   1280px (xl) 窶・Points, Last Login, Updated At
- *   1024px (lg) 窶・Created At
- *    900px      窶・Role
- *    768px (md) 窶・ID
+ *   1280px (xl)  EPoints, Last Login, Updated At
+ *   1024px (lg)  ECreated At
+ *    900px       ERole
+ *    768px (md)  EID
  *
  * Frozen action column always visible on the right.
  */
@@ -160,19 +160,19 @@ const columns = computed<AppTableColumn<User>[]>(() => [
     @page-change="(p) => emit('pageChange', p)"
     @sort-change="(f, o) => emit('sortChange', f, o)"
   >
-    <!-- 遨ｺ繝｡繝・そ繝ｼ繧ｸ / Empty state -->
+    <!-- Empty state -->
     <template #empty>
       <div class="text-center py-8 text-surface-500">
         {{ t('users.noUsersFound') }}
       </div>
     </template>
 
-    <!-- 繧ｹ繝・・繧ｿ繧ｹ繝舌ャ繧ｸ / Status badge -->
+    <!-- Status badge -->
     <template #cell-status="{ data }">
       <Tag :value="data.status" :severity="statusSeverityMap[data.status as string]" />
     </template>
 
-    <!-- 繧｢繧ｯ繧ｷ繝ｧ繝ｳ繝懊ち繝ｳ / Action buttons -->
+    <!-- Action buttons -->
     <template #cell-actions="{ data }">
       <div class="flex gap-2">
         <Button

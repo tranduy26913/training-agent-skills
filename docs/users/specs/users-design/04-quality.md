@@ -16,49 +16,49 @@ status: Approved
 
 ### 1.1 Backend Tests
 
-#### Unit Tests (service layer — `src/modules/users/users.service.test.ts`)
+#### Unit Tests (service layer — `src/modules/admin/users/users.service.test.ts` hoặc trong `users.controller.test.ts`)
 
 | # | Test Name | Setup | Action | Assert |
 |---|-----------|-------|--------|--------|
 | U-BE-01 | generatePassword: tạo đúng format | email = `jane@example.com` | gọi `generatePassword(email)` | trả về `jane123` |
 | U-BE-02 | generatePassword: email có subdomain | email = `john.doe@company.co` | gọi `generatePassword(email)` | trả về `john.doe123` |
 | U-BE-03 | buildChangedFields: detect thay đổi | old = `{name:'A', role:'user'}`, new = `{name:'B', role:'user'}` | gọi `buildChangedFields(old, new)` | trả về `{name:{old:'A',new:'B'}}` |
-| U-BE-04 | buildChangedFields: không thay đổi | old = new | gọi `buildChangedFields(old, old)` | trả về `{}` |
-| U-BE-05 | createUser: duplicate email → throw | mock DB trả về user cùng email | gọi `createUser(data)` | throw `EMAIL_EXISTS` |
-| U-BE-06 | deleteUser: self-delete → throw | `adminId = 1`, `targetId = 1` | gọi `deleteUser(1, 1)` | throw `CANNOT_DELETE_SELF` |
-| U-BE-07 | getUsers: filter theo role | mock DB | gọi `getUsers({ role:'admin' })` | query có điều kiện `role='admin'` |
-| U-BE-08 | getUsers: sortBy whitelist | sortBy = `email` | gọi `getUsers({ sortBy:'email' })` | query có `ORDER BY email` |
-| U-BE-09 | getUsers: invalid sortBy → bỏ qua | sortBy = `'; DROP TABLE users; --` | gọi `getUsers({...})` | fallback về default sort `created_at DESC` |
-| U-BE-10 | getUsers: sortBy không trong whitelist → bỏ qua | sortBy = `last_login_at` | gọi `getUsers({ sortBy:'last_login_at' })` | fallback về default sort `created_at DESC` (không throw) |
+| U-BE-04 | buildChangedFields: không thay đổi | old = new | gọi `buildChangedFields(old, old)` | trả về `null` |
+| U-BE-05 | createUser: duplicate email → throw | mock DB trả về user cùng email | gọi `createUser(data)` | throw `ServiceError('Email already exists', 409)` |
+| U-BE-06 | deleteUser: self-delete → throw | `adminId = 1`, `targetId = 1` | gọi `deleteUser(1, 1)` | throw `ServiceError('Cannot delete your own account', 400)` |
+| U-BE-07 | getUsers: filter theo role | mock repository | gọi `getUsers({ role:'admin' })` | repository nhận where clause với `role='admin'` |
+| U-BE-08 | getUsers: sortBy whitelist | sortBy = `email` | gọi `getUsers({ sortBy:'email' })` | repository resolve orderBy `{ email: 'asc'/'desc' }` |
+| U-BE-09 | getUsers: invalid sortBy → bỏ qua | sortBy = `'; DROP TABLE users; --` | gọi `getUsers({...})` | fallback về default sort `createdAt DESC` |
+| U-BE-10 | getUsers: sortBy không trong whitelist → bỏ qua | sortBy = `last_login_at` | gọi `getUsers({ sortBy:'last_login_at' })` | fallback về default sort `createdAt DESC` (không throw) |
 
-#### Integration Tests (HTTP endpoints — `src/modules/users/users.routes.test.ts`)
+#### Integration Tests (HTTP endpoints — `src/modules/admin/users/users.controller.test.ts`)
 
 | # | Endpoint | Method | Scenario | Expected Status |
 |---|----------|--------|----------|----------------|
-| I-BE-01 | `/api/users` | GET | Admin authenticated, no filters | 200 + `data[]` + `pagination` |
-| I-BE-02 | `/api/users` | GET | Non-admin user | 403 |
-| I-BE-03 | `/api/users` | GET | No auth | 401 |
-| I-BE-04 | `/api/users` | GET | With `search=john&role=admin` | 200 + filtered results |
-| I-BE-05 | `/api/users` | GET | `page=2&limit=25` | 200 + correct offset |
-| I-BE-06 | `/api/users` | POST | Valid body, unique email | 201 + UserDto |
-| I-BE-07 | `/api/users` | POST | Duplicate email | 409 |
-| I-BE-08 | `/api/users` | POST | Invalid body (short name) | 400 |
-| I-BE-09 | `/api/users` | POST | Birthday in the future | 400 |
-| I-BE-10 | `/api/users/:id` | GET | Existing user | 200 + UserDto |
-| I-BE-11 | `/api/users/:id` | GET | Non-existent user | 404 |
-| I-BE-12 | `/api/users/:id` | PUT | Valid update | 200 + updated UserDto |
-| I-BE-13 | `/api/users/:id` | PUT | Email conflicts with another user | 409 |
-| I-BE-14 | `/api/users/:id` | PUT | Email same as self → OK | 200 |
-| I-BE-15 | `/api/users/:id` | PUT | Attempt to set `points` | 200 + `points` unchanged |
-| I-BE-16 | `/api/users/:id` | DELETE | Delete other user | 200 |
-| I-BE-17 | `/api/users/:id` | DELETE | Delete self | 400 |
-| I-BE-18 | `/api/users/:id` | DELETE | Non-existent user | 404 |
-| I-BE-19 | `/api/users/:id/activity` | GET | Existing user | 200 + `data[]` |
-| I-BE-20 | `/api/users/:id/activity` | GET | Non-existent user | 404 |
-| I-BE-21 | `/api/users/check-email` | GET | Not exists | 200 + `{exists:false}` |
-| I-BE-22 | `/api/users/check-email` | GET | Exists | 200 + `{exists:true}` |
-| I-BE-23 | `/api/users/check-email` | GET | Exists + excludeId = same user | 200 + `{exists:false}` |
-| I-BE-24 | `/api/users/check-email` | GET | Missing email param | 400 |
+| I-BE-01 | `/api/admin/users` | GET | Admin authenticated, no filters | 200 + `data[]` + `pagination` |
+| I-BE-02 | `/api/admin/users` | GET | Non-admin user | 403 |
+| I-BE-03 | `/api/admin/users` | GET | No auth | 401 |
+| I-BE-04 | `/api/admin/users` | GET | With `search=john&role=admin` | 200 + filtered results |
+| I-BE-05 | `/api/admin/users` | GET | `page=2&limit=25` | 200 + correct offset |
+| I-BE-06 | `/api/admin/users` | POST | Valid body, unique email | 201 + UserDto |
+| I-BE-07 | `/api/admin/users` | POST | Duplicate email | 409 |
+| I-BE-08 | `/api/admin/users` | POST | Invalid body (short name) | 400 |
+| I-BE-09 | `/api/admin/users` | POST | Birthday in the future | 400 |
+| I-BE-10 | `/api/admin/users/:id` | GET | Existing user | 200 + UserDto |
+| I-BE-11 | `/api/admin/users/:id` | GET | Non-existent user | 404 |
+| I-BE-12 | `/api/admin/users/:id` | PUT | Valid update | 200 + updated UserDto |
+| I-BE-13 | `/api/admin/users/:id` | PUT | Email conflicts with another user | 409 |
+| I-BE-14 | `/api/admin/users/:id` | PUT | Email same as self → OK | 200 |
+| I-BE-15 | `/api/admin/users/:id` | PUT | Attempt to set `points` | 200 + `points` unchanged |
+| I-BE-16 | `/api/admin/users/:id` | DELETE | Delete other user | 200 |
+| I-BE-17 | `/api/admin/users/:id` | DELETE | Delete self | 400 |
+| I-BE-18 | `/api/admin/users/:id` | DELETE | Non-existent user | 404 |
+| I-BE-19 | `/api/admin/users/:id/activity` | GET | Existing user | 200 + `data[]` |
+| I-BE-20 | `/api/admin/users/:id/activity` | GET | Non-existent user | 404 |
+| I-BE-21 | `/api/admin/users/check-email` | GET | Not exists | 200 + `{exists:false}` |
+| I-BE-22 | `/api/admin/users/check-email` | GET | Exists | 200 + `{exists:true}` |
+| I-BE-23 | `/api/admin/users/check-email` | GET | Exists + excludeId = same user | 200 + `{exists:false}` |
+| I-BE-24 | `/api/admin/users/check-email` | GET | Missing email param | 400 |
 
 ---
 
@@ -73,7 +73,7 @@ status: Approved
 | F-LIST-03 | handleDelete gọi deleteUser | mock store | click Delete → click Confirm | `usersStore.deleteUser(id)` được gọi |
 | F-LIST-04 | handleDelete cancel → không xóa | — | click Delete → click Cancel | `usersStore.deleteUser` không được gọi |
 | F-LIST-05 | handleEdit điều hướng đến edit | — | UserTable emit `edit(1)` | `router.push({ name:'UserEdit', params:{id:1} })` |
-| F-LIST-06 | handleFilterChange reset page | — | UserFilters emit `filterChange` | `fetchUsers` gọi với `page=1` |
+| F-LIST-06 | handleFilterChange reset page | — | UserFilters emit `filter-change` | `fetchUsers` gọi với `page=1` |
 | F-LIST-07 | fetchUsers gọi onMounted | mock store | render | `fetchUsers` được gọi 1 lần |
 
 #### UserCreatePage (`UserCreatePage.test.ts`)
@@ -111,10 +111,10 @@ status: Approved
 
 | # | Test Name | Setup | Action | Assert |
 |---|-----------|-------|--------|--------|
-| F-FILTER-01 | Emit filterChange khi type search | — | type vào search input | emit `filterChange` với search |
+| F-FILTER-01 | Emit filter-change khi type search | — | type vào search input | emit `filter-change` với search |
 | F-FILTER-02 | Search debounced (300ms) | fake timers | type nhanh | emit chỉ 1 lần sau 300ms |
-| F-FILTER-03 | Emit filterChange khi chọn role | — | chọn `admin` từ dropdown | emit với `role='admin'` |
-| F-FILTER-04 | Clear Filters reset tất cả | filters đang có giá trị | click Clear Filters | emit filterChange với empty filters |
+| F-FILTER-03 | Emit filter-change khi chọn role | — | chọn `admin` từ dropdown | emit với `role='admin'` |
+| F-FILTER-04 | Clear Filters reset tất cả | filters đang có giá trị | click Clear Filters | emit filter-change với empty filters |
 
 #### UserForm.vue (`UserForm.test.ts`)
 
@@ -182,12 +182,13 @@ status: Approved
 
 | Mục | Yêu cầu |
 |-----|---------|
-| Server-side pagination | Tất cả queries dùng LIMIT/OFFSET; không load toàn bộ records về client |
-| Indexed columns | `idx_email`, `idx_role`, `idx_status` trên bảng `users`; `idx_audit_target` trên `audit_logs` |
-| sortBy whitelist | Prevent SQL injection; chỉ các indexed/frequently-sorted fields được phép |
+| Server-side pagination | Tất cả queries dùng Prisma `skip`/`take`; không load toàn bộ records về client |
+| Indexed columns | `@@index([role])`, `@@index([status])` trên model `User`; `@@index([targetUserId])` trên `AuditLog` |
+| sortBy whitelist | Prevent arbitrary field injection; chỉ các indexed/frequently-sorted fields được phép |
 | Email check debounce | 500ms debounce trên client để tránh quá nhiều requests |
 | Search debounce | 300ms trên UserFilters component |
 | Lazy load pages | Dynamic import `UserListPage`, `UserCreatePage`, `UserEditPage` qua route-level code splitting |
+| Promise.all | Repository chạy `findMany` + `count` song song |
 
 ---
 
@@ -196,8 +197,8 @@ status: Approved
 | Mục | Biện pháp |
 |-----|-----------|
 | Authentication | JWT Bearer token + admin role xác thực mọi endpoint (bao gồm `check-email`) |
-| Authorization | Admin-only: tất cả endpoint user management kiểm tra `role === 'admin'` |
-| SQL Injection | Dùng parameterized queries (prepared statements) cho mọi dynamic values |
+| Authorization | Admin-only: `requireRole('admin')` guard trên router, kiểm tra `role === 'admin'` |
+| SQL Injection | Prisma parameterized queries — không raw SQL; sortBy whitelist |
 | sortBy injection | Whitelist validation cho `sortBy` param trước khi dùng trong query |
 | Password | Bcrypt hash (không lưu plaintext); không bao giờ expose trong response |
 | Audit trail | Mọi CREATE/UPDATE/DELETE ghi vào `audit_logs` kèm `changed_fields` |

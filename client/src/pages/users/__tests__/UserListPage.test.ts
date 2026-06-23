@@ -5,10 +5,10 @@ import { ref } from 'vue';
 import { createI18n } from 'vue-i18n';
 import PrimeVue from 'primevue/config';
 import UserListPage from '../UserListPage.vue';
-import { useUsersStore } from '@/stores/users.store';
-import type { User, PaginationInfo } from '@/pages/users/composables/useUsers';
+import { useUsersStore } from '@stores/users.store';
+import type { User, PaginationInfo } from '@pages/users/composables/useUsers';
 
-// ---- Mocks / モック ----
+// ---- Mocks ----
 const routerPush = vi.fn();
 
 vi.mock('vue-router', () => ({
@@ -114,14 +114,14 @@ describe('UserListPage', () => {
     vi.clearAllMocks();
   });
 
-  // F-LIST-01: Hiển thị skeleton khi loading
+  // F-LIST-01: Show skeleton when loading
   it('passes loading=true to UserTable when loading', () => {
     const wrapper = createWrapper({ loading: true });
     const table = wrapper.findComponent({ name: 'UserTable' });
     expect(table.props('loading')).toBe(true);
   });
 
-  // F-LIST-02: Hiển thị dữ liệu khi loaded
+  // F-LIST-02: Show data when loaded
   it('renders UserTable with user data when loaded', () => {
     const wrapper = createWrapper({ users: [mockUser] });
     const table = wrapper.findComponent({ name: 'UserTable' });
@@ -129,7 +129,7 @@ describe('UserListPage', () => {
     expect(table.props('users')[0].email).toBe('jane@example.com');
   });
 
-  // F-LIST-03: handleDelete gọi deleteUser
+  // F-LIST-03: handleDelete calls deleteUser
   it('calls deleteUser when UserTable emits delete and confirm accepts', async () => {
     const deleteUser = vi.fn().mockResolvedValue(undefined);
     confirmRequire.mockImplementation(({ accept }) => accept?.());
@@ -148,7 +148,7 @@ describe('UserListPage', () => {
     expect(deleteUser).toHaveBeenCalledWith(1);
   });
 
-  // F-LIST-05: handleEdit điều hướng đến edit
+  // F-LIST-05: handleEdit navigates to edit
   it('navigates to edit page when UserTable emits edit', async () => {
     const wrapper = createWrapper({ users: [mockUser] });
     const table = wrapper.findComponent({ name: 'UserTable' });
@@ -157,7 +157,7 @@ describe('UserListPage', () => {
     expect(routerPush).toHaveBeenCalledWith({ name: 'UserEdit', params: { id: 1 } });
   });
 
-  // F-LIST-06: handleFilterChange reset page
+  // F-LIST-06: handleFilterChange resets page
   it('calls fetchUsers with page=1 on filter change', async () => {
     const fetchUsers = vi.fn();
     const wrapper = createWrapper({ fetchUsers });
@@ -168,7 +168,7 @@ describe('UserListPage', () => {
     expect(fetchUsers).toHaveBeenCalledWith(expect.objectContaining({ page: 1, search: 'jane' }));
   });
 
-  // F-LIST-07: fetchUsers gọi onMounted
+  // F-LIST-07: fetchUsers called on mount
   it('calls fetchUsers on mount', () => {
     const fetchUsers = vi.fn();
     createWrapper({ fetchUsers });

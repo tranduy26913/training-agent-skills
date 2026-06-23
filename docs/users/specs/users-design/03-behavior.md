@@ -47,7 +47,7 @@ date: 2026-05-17
 **handleSubmit(formData: CreateUserDto):**
 1. Gọi `usersStore.createUser(formData)`
 2. Thành công → toast success → `router.push({ name: 'UserList' })`
-3. Lỗi 409 (`EMAIL_EXISTS`) → toast `users.emailInUse`
+3. Lỗi 409 (`ServiceError('Email already exists')`) → toast `users.emailInUse`
 4. Lỗi khác → toast `users.createdError`
 
 > **Note:** Email duplicate check được xử lý hoàn toàn ở client bởi `useEmailValidation` composable trong `UserForm`. Form không truyền `emailError` prop cho parent.
@@ -128,7 +128,7 @@ date: 2026-05-17
 | Trigger | Click Delete button trong UserTable |
 | Header | `users.deleteHeader` |
 | Message | `users.deleteConfirm` |
-| Confirm button | `common.yes` (severity=danger) |
+| Confirm button | `common.yes` (`acceptClass: 'p-button-danger'`) |
 | Cancel button | `common.no` |
 | On confirm | `usersStore.deleteUser(id)` (store sẽ tự reload danh sách) → toast success `users.deletedSuccess` |
 | On cancel | Đóng dialog, không action |
@@ -161,13 +161,13 @@ Admin          Frontend        Backend          Database
   │                │── validate ──►│                │
   │                │  (client)     │                │
   │── Click Save ──►               │                │
-  │                │── POST /api/users              │
+  │                │── POST /api/admin/users         │
   │                │               │── auth check   │
   │                │               │── validate body│
-  │                │               │── check email ─►
+  │                │               │── findByEmail ─►
   │                │               │◄── not exists ─│
-  │                │               │── INSERT users ─►
-  │                │               │── INSERT audit ─►
+  │                │               │── prisma.create│
+  │                │               │── createAudit ─►
   │                │               │◄── 201 ─────── │
   │                │◄── 201 ───────│                │
   │◄── toast OK ───│               │                │
@@ -183,16 +183,16 @@ Admin          Frontend        Backend          Database
   │                │── debounce ───►               │
   │                │  500ms        │                │
   │                │── GET check-email              │
-  │                │               │── SELECT ──────►
+  │                │               │── findByEmail ─►
   │                │               │◄── exists=false│
   │                │◄── {exists:false}              │
   │── Click Save ──►               │                │
-  │                │── PUT /api/users/:id           │
+  │                │── PUT /api/admin/users/:id      │
   │                │               │── auth check   │
   │                │               │── validate     │
   │                │               │── diff fields  │
-  │                │               │── UPDATE ──────►
-  │                │               │── INSERT audit ►
+  │                │               │── prisma.update│
+  │                │               │── createAudit ─►
   │                │               │◄── 200 ────────│
   │                │◄── 200 ───────│                │
   │◄── toast OK ───│               │                │
@@ -207,13 +207,15 @@ Admin          Frontend        Backend          Database
   │── Click Del ───►               │                │
   │                │── show confirm dialog          │
   │── Confirm ─────►               │                │
-  │                │── DELETE /api/users/:id        │
+  │                │── DELETE /api/admin/users/:id  │
   │                │               │── auth check   │
   │                │               │── check not self
-  │                │               │── INSERT audit ─►
-  │                │               │── DELETE ───────►
+  │                │               │── createAudit ─►
+  │                │               │── prisma.delete│
   │                │               │◄── 200 ─────── │
   │                │◄── 200 ───────│                │
   │◄── toast OK ───│               │                │
   │                │── reload list │                │
 ```
+
+> **Note:** Sequence diagrams sử dụng tên method thực tế (Prisma: `create`, `findByEmail`, `update`, `delete`; repository: `createAuditLog`).

@@ -1,14 +1,13 @@
 /**
- * Unit tests for useUsersStore
- * ユーザーズストアのユニットテスト
+ * Unit tests for useUsersStore.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { useUsersStore } from '../users.store';
-import type { PaginatedData } from '@/types/api.types';
-import type { User, AuditLog, CreateUserDto, UpdateUserDto } from '@/types/users.types';
+import type { PaginatedData } from '@apptypes/api.types';
+import type { User, AuditLog, CreateUserDto, UpdateUserDto } from '@apptypes/users.types';
 
-// ---- Composable mock / コンポーザブルモック ----
+// ---- Composable mock ----
 const usersComposableMocks = vi.hoisted(() => ({
   getUsers: vi.fn(),
   getUser: vi.fn(),
@@ -18,11 +17,11 @@ const usersComposableMocks = vi.hoisted(() => ({
   getUserActivity: vi.fn(),
 }));
 
-vi.mock('@/pages/users/composables/useUsers', () => ({
+vi.mock('@pages/users/composables/useUsers', () => ({
   useUsers: () => usersComposableMocks,
 }));
 
-// ---- Fixtures / テストデータ ----
+// ---- Fixtures ----
 const MOCK_USER: User = {
   id: 1,
   name: 'Jane Doe',
@@ -59,7 +58,7 @@ describe('useUsersStore', () => {
     vi.clearAllMocks();
   });
 
-  // F-STORE-01: fetchUsers cập nhật users + pagination
+  // F-STORE-01: fetchUsers updates users + pagination
   it('updates users and pagination after fetchUsers', async () => {
     usersComposableMocks.getUsers.mockResolvedValue(MOCK_PAGINATED);
 
@@ -86,7 +85,7 @@ describe('useUsersStore', () => {
     expect(store.loading).toBe(false);
   });
 
-  // F-STORE-03: createUser gọi composable
+  // F-STORE-03: createUser calls composable
   it('calls createUser composable when creating user', async () => {
     const newUser: CreateUserDto = {
       name: 'New User',
@@ -140,7 +139,7 @@ describe('useUsersStore', () => {
     expect(store.auditLogs).toHaveLength(0);
   });
 
-  // F-STORE-07: fetchUsers set error khi fail
+  // F-STORE-07: fetchUsers set error when fail
   it('sets error when fetchUsers fails', async () => {
     usersComposableMocks.getUsers.mockRejectedValue({ response: { data: { message: 'Network error' } } });
 
@@ -151,7 +150,7 @@ describe('useUsersStore', () => {
     expect(store.loading).toBe(false);
   });
 
-  // F-STORE-08: fetchUser cập nhật currentUser
+  // F-STORE-08: fetchUser updates currentUser
   it('fetches single user into currentUser', async () => {
     usersComposableMocks.getUser.mockResolvedValue(MOCK_USER);
 
@@ -162,7 +161,7 @@ describe('useUsersStore', () => {
     expect(store.loadingUser).toBe(false);
   });
 
-  // F-STORE-09: updateUser gọi composable
+  // F-STORE-09: updateUser calls composable
   it('calls updateUser composable when updating user', async () => {
     const updateData: UpdateUserDto = {
       name: 'Updated Name',
@@ -178,7 +177,7 @@ describe('useUsersStore', () => {
     expect(usersComposableMocks.updateUser).toHaveBeenCalledWith(1, updateData);
   });
 
-  // F-STORE-10: fetchUserActivity cập nhật auditLogs
+  // F-STORE-10: fetchUserActivity updates auditLogs
   it('fetches user activity into auditLogs', async () => {
     usersComposableMocks.getUserActivity.mockResolvedValue([MOCK_AUDIT_LOG]);
 

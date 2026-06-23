@@ -3,33 +3,43 @@ import { shallowRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
-import { useUsersStore } from '@/stores/users.store';
+import { useUsersStore } from '@stores/users.store';
 import UserForm from './components/UserForm.vue';
+import type { UserRole, UserStatus } from '@apptypes/api.types';
 
 const { t } = useI18n();
 const router = useRouter();
 const toast = useToast();
 const usersStore = useUsersStore();
 
-// 送信中フラグ / Submitting loading flag
+// Submitting loading flag.
 const submitting = shallowRef(false);
 
-// フォーム送信ハンドラ / Handle form submission
+// Extract HTTP status from an unknown error, or null.
+function getErrorStatus(err: unknown): number | null {
+  if (err && typeof err === 'object' && 'response' in err) {
+    const response = (err as { response?: { status?: number } }).response;
+    return response?.status ?? null;
+  }
+  return null;
+}
+
+// Handle form submission.
 async function handleSubmit(formData: { name: string; email: string; role: string; status: string; note: string; birthday: string }): Promise<void> {
   submitting.value = true;
   try {
     await usersStore.createUser({
       name: formData.name,
       email: formData.email,
-      role: formData.role as any,
-      status: formData.status as any,
+      role: formData.role as UserRole,
+      status: formData.status as UserStatus,
       note: formData.note || undefined,
       birthday: formData.birthday || undefined,
     });
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('users.createdSuccess'), life: 3000 });
     router.push({ name: 'UserList' });
-  } catch (error: any) {
-    const detail = error.response?.status === 409
+  } catch (err: unknown) {
+    const detail = getErrorStatus(err) === 409
       ? t('users.emailInUse')
       : t('users.createdError');
     toast.add({ severity: 'error', summary: t('common.error'), detail, life: 3000 });
@@ -38,7 +48,7 @@ async function handleSubmit(formData: { name: string; email: string; role: strin
   }
 }
 
-// キャンセルハンドラ / Navigate back to user list
+// Navigate back to the user list.
 function handleCancel(): void {
   router.push({ name: 'UserList' });
 }

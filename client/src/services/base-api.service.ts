@@ -1,11 +1,11 @@
-// ベースAPIクライアント / Base API client with common CRUD operations
+// Base API client with common CRUD operations.
 import apiClient from './api.service';
 import type { AxiosResponse } from 'axios';
-import type { PaginatedData } from '@/types/api.types';
+import type { PaginatedData } from '@apptypes/api.types';
 
 /**
- * ベースAPIクライアントクラス / Base API client class
- * 共通のCRUD操作を提供する / Provides common CRUD operations for any resource
+ * Base API client class.
+ * Provides common CRUD operations for any resource.
  */
 export class BaseApiClient<
   TEntity,
@@ -14,7 +14,7 @@ export class BaseApiClient<
 > {
   constructor(protected readonly basePath: string) {}
 
-  // 一覧取得（ページネーション付き） / Get paginated list
+  // Get paginated list.
   async getList(params?: Record<string, unknown>): Promise<PaginatedData<TEntity>> {
     const query = this.buildQueryString(params);
     const response: AxiosResponse<PaginatedData<TEntity>> = await apiClient.get(
@@ -23,7 +23,7 @@ export class BaseApiClient<
     return response.data;
   }
 
-  // 単一取得 / Get single entity by ID
+  // Get single entity by ID.
   async getById(id: number): Promise<TEntity> {
     const response: AxiosResponse<TEntity> = await apiClient.get(
       `${this.basePath}/${id}`,
@@ -31,7 +31,7 @@ export class BaseApiClient<
     return response.data;
   }
 
-  // 作成 / Create new entity
+  // Create a new entity.
   async create(data: TCreateDto): Promise<TEntity> {
     const response: AxiosResponse<TEntity> = await apiClient.post(
       this.basePath,
@@ -40,7 +40,7 @@ export class BaseApiClient<
     return response.data;
   }
 
-  // 更新 / Update existing entity by ID
+  // Update an existing entity by ID.
   async update(id: number, data: TUpdateDto): Promise<TEntity> {
     const response: AxiosResponse<TEntity> = await apiClient.put(
       `${this.basePath}/${id}`,
@@ -49,12 +49,12 @@ export class BaseApiClient<
     return response.data;
   }
 
-  // 削除 / Delete entity by ID
+  // Delete an entity by ID.
   async delete(id: number): Promise<void> {
     await apiClient.delete(`${this.basePath}/${id}`);
   }
 
-  // クエリ文字列構築 / Build URL query string from params object
+  // Build a URL query string from a params object.
   protected buildQueryString(params?: Record<string, unknown>): string {
     if (!params) return '';
 
