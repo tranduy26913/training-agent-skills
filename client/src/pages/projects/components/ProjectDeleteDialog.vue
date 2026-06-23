@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import Dialog from 'primevue/dialog';
+import Button from 'primevue/button';
 defineProps<{
   visible: boolean;
   projectName: string;
@@ -27,24 +29,27 @@ function handleCancel() {
     :draggable="false"
     :style="{ width: '420px' }"
     @hide="handleCancel"
+    @update:visible="(val) => { if (!val) handleCancel() }"
   >
     <p class="text-surface-700 dark:text-surface-300">
       {{ $t('projects.delete.confirm', { name: projectName }) }}
     </p>
 
     <template #footer>
-      <Button
-        :label="$t('common.no')"
-        icon="pi pi-times"
-        class="p-button-text"
-        @click="handleCancel"
-      />
-      <Button
-        :label="$t('common.yes')"
-        icon="pi pi-trash"
-        severity="danger"
-        @click="handleConfirm"
-      />
+      <div class="flex justify-end gap-2 w-full">
+        <Button
+          :label="$t('common.no')"
+          icon="pi pi-times"
+          severity="danger"
+          @click="handleCancel"
+        />
+        <Button
+          :label="$t('common.yes')"
+          icon="pi pi-trash"
+          severity="danger"
+          @click="handleConfirm"
+        />
+      </div>
     </template>
   </Dialog>
 </template>

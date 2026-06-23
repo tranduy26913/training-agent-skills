@@ -120,6 +120,7 @@ export default {
       pageTitle: 'プロジェクト管理',
       createButton: 'プロジェクト作成',
       empty: 'プロジェクトがまだありません',
+      updatedAt: '更新日',
     },
     form: {
       name: 'プロジェクト名',

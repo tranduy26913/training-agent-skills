@@ -2,6 +2,8 @@
 import { onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useProjectsStore } from '@stores/projects.store';
+import Button from 'primevue/button';
+import Skeleton from 'primevue/skeleton';
 
 const route = useRoute();
 const router = useRouter();
@@ -48,7 +50,7 @@ function formatDate(dateStr: string): string {
     </div>
 
     <h1 class="text-2xl font-bold text-surface-900 dark:text-surface-100 mb-6">
-      {{ $t('projects.detail') }}
+      {{ $t('projects.detail.pageTitle') }}
     </h1>
 
     <!-- Loading -->

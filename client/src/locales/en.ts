@@ -120,6 +120,7 @@ export default {
       pageTitle: 'Projects',
       createButton: 'Create Project',
       empty: 'No projects yet',
+      updatedAt: 'Updated',
     },
     form: {
       name: 'Project Name',

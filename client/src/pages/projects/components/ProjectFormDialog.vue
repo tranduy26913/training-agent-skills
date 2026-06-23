@@ -3,6 +3,10 @@ import { ref, watch } from 'vue';
 import { useForm } from 'vee-validate';
 import { toTypedSchema } from '@vee-validate/zod';
 import { z } from 'zod';
+import Dialog from 'primevue/dialog';
+import InputText from 'primevue/inputtext';
+import Textarea from 'primevue/textarea';
+import Button from 'primevue/button';
 import type { Project, CreateProjectDto, UpdateProjectDto } from '@apptypes/projects.types';
 
 const props = defineProps<{
@@ -105,6 +109,7 @@ function handleOverlayClose() {
     :draggable="false"
     :style="{ width: '520px' }"
     @hide="handleOverlayClose"
+    @update:visible="(val) => { if (!val) handleOverlayClose() }"
   >
     <div class="flex flex-col gap-4">
       <!-- Name -->
@@ -171,19 +176,21 @@ function handleOverlayClose() {
     </div>
 
     <template #footer>
-      <Button
-        :label="$t('common.cancel')"
-        icon="pi pi-times"
-        class="p-button-text"
-        @click="handleCancel"
-      />
-      <Button
-        :label="$t('common.save')"
-        icon="pi pi-check"
-        :loading="loading"
-        :disabled="loading"
-        @click="onSave"
-      />
+      <div class="flex justify-end gap-2 w-full">
+        <Button
+          :label="$t('common.cancel')"
+          icon="pi pi-times"
+          class="p-button-text"
+          @click="handleCancel"
+        />
+        <Button
+          :label="$t('common.save')"
+          icon="pi pi-check"
+          :loading="loading"
+          :disabled="loading"
+          @click="onSave"
+        />
+      </div>
     </template>
   </Dialog>
 </template>

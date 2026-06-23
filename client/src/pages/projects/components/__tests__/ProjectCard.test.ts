@@ -13,7 +13,12 @@ const i18n = createI18n({
   locale: 'en',
   missingWarn: false,
   fallbackWarn: false,
-  messages: { en: { common: { edit: 'Edit', delete: 'Delete' }, projects: { form: { updatedAt: 'Last Updated' } } } },
+  messages: {
+    en: {
+      common: { edit: 'Edit', delete: 'Delete' },
+      projects: { list: { updatedAt: 'Updated' }, form: { updatedAt: 'Last Updated' } },
+    },
+  },
 });
 
 const mockProject: Project = {
@@ -38,13 +43,9 @@ function createWrapper(projectOverrides: Partial<Project> = {}) {
     },
     global: {
       plugins: [i18n, PrimeVue],
-      directives: {
-        tooltip: () => undefined,
-      },
       stubs: {
-        Button: {
-          template: '<button :class="`pi ${icon}`" @click="$emit(\'click\', $event)"><slot /></button>',
-          props: ['icon', 'label'],
+        OverlayPanel: {
+          template: '<div><slot /></div>',
         },
       },
     },
@@ -90,20 +91,22 @@ describe('ProjectCard', () => {
     expect(wrapper.emitted('click')![0]).toEqual([1]);
   });
 
-  // F-CARD-07: Emits edit when edit button clicked
-  it('emits edit with project id on edit click', async () => {
+  // F-CARD-07: Emits edit when edit action clicked in menu
+  it('emits edit with project id on edit action click', async () => {
     const wrapper = createWrapper();
-    const editBtn = wrapper.find('.pi-pencil');
-    await editBtn.trigger('click');
+    const editBtn = wrapper.findAll('button').find((b) => b.text().includes('Edit'));
+    expect(editBtn).toBeTruthy();
+    await editBtn!.trigger('click');
     expect(wrapper.emitted('edit')).toBeTruthy();
     expect(wrapper.emitted('edit')![0]).toEqual([1]);
   });
 
-  // F-CARD-08: Emits delete when delete button clicked
-  it('emits delete with project id on delete click', async () => {
+  // F-CARD-08: Emits delete when delete action clicked in menu
+  it('emits delete with project id on delete action click', async () => {
     const wrapper = createWrapper();
-    const deleteBtn = wrapper.find('.pi-trash');
-    await deleteBtn.trigger('click');
+    const deleteBtn = wrapper.findAll('button').find((b) => b.text().includes('Delete'));
+    expect(deleteBtn).toBeTruthy();
+    await deleteBtn!.trigger('click');
     expect(wrapper.emitted('delete')).toBeTruthy();
     expect(wrapper.emitted('delete')![0]).toEqual([1]);
   });

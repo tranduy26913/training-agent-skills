@@ -120,6 +120,7 @@ export default {
       pageTitle: 'Quản lý Project',
       createButton: 'Tạo Project',
       empty: 'Chưa có Project nào',
+      updatedAt: 'Cập nhật',
     },
     form: {
       name: 'Tên Project',

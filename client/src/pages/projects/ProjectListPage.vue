@@ -2,6 +2,8 @@
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useProjectsStore } from '@stores/projects.store';
+import Button from 'primevue/button';
+import Skeleton from 'primevue/skeleton';
 import ProjectCard from './components/ProjectCard.vue';
 import ProjectFormDialog from './components/ProjectFormDialog.vue';
 import ProjectDeleteDialog from './components/ProjectDeleteDialog.vue';
@@ -100,12 +102,12 @@ function handleDeleteCancelled() {
     <!-- Loading State -->
     <div
       v-if="store.loading"
-      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
     >
       <div
-        v-for="i in 3"
+        v-for="i in 4"
         :key="i"
-        class="bg-surface-0 dark:bg-surface-800 rounded-lg shadow-sm border border-surface-200 dark:border-surface-700 p-4"
+        class="bg-surface-50 dark:bg-surface-700 rounded-lg shadow-sm border border-surface-200 dark:border-surface-600 p-4"
       >
         <Skeleton class="mb-3" height="20px" width="60%" />
         <Skeleton class="mb-2" height="14px" width="80%" />
@@ -131,7 +133,7 @@ function handleDeleteCancelled() {
     <!-- Card Grid -->
     <div
       v-else
-      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
     >
       <ProjectCard
         v-for="project in store.projects"
