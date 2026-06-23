@@ -1,0 +1,22 @@
+// Project AI Content Generation management.
+// Soft delete via isDeleted flag; hidden fields (headline, caption, subtext)
+// reserved for future use.
+model Project {
+  id            Int      @id @default(autoincrement()) @db.UnsignedInt
+  name          String   @db.VarChar(200)
+  description   String?  @db.Text
+  projectPrompt String?  @map("project_prompt") @db.Text
+  headline      String?  @db.Text
+  caption       String?  @db.Text
+  subtext       String?  @db.Text
+  ownerId       Int      @map("owner_id") @db.UnsignedInt
+  isDeleted     Boolean  @default(false) @map("is_deleted")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+
+  @@index([ownerId])
+  @@index([isDeleted])
+  @@map("projects")
+}

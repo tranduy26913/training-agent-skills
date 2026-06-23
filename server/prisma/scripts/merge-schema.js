@@ -29,6 +29,7 @@ const files = [
   'audit_log.prisma',
   'role.prisma',
   'setting.prisma',
+  'project.prisma',
 ];
 
 const models = files
