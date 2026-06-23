@@ -32,6 +32,7 @@ export default {
     overview: '概要',
     users: 'ユーザー',
     vocabularies: '語彙',
+    projects: 'プロジェクト',
     settings: '設定',
   },
   topbar: {

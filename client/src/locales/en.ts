@@ -32,6 +32,7 @@ export default {
     overview: 'Overview',
     users: 'Users',
     vocabularies: 'Vocabularies',
+    projects: 'Projects',
     settings: 'Settings',
   },
   topbar: {

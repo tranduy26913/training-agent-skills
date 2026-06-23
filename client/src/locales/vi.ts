@@ -32,6 +32,7 @@ export default {
     overview: 'Tổng quan',
     users: 'Người dùng',
     vocabularies: 'Từ vựng',
+    projects: 'Quản lý Project',
     settings: 'Cài đặt',
   },
   topbar: {
