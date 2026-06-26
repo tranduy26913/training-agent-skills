@@ -1,26 +1,4 @@
 -- CreateTable
-CREATE TABLE `users` (
-    `id` INTEGER UNSIGNED NOT NULL AUTO_INCREMENT,
-    `name` VARCHAR(100) NOT NULL,
-    `email` VARCHAR(255) NOT NULL,
-    `password` VARCHAR(255) NOT NULL,
-    `role` VARCHAR(20) NOT NULL DEFAULT 'user',
-    `status` VARCHAR(20) NOT NULL DEFAULT 'active',
-    `avatar` VARCHAR(500) NULL,
-    `last_login_at` DATETIME(3) NULL,
-    `points` INTEGER NOT NULL DEFAULT 0,
-    `note` VARCHAR(500) NULL,
-    `birthday` DATE NULL,
-    `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-    `updated_at` DATETIME(3) NOT NULL,
-
-    UNIQUE INDEX `users_email_key`(`email`),
-    INDEX `users_role_idx`(`role`),
-    INDEX `users_status_idx`(`status`),
-    PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- CreateTable
 CREATE TABLE `audit_logs` (
     `id` INTEGER UNSIGNED NOT NULL AUTO_INCREMENT,
     `admin_id` INTEGER UNSIGNED NOT NULL,
@@ -30,6 +8,25 @@ CREATE TABLE `audit_logs` (
     `timestamp` DATETIME(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
     INDEX `audit_logs_target_user_id_idx`(`target_user_id`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `projects` (
+    `id` INTEGER UNSIGNED NOT NULL AUTO_INCREMENT,
+    `name` VARCHAR(200) NOT NULL,
+    `description` TEXT NULL,
+    `project_prompt` TEXT NULL,
+    `headline` TEXT NULL,
+    `caption` TEXT NULL,
+    `subtext` TEXT NULL,
+    `owner_id` INTEGER UNSIGNED NOT NULL,
+    `is_deleted` BOOLEAN NOT NULL DEFAULT false,
+    `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updated_at` DATETIME(3) NOT NULL,
+
+    INDEX `projects_owner_id_idx`(`owner_id`),
+    INDEX `projects_is_deleted_idx`(`is_deleted`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -59,21 +56,24 @@ CREATE TABLE `settings` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `projects` (
+CREATE TABLE `users` (
     `id` INTEGER UNSIGNED NOT NULL AUTO_INCREMENT,
-    `name` VARCHAR(200) NOT NULL,
-    `description` TEXT NULL,
-    `project_prompt` TEXT NULL,
-    `headline` TEXT NULL,
-    `caption` TEXT NULL,
-    `subtext` TEXT NULL,
-    `owner_id` INTEGER UNSIGNED NOT NULL,
-    `is_deleted` BOOLEAN NOT NULL DEFAULT false,
+    `name` VARCHAR(100) NOT NULL,
+    `email` VARCHAR(255) NOT NULL,
+    `password` VARCHAR(255) NOT NULL,
+    `role` VARCHAR(20) NOT NULL DEFAULT 'user',
+    `status` VARCHAR(20) NOT NULL DEFAULT 'active',
+    `avatar` VARCHAR(500) NULL,
+    `last_login_at` DATETIME(3) NULL,
+    `points` INTEGER NOT NULL DEFAULT 0,
+    `note` VARCHAR(500) NULL,
+    `birthday` DATE NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,
 
-    INDEX `projects_owner_id_idx`(`owner_id`),
-    INDEX `projects_is_deleted_idx`(`is_deleted`),
+    UNIQUE INDEX `users_email_key`(`email`),
+    INDEX `users_role_idx`(`role`),
+    INDEX `users_status_idx`(`status`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 

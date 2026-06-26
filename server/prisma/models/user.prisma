@@ -23,6 +23,10 @@ model User {
   // Projects owned by this user
   projects Project[]
 
+  // [NEW - CR-SCRIPT-001] Scripts owned by this user (1-N).
+  // このユーザーが所有するスクリプト（1対多）。
+  scripts Script[]
+
   @@index([role])
   @@index([status])
   @@map("users")

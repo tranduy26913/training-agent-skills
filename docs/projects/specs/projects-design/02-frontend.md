@@ -1,8 +1,8 @@
 ---
 title: Project Management - Frontend
-version: 1.0
+version: 1.01
 author: Admin Team
-date: 2026-06-23
+date: 2026-06-25
 ---
 
 # Project Management — Frontend
@@ -22,7 +22,8 @@ client/src/
 │   ├── components/
 │   │   ├── ProjectCard.vue              # Card component cho mỗi Project
 │   │   ├── ProjectFormDialog.vue        # Modal Dialog cho Create/Edit
-│   │   └── ProjectDeleteDialog.vue      # Confirm Dialog cho Delete
+│   │   ├── ProjectDeleteDialog.vue      # Confirm Dialog cho Delete
+│   │   └── ProjectScriptCard.vue        # [NEW - CR-SCRIPT-001] Card Script trên Project Detail
 │   └── composables/
 │       └── useProjects.ts               # API call wrappers
 ├── stores/
@@ -134,6 +135,10 @@ export const projectRoutes: RouteRecordRaw[] = [
 | 12 | createdAtValue | Label | string | — | — | — | — | DD/MM/YYYY HH:mm | — |
 | 13 | updatedAtLabel | Label | — | — | — | — | `projects.form.updatedAt` | "Cập nhật lần cuối" | Bold label |
 | 14 | updatedAtValue | Label | string | — | — | — | — | DD/MM/YYYY HH:mm | — |
+| **—** | **ProjectScriptCard** | | | | | | | **Component** | [NEW - CR-SCRIPT-001] |
+| 15 | scriptCardTitle | Label | — | — | — | — | `scripts.card.title` | "Kịch bản" | Bold label |
+| 16 | scriptCount | Label | number | — | — | — | — | Số lượng kịch bản (VD: "5 kịch bản") | Lấy từ scriptsStore |
+| 17 | scriptCardClick | Button | — | — | — | — | `scripts.card.viewAll` | "Xem tất cả" | Click → ScriptListPage. Xem `docs/scripts/specs/scripts-design/02-frontend.md` |
 
 ### 3.3 ProjectFormDialog (Modal)
 

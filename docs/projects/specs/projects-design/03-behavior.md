@@ -1,8 +1,8 @@
 ---
 title: Project Management - Behavior
-version: 1.0
+version: 1.01
 author: Admin Team
-date: 2026-06-23
+date: 2026-06-25
 ---
 
 # Project Management — Behavior
@@ -57,6 +57,10 @@ date: 2026-06-23
 
 #### handleBackClick()
 1. `router.push({ name: 'ProjectList' })`
+
+#### handleScriptCardClick(projectId: number) — [NEW - CR-SCRIPT-001]
+1. Điều hướng đến ScriptListPage: `router.push({ name: 'ScriptList', params: { projectId } })`
+2. Xem chi tiết: `docs/scripts/specs/scripts-design/03-behavior.md`
 
 ---
 

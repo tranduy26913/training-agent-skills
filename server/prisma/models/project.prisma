@@ -16,6 +16,10 @@ model Project {
 
   owner User @relation(fields: [ownerId], references: [id], onDelete: Restrict)
 
+  // [NEW - CR-SCRIPT-001] Scripts belonging to this project (1-N).
+  // このプロジェクトに属するスクリプト（1対多）。
+  scripts Script[]
+
   @@index([ownerId])
   @@index([isDeleted])
   @@map("projects")

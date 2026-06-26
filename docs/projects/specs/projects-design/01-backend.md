@@ -1,8 +1,8 @@
 ---
 title: Project Management - Backend
-version: 1.0
+version: 1.01
 author: Admin Team
-date: 2026-06-23
+date: 2026-06-25
 ---
 
 # Project Management — Backend
@@ -28,6 +28,7 @@ date: 2026-06-23
 | `subtext` | `String?` | TEXT, nullable — hidden field, dự trữ tương lai |
 | `ownerId` | `Int` (column `owner_id`) | FK → `User.id`, NOT NULL |
 | `owner` | `User @relation(fields: [ownerId], references: [id], onDelete: Restrict)` | Không cho xoá User đang sở hữu Project |
+| `scripts` | `Script[]` | [NEW - CR-SCRIPT-001] Relation 1-N: Project có nhiều Scripts. Xem `docs/scripts/specs/scripts-design/01-backend.md` |
 | `isDeleted` | `Boolean @default(false)` (column `is_deleted`) | Soft delete flag |
 | `createdAt` | `DateTime @default(now())` (column `created_at`) | |
 | `updatedAt` | `DateTime @updatedAt` (column `updated_at`) | auto-updated |

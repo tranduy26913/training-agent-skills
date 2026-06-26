@@ -1,8 +1,8 @@
 ---
 title: Project Management - Quality & Operations
-version: 1.0
+version: 1.01
 author: Admin Team
-date: 2026-06-23
+date: 2026-06-25
 ---
 
 # Project Management — Quality & Operations

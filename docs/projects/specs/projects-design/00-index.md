@@ -1,8 +1,8 @@
 ---
 title: Project Management - Index
-version: 1.0
+version: 1.01
 author: Admin Team
-date: 2026-06-23
+date: 2026-06-25
 ---
 
 # Project Management — Index
@@ -22,6 +22,7 @@ Tính năng quản lý Project cho phép admin tạo và quản lý các Project
 | Version | Date | Author | Summary |
 |---------|------|--------|---------|
 | 1.0 | 2026-06-23 | Admin Team | Initial design |
+| 1.01 | 2026-06-25 | Admin Team | [UPDATE - CR-SCRIPT-001] Thêm relation 1-N Project→Script, thêm Card Script trên ProjectDetailPage. Xem chi tiết: `docs/scripts/specs/scripts-design/` |
 
 ---
 
@@ -44,7 +45,7 @@ Cung cấp giao diện quản lý Project cho admin, cho phép CRUD các Project
 ### Out of Scope
 
 - Filter và phân trang danh sách Project
-- Tính năng AI generation gắn với Project
+- ~~Tính năng AI generation gắn với Project~~ [UPDATE - CR-SCRIPT-001] Đã thêm Script Management — xem `docs/scripts/specs/scripts-design/`
 - Quản lý member trong Project
 - Import/export Project
 - Các trường ẩn (headline, caption, subtext) — chỉ tạo trong DB, chưa có UI
@@ -83,6 +84,7 @@ Cung cấp giao diện quản lý Project cho admin, cho phép CRUD các Project
 | Table | Purpose |
 |-------|---------|
 | `projects` | Lưu thông tin Project AI Content Generation; soft delete qua flag `is_deleted` |
+| `scripts` | [NEW - CR-SCRIPT-001] Kịch bản thuộc Project (1-N); xem `docs/scripts/specs/scripts-design/01-backend.md` |
 
 Schema khai báo bằng **Prisma** tại `server/prisma/schema.prisma` (xem chi tiết tại [01-backend.md → Section 1.1](./01-backend.md)). Server-side sử dụng Prisma Client để truy cập DB; client-side gọi API qua `projectsApiService` (`client/src/services/projects.service.ts`).
 
