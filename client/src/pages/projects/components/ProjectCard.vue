@@ -59,11 +59,11 @@ function toggleMenu(event: MouseEvent) {
 
 <template>
   <div
-    class="bg-surface-50 dark:bg-surface-700 rounded-lg shadow-sm border border-surface-200 dark:border-surface-600 hover:shadow-md hover:bg-surface-100 dark:hover:bg-surface-600 hover:border-surface-200 dark:hover:border-surface-600 hover:scale-[1.01] transition-all duration-200 cursor-pointer flex flex-col overflow-hidden"
+    class="surface-card group flex min-h-56 cursor-pointer flex-col overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:border-primary-200 hover:shadow-xl hover:shadow-primary-500/10 dark:hover:border-primary-900"
     @click="handleCardClick"
   >
     <!-- Top accent bar (random color) -->
-    <div class="h-1" :style="{ backgroundColor: accent.bar }"></div>
+    <div class="h-1.5" :style="{ backgroundColor: accent.bar }"></div>
 
     <!-- Header: Icon + Name -->
     <div class="p-4 pb-2 flex items-start gap-3">

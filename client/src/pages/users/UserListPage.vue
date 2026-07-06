@@ -70,9 +70,12 @@ function handleDelete(id: number): void {
 </script>
 
 <template>
-  <div>
-    <div class="flex justify-between items-center mb-4">
-      <h2 data-testid="users-list-heading" class="text-2xl font-semibold text-surface-800 dark:text-surface-100">{{ t('users.title') }}</h2>
+  <div class="page-stack">
+    <div class="page-header">
+      <div>
+        <h2 data-testid="users-list-heading" class="page-title">{{ t('users.title') }}</h2>
+        <p class="page-subtitle">{{ t('dashboard.overview') }}</p>
+      </div>
       <Button
         :label="t('users.createUser')"
         icon="pi pi-plus"
@@ -80,7 +83,9 @@ function handleDelete(id: number): void {
       />
     </div>
 
-    <UserFilters @filter-change="handleFilterChange" />
+    <div class="surface-card p-4 sm:p-5">
+      <UserFilters @filter-change="handleFilterChange" />
+    </div>
 
     <UserTable
       :users="usersStore.users"

@@ -56,11 +56,11 @@ function handlePasswordChanged(): void {
 </script>
 
 <template>
-  <div class="max-w-2xl mx-auto">
+  <div class="page-stack mx-auto max-w-3xl">
     <!-- Page header -->
-    <div class="flex items-center justify-between mb-6">
+    <div class="page-header">
       <h2
-        class="text-2xl font-semibold text-surface-800 dark:text-surface-100"
+        class="page-title"
         data-testid="profile-heading"
       >
         {{ t('profile.editProfile') }}

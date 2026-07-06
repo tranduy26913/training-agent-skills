@@ -1,4 +1,16 @@
 import axios from 'axios';
+import type { InternalAxiosRequestConfig } from 'axios';
+import { useUiStore } from '@stores/ui.store';
+
+type TrackedRequestConfig = InternalAxiosRequestConfig & {
+  _globalLoading?: boolean;
+};
+
+function finishLoading(config?: TrackedRequestConfig): void {
+  if (!config?._globalLoading) return;
+  config._globalLoading = false;
+  useUiStore().stopLoading();
+}
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api/v1',
@@ -8,6 +20,9 @@ const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use((config) => {
+  useUiStore().startLoading();
+  (config as TrackedRequestConfig)._globalLoading = true;
+
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -16,8 +31,12 @@ apiClient.interceptors.request.use((config) => {
 });
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    finishLoading(response.config as TrackedRequestConfig);
+    return response;
+  },
   (error) => {
+    finishLoading(error.config as TrackedRequestConfig | undefined);
     if (error.response?.status === 401) {
       // Do not redirect when the auth endpoint itself returns 401 (wrong credentials).
       // Only redirect when a protected endpoint returns 401 (expired/missing token).

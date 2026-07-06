@@ -4,13 +4,112 @@
 
 :root {
   font-family: Inter, "Inter Fallback", system-ui, sans-serif;
-  /* font-family: 'Noto Sans', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; */
+  color-scheme: light;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
   overflow-x: hidden;
+  background: var(--p-surface-50);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.dark body {
+  background: var(--p-surface-950);
+}
+
+button,
+a,
+input,
+textarea,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  color: white;
+  background: var(--p-primary-500);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--p-surface-400) 70%, transparent);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.app-shell {
+  background-image:
+    radial-gradient(circle at 78% 4%, color-mix(in srgb, var(--p-primary-200) 26%, transparent) 0, transparent 25rem),
+    radial-gradient(circle at 15% 92%, color-mix(in srgb, var(--p-primary-100) 20%, transparent) 0, transparent 22rem);
+  background-attachment: fixed;
+}
+
+.dark .app-shell {
+  background-image:
+    radial-gradient(circle at 78% 4%, color-mix(in srgb, var(--p-primary-900) 20%, transparent) 0, transparent 28rem),
+    radial-gradient(circle at 15% 92%, color-mix(in srgb, var(--p-primary-950) 35%, transparent) 0, transparent 24rem);
+}
+
+@layer components {
+  .icon-button {
+    @apply inline-grid h-10 w-10 shrink-0 place-items-center rounded-xl text-surface-500 transition-all duration-200 hover:bg-surface-100 hover:text-surface-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 dark:text-surface-400 dark:hover:bg-surface-800 dark:hover:text-surface-50;
+  }
+
+  .page-stack {
+    @apply space-y-6;
+  }
+
+  .page-header {
+    @apply flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between;
+  }
+
+  .page-title {
+    @apply text-2xl font-extrabold tracking-tight text-surface-950 dark:text-surface-50 sm:text-3xl;
+  }
+
+  .page-subtitle {
+    @apply mt-1 text-sm leading-6 text-surface-500 dark:text-surface-400;
+  }
+
+  .surface-card {
+    @apply rounded-2xl border border-surface-200/80 bg-surface-0/90 shadow-sm shadow-surface-900/5 backdrop-blur-sm dark:border-surface-800 dark:bg-surface-900/85 dark:shadow-black/20;
+  }
+
+  .loading-indicator {
+    @apply flex min-w-40 flex-col items-center gap-3 rounded-2xl border border-surface-200/80 bg-surface-0/95 px-8 py-6 shadow-2xl shadow-surface-900/10 dark:border-surface-700 dark:bg-surface-900/95 dark:shadow-black/40;
+  }
+}
+
+.loading-fade-enter-active,
+.loading-fade-leave-active {
+  transition: opacity 180ms ease;
+}
+
+.loading-fade-enter-from,
+.loading-fade-leave-to {
+  opacity: 0;
 }
 
 /* ===========================================================
@@ -20,17 +119,19 @@ body {
 
 /* DataTable — elevated card appearance */
 .p-datatable {
-  border-radius: 0.75rem;
+  border: 1px solid var(--p-surface-200);
+  border-radius: 1rem;
   overflow: hidden;
   box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.06), 0 4px 16px -2px rgba(0, 0, 0, 0.07);
 }
 .dark .p-datatable {
+  border-color: var(--p-surface-800);
   box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.35), 0 4px 16px -2px rgba(0, 0, 0, 0.4);
 }
 
 /* Panel — card elevation */
 .p-panel {
-  border-radius: 0.75rem;
+  border-radius: 1rem;
   overflow: hidden;
   box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.06), 0 4px 16px -2px rgba(0, 0, 0, 0.07);
 }
@@ -50,6 +151,7 @@ body {
 
 /* Button — micro-interaction lift on hover */
 .p-button:not(.p-button-link):not(.p-button-text):not(:disabled) {
+  border-radius: 0.75rem;
   transition: box-shadow 0.15s ease, transform 0.1s ease;
 }
 .p-button:not(.p-button-link):not(.p-button-text):not(:disabled):hover {
@@ -66,6 +168,7 @@ body {
 .p-textarea,
 .p-inputnumber-input,
 .p-password-input {
+  border-radius: 0.75rem;
   transition: box-shadow 0.15s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
@@ -112,11 +215,11 @@ nav .router-link-active {
 nav .router-link-active::before {
   content: '';
   position: absolute;
-  left: 0;
+  left: -0.75rem;
   top: 50%;
   transform: translateY(-50%);
-  height: 60%;
-  width: 3px;
+  height: 55%;
+  width: 4px;
   background: var(--p-primary-500);
   border-radius: 0 3px 3px 0;
 }

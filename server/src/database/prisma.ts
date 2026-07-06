@@ -14,7 +14,7 @@ const adapter = new PrismaMariaDb({
   port: 3306,
   user: "root",
   password: process.env.DB_PASSWORD,
-  database: "app_db",
+  database: "app_db_test",
 });
 // Reuse the client in dev (ts-node-dev / nodemon hot-reload) to prevent
 // multiple connection pools from leaking across reloads.

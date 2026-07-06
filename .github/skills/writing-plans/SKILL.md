@@ -1,99 +1,289 @@
---- 
+---
 name: writing-plans
-description: Use when you have a spec or requirements for a multi-step task, before touching code 
---- 
+description: Create decision-complete, task-based coding plans from approved specifications, requirements, change requests, or repository context before implementation. Use when the user asks for an implementation plan, coding plan, task plan, phased delivery plan, or wants an approved design translated into executable engineering tasks.
+---
 
-# Writing Plans 
-## Overview
+# Writing Plans
 
-Write execution-ready plans for the `executing-plans` skill. Audience: skilled developers with no context on our codebase or problem domain. DRY. YAGNI. TDD. Frequent commits.
+## Purpose
 
-## Scope Check
+Create one execution-ready plan for the `executing-plans` skill. Write for a skilled developer or agent who has no prior context about the feature or repository.
 
-If the spec covers multiple independent subsystems, split into separate plans — one per subsystem. Each plan must produce working, testable software on its own.
+Produce a decision-complete plan: the executor may discover implementation details, but must not need to choose product behavior, public contracts, data ownership, failure handling, test scope, or rollout strategy.
 
-## Phase Structure
+Do not implement code while writing the plan.
 
-Organize tasks into **Phases**. Phases are sequential — each phase starts only after the previous phase completes. Tasks within a phase are also executed sequentially.
+## Non-Negotiable Output Rules
 
-Rules:
-- Group related tasks that logically belong together into the same phase.
-- Start a new phase only when tasks depend on output from the previous phase.
-- If the plan has only one phase, use a single `## Phase 1 — [Name]` heading with tasks nested under it.
-- Separate phases into 4 files, Do not create any other files besides the 4 below: 
-`YYYY-MM-DD-<topic>-01-migration.md`: DB schema + migration tasks. Short descriptions
-`YYYY-MM-DD-<topic>-02-backend.md`: Backend API tasks + Test tasks related to backend + Build success/test verification
-`YYYY-MM-DD-<topic>-03-frontend.md`: Frontend store + UI tasks + Test tasks related to frontend, Build success/test verification
-`YYYY-MM-DD-<topic>-04-review.md`: review tests + review code
+- Use numbered tasks as the mandatory execution unit.
+- Save one consolidated plan file per independently deliverable feature. Never force migration, backend, frontend, and review into four separate files.
+- Use phases only to group dependency boundaries inside the same plan file.
+- Include explicit dependencies, source references, implementation checklists, and verifiable completion criteria in every task.
+- Place dedicated review and test tasks after all implementation tasks. Run review first, then backend tests, then frontend tests, then final verification; omit only inapplicable layers.
+- Do not require a commit after each task unless the user explicitly requests a commit strategy.
+- Do not include implementation code blocks. Describe interfaces, behavior, data flow, and verification precisely enough to implement.
+- Use the user's language for prose. Preserve technical identifiers, commands, paths, and spec headings exactly.
 
-## File Structure
+## Evidence-First Workflow
 
-Before defining tasks, map out which files will be created or modified and what each one is responsible for. This is where decomposition decisions get locked in.
+Follow these steps in order.
 
-- Design units with clear boundaries and well-defined interfaces. Each file should have one clear responsibility.
-- You reason best about code you can hold in context at once, and your edits are more reliable when files are focused. Prefer smaller, focused files over large ones that do too much.
-- Files that change together should live together. Split by responsibility, not by technical layer.
-- In existing codebases, follow established patterns. If the codebase uses large files, don't unilaterally restructure - but if a file you're modifying has grown unwieldy, including a split in the plan is reasonable.
+### 1. Establish the planning source
 
-This structure informs the task decomposition. Each task should produce self-contained changes that make sense independently.
+Read every user-specified requirement, approved design, change request, ADR, issue, and relevant spec file completely. When a spec package exists, inspect its index and every concern file needed by the feature.
 
-## Keep Plans SHORT
-- 5-10 clear tasks max
-- Only actionable items
-- Keep the task description section in spec. No code in the task body.
+Treat approved product decisions as authoritative. Do not treat an old plan as authoritative when current specs or repository state disagree with it.
 
-## Reference the Design Spec in Every Task
-> **Every implementation task must trace directly to its spec source. Never implement from memory or assumption.**
-- Implement per `01-backend.md` — SV-002"
-- Build `[ListPage]` per `02-frontend.md` — Section 3.1
-- Write unit tests per `04-quality.md` — [CreatePage] Unit Tests table
-- Handle form validation per rules in `01-backend.md` — Section 3. Validation Rules
+### 2. Ground the plan in the repository
 
-> **Rule:** Each task must include a `**Spec Reference:**` field linking to the exact spec file and section. An executor who has never seen the feature must be able to open the spec and know exactly what to build.
+Before asking questions or defining tasks, inspect the actual environment:
 
-## Tests are embedded in tasks, not deferred
-- Tests live in the same task as the code they test.
+- Locate manifests, build scripts, framework versions, schemas, migrations, entrypoints, routes, services, stores, components, and tests relevant to the request.
+- Read existing implementation patterns before proposing new files or abstractions.
+- Run non-mutating checks when useful to establish the baseline.
+- Verify every path, symbol, command, and test script named in the plan.
 
-##  No Placeholders or Vague Language
-- No `[TODO]`, `TBD`, vague paths (`path/to/file.ts`), or steps with no verifiable outcome. Every command must have an expected result.
-> **Rule:** If a step requires the executor to ask a question before acting, it must be rewritten.
+Do not ask the user for facts discoverable from the repository.
 
-## Plan Document Header
-**Every plan MUST start with this header:**
+### 3. Separate evidence categories
 
-````markdown
-# [Feature Name] Implementation Plan
+Classify findings before decomposing work:
+
+- **Specification requirement:** behavior explicitly required by a spec or approved requirement.
+- **Repository fact:** current implementation, convention, dependency, or limitation discovered in code.
+- **Repository prerequisite:** broken or missing foundation that must be repaired before the feature can be implemented or verified.
+- **Decision / Deviation:** an approved choice outside the spec or a deliberate departure from it.
+
+Never silently convert a repository fact into a product requirement. Never silently choose between conflicting sources.
+
+### 4. Resolve only material ambiguity
+
+Ask the user only when an unresolved choice materially changes scope, public contracts, stored data, security, compatibility, or user-visible behavior.
+
+If the spec and code conflict:
+
+1. Describe the conflict with exact references.
+2. Determine whether an approved decision already resolves it.
+3. Ask for a decision if no authoritative resolution exists.
+4. Record the resolution under `Decision / Deviation` in affected tasks.
+
+Do not emit a final plan while a high-impact decision remains open.
+
+### 5. Lock the implementation contract
+
+Before creating tasks, state the following when applicable:
+
+- Goal and measurable completion criteria.
+- Audience and authorization boundary.
+- Public APIs, request/response types, events, routes, schemas, and configuration changes.
+- Data ownership, validation, status transitions, and error behavior.
+- Compatibility, migration, rollout, and observability expectations.
+- Explicit assumptions and out-of-scope items.
+
+### 6. Build the dependency flow
+
+Derive a dependency graph before numbering tasks. A later task may consume output only from earlier tasks or explicitly named prerequisites.
+
+Use the following decomposition order as a heuristic, not a required checklist:
+
+1. Repository or tooling prerequisites.
+2. Domain contracts and validation.
+3. Persistence and repositories.
+4. Business services and transactions.
+5. External integrations.
+6. HTTP or other public interfaces.
+7. Frontend data layer.
+8. Components.
+9. Pages, routes, and workflows.
+10. Internationalization and accessibility.
+11. Code and spec review.
+12. Backend tests.
+13. Frontend tests.
+14. Final verification.
+
+Include only applicable tasks. Do not add unrelated refactors. Split into another plan only when a subsystem can be built, tested, and delivered independently.
+
+Keep every review and test task at the end of the plan, after implementation is complete. The review task must precede all test tasks so its findings can refine the final test scope.
+
+## Traceability Rules
+
+Every implementation, review, and test task must trace to its source.
+
+### When a design spec exists
+
+Reference the exact file plus section, endpoint, table, component, event, or test-case table. Use the owning concern when the repository follows the standard spec package:
+
+- Database, API, server types, validation: `01-backend.md`.
+- Layout, components, client types, routes: `02-frontend.md`.
+- Events, states, dialogs, data flow, navigation: `03-behavior.md`.
+- Tests, performance, security, operations: `04-quality.md`.
+
+Use multiple references when a task crosses concerns. Verify each referenced heading exists. Never invent a path or section.
+
+### When no design spec exists
+
+Write `**Spec References:** No design spec exists.` and add the exact requirement, ADR, issue, or repository source under `Requirements References` or `Repo References`.
+
+### When work is outside or different from the spec
+
+Add one of these explicit labels:
+
+- `**Repository Prerequisite:**` for foundational work required by the real repository.
+- `**Decision / Deviation:**` for an approved choice not stated in, or intentionally different from, the spec.
+
+The final review must prove that every requirement maps to at least one task.
+
+## Task Design Rules
+
+- Number tasks as `Task 01`, `Task 02`, and so on.
+- Make each task deliver one coherent capability or verification boundary.
+- State `Depends on` when the dependency is not obvious from sequence.
+- Describe observable behavior and contracts, not merely a list of files.
+- Use exact paths only after verifying them in the repository.
+- Include failure modes and edge cases when they affect implementation.
+- Use `- [ ]` checkboxes for executable work.
+- End with `Done when` containing concrete, verifiable outcomes.
+- Name commands only after confirming they exist in manifests or repository tooling; state their expected result.
+- Keep tasks concise, but do not impose an arbitrary task count.
+
+Do not use:
+
+- `TODO`, `TBD`, placeholder paths, or fake identifiers.
+- Vague instructions such as “implement as needed,” “handle errors,” or “add tests.”
+- Tasks that only enumerate files without defining behavior or outcome.
+- Detailed source code or large pseudocode blocks.
+- Automatic commit steps unless requested.
+
+## Review and Testing Order
+
+Keep implementation tasks focused on production changes. Use local non-test checks such as schema validation, typecheck, compile, or build only when they are useful completion evidence for that task.
+
+After all implementation tasks, create the applicable closing tasks in this exact order:
+
+1. **Code and spec review:** compare the completed implementation with all referenced specs, locked decisions, public contracts, repository conventions, security requirements, and scope boundaries. Fix confirmed implementation gaps before tests are written or finalized.
+2. **Backend tests:** implement and run the complete backend unit and integration coverage identified by the quality spec and review findings.
+3. **Frontend tests:** implement and run component, store, composable, router, and page coverage identified by the quality spec and review findings.
+4. **Final verification:** run full suites, typechecks, production builds, migration checks, smoke paths, and the final spec-to-code audit.
+
+Keep backend and frontend tests in separate tasks when both layers exist. Do not duplicate the same scenario across multiple test levels without a clear regression reason.
+
+Test tasks must specify:
+
+- Test level: unit, integration, component, store, router, or end-to-end when explicitly in scope.
+- Success, validation, authorization, state transition, and failure scenarios.
+- External boundaries that must be faked or mocked.
+- Isolation and cleanup requirements for databases or mutable state.
+- Exact verified commands and expected results.
+
+Do not call real external services in automated tests unless the approved specification explicitly requires it.
+
+Final verification must include all applicable checks: schema or migration validation, full test suites, typecheck, production build, lint or formatting checks, manual smoke paths, and confirmation that all review findings were resolved.
+
+## Required Plan Format
+
+Write the plan using this structure:
+
+```markdown
+# <Feature Name> — Task-based Coding Plan
+
 > **For agentic workers:** REQUIRED SKILL: Use skill `executing-plans` to implement this plan.
 
-## Plan Structure
-````markdown
-## Phase 1 — [Name]
-### Task N: [Task Name]
+## Summary
 
-**Spec Reference:** `docs/<topic>/specs/<topic>-design/01-backend.md — Section X.Y`
+<Goal, current baseline, success criteria, and important scope boundaries.>
 
-**Files:**
-- Create: `exact/path/to/file.ts`
-- Modify: `exact/path/to/existing.ts`
-- Test: `exact/path/to/test.spec.ts` _(omit if no tests in this task)_
+## Locked Decisions / Public Contracts
 
-- **Step 1:** [Describe what to do — e.g., run migration, implement endpoint, write tests in Section X.Y of 01-backend.md, etc.] 
-[Describe content of the spec that is relevant to this task. This is a sanity check to ensure the task is fully informed by the spec and not based on memory or assumption.]
-  - Run: `[command]`
-  - Expected: [verifiable outcome]
+<APIs, types, schemas, routes, state transitions, failure behavior, and approved deviations.>
 
-- **Step 2: Commit**
-  - `git add [files]`
-  - `git commit -m "feat: [description]"`
+## Dependency Flow
 
-[In task can have multiple steps (can be more than 2)]
-````
+`Task 01 → Task 02 → Task 03`
 
+## Phase 1 — <Dependency Boundary>
 
-## CheckList Review (run before saving)
+### Task 01 — <Outcome-Oriented Name>
 
-1. **Spec coverage** — every spec requirement maps to a task. Add missing tasks.
-2. **Placeholder scan** — no vague paths, missing commands, or unverifiable outcomes.
-3. **Type consistency** — types and method names match across all tasks.
-4. **Dependency check** — tasks that depend on prior phase output are in a later phase.
-5. **Test coverage check** — every phase that writes logic includes tests. No task defers tests to a later phase. No tests for tasks with no logic (migrations, config, type files).
+**Depends on:** None
+
+**Spec References**
+
+- `<verified spec path> — <exact section, endpoint, component, or table>`
+
+**Repo References**
+
+- `<verified current file or symbol>`
+
+**Repository Prerequisite** or **Decision / Deviation**
+
+<Include only when applicable.>
+
+**Work**
+
+- [ ] <Concrete implementation action and required behavior.>
+- [ ] <Concrete verification action.>
+
+**Done when:** <Observable and verifiable completion criteria.>
+
+## Final Phase — Review and Tests
+
+### Task NN — Code and Spec Review
+
+<Use the same required task fields. Review and fix implementation gaps before test tasks.>
+
+### Task NN+1 — Backend Tests
+
+<Include only when a backend exists.>
+
+### Task NN+2 — Frontend Tests
+
+<Include only when a frontend exists.>
+
+## Final Verification
+
+- [ ] <Full-suite and build checks.>
+- [ ] <Spec coverage and manual acceptance checks.>
+
+## Assumptions and Out of Scope
+
+- <Explicit assumption or exclusion.>
+```
+
+Use one or more phases in the same file. When only one dependency boundary exists, use one phase containing all tasks. The numbered tasks, not the phases, are the primary execution units.
+
+## Save and Return the Plan
+
+Default to `docs/<topic>/plans/YYYY-MM-DD-<topic>-implementation.md`. Follow a more specific existing repository naming convention when one is clearly established.
+
+If the target file already exists:
+
+- Update it when the user is revising that same plan.
+- Do not overwrite a different plan without confirmation.
+
+Create exactly one plan artifact for the feature. Do not add README, changelog, template, or auxiliary files.
+
+After saving, return:
+
+1. A clickable path to the saved plan.
+2. The complete plan content for immediate review.
+3. A concise note identifying important assumptions, repository prerequisites, and deviations.
+
+## Self-Review Gate
+
+Before saving, answer every check:
+
+1. Are the goal and measurable success criteria explicit?
+2. Were the relevant specs and current implementation both inspected?
+3. Does every source reference exist and point to the right concern?
+4. Does every requirement map to at least one task?
+5. Are public contracts, data flow, state transitions, and failure modes locked?
+6. Is the dependency flow acyclic and ordered correctly?
+7. Does every task have executable checkboxes and verifiable `Done when` criteria?
+8. Are all review and test tasks at the end, ordered as review, backend tests, frontend tests, then final verification?
+9. Do test tasks cover new behavior, failures, authorization, review findings, and regressions without unnecessary duplication?
+10. Were all commands verified against repository tooling?
+11. Does the plan avoid unrequested refactors?
+12. Are all repository prerequisites and spec deviations explicit?
+13. Would the executor still need to make a material product or architecture decision?
+
+If the answer to the final check is yes, continue exploring or ask the user for the missing decision. Do not save or present the plan yet.

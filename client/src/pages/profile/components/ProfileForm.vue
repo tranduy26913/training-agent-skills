@@ -138,7 +138,7 @@ function roleSeverity(role: string): string {
 </script>
 
 <template>
-  <form class="flex flex-col gap-6" @submit.prevent="onSubmit">
+  <form class="surface-card flex flex-col gap-6 p-5 sm:p-7" @submit.prevent="onSubmit">
     <!-- Avatar section -->
     <div class="flex flex-col items-center gap-3">
       <!-- Avatar preview -->

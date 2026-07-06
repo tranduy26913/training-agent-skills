@@ -8,7 +8,7 @@ import { useUiStore } from '@stores/ui.store';
 const { t } = useI18n();
 const authStore = useAuthStore();
 const uiStore = useUiStore();
-const { sidebarCollapsed } = storeToRefs(uiStore);
+const { sidebarCollapsed, mobileSidebarOpen } = storeToRefs(uiStore);
 const { isAdmin } = storeToRefs(authStore);
 
 interface MenuItem {
@@ -59,40 +59,53 @@ const visibleMenuItems = computed(() => {
 
 <template>
   <aside
-    class="fixed left-0 top-0 h-full bg-surface-0 dark:bg-surface-900 z-50 transition-all duration-300 flex flex-col shadow-[4px_0_24px_rgba(0,0,0,0.08)] dark:shadow-[4px_0_24px_rgba(0,0,0,0.35)]"
-    :class="sidebarCollapsed ? 'w-16' : 'w-64'"
+    class="fixed inset-y-0 left-0 z-50 flex flex-col border-r border-surface-200/70 bg-surface-0/95 shadow-2xl shadow-surface-900/10 backdrop-blur-xl transition-all duration-300 ease-out dark:border-surface-800 dark:bg-surface-900/95 dark:shadow-black/30 md:translate-x-0 md:shadow-none"
+    :class="[
+      sidebarCollapsed ? 'w-[17.5rem] md:w-[5.25rem]' : 'w-[17.5rem]',
+      mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full',
+    ]"
   >
     <!-- Logo -->
-    <div class="h-16 flex items-center justify-center border-b border-surface-100 dark:border-surface-800/60 px-4 bg-gradient-to-b from-surface-0 dark:from-surface-900 to-surface-50/60 dark:to-surface-800/20">
-      <span v-if="!sidebarCollapsed" class="text-xl font-bold text-primary">
-        {{ isAdmin ? t('sidebar.adminPanel') : t('sidebar.userPanel') }}
-      </span>
-      <span v-else class="text-xl font-bold text-primary">
-        {{ isAdmin ? 'A' : 'U' }}
-      </span>
+    <div class="flex h-[4.5rem] items-center gap-3 border-b border-surface-200/70 px-5 dark:border-surface-800">
+      <div class="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-primary-400 to-primary-700 text-white shadow-lg shadow-primary-500/25">
+        <i class="pi pi-sparkles text-lg"></i>
+      </div>
+      <div class="min-w-0" :class="sidebarCollapsed ? 'md:hidden' : ''">
+        <p class="truncate text-base font-extrabold tracking-tight text-surface-900 dark:text-white">
+          {{ isAdmin ? t('sidebar.adminPanel') : t('sidebar.userPanel') }}
+        </p>
+        <p class="text-[0.65rem] font-bold uppercase tracking-[0.18em] text-primary-500">Control center</p>
+      </div>
+      <button type="button" class="icon-button ml-auto md:hidden" aria-label="Close navigation" @click="uiStore.closeMobileSidebar()">
+        <i class="pi pi-times"></i>
+      </button>
     </div>
 
     <!-- Navigation -->
-    <nav class="flex-1 py-4">
-      <ul class="space-y-1 px-2">
+    <nav class="flex-1 overflow-y-auto px-3 py-5">
+      <p class="mb-3 px-3 text-[0.65rem] font-bold uppercase tracking-[0.18em] text-surface-400" :class="sidebarCollapsed ? 'md:hidden' : ''">Menu</p>
+      <ul class="space-y-1.5">
         <li v-for="item in visibleMenuItems" :key="item.to">
           <router-link
             :to="item.to"
-            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-surface-600 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-800 hover:shadow-sm transition-all duration-150"
-            active-class="!bg-primary/10 !text-primary font-semibold shadow-sm"
+            class="group flex items-center gap-3 rounded-xl px-3 py-3 text-surface-600 transition-all duration-200 hover:bg-surface-100 hover:text-surface-950 dark:text-surface-300 dark:hover:bg-surface-800 dark:hover:text-white"
+            active-class="!bg-primary-50 !text-primary-700 font-semibold shadow-sm ring-1 ring-primary-100 dark:!bg-primary-950/50 dark:!text-primary-300 dark:ring-primary-900"
+            @click="uiStore.closeMobileSidebar()"
           >
-            <i :class="item.icon" class="text-lg" style="min-width: 24px; text-align: center;"></i>
-            <span v-if="!sidebarCollapsed" class="text-sm">{{ t(item.labelKey) }}</span>
+            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-surface-100 transition-colors group-hover:bg-surface-200 dark:bg-surface-800 dark:group-hover:bg-surface-700">
+              <i :class="item.icon" class="text-base"></i>
+            </span>
+            <span class="text-sm" :class="sidebarCollapsed ? 'md:hidden' : ''">{{ t(item.labelKey) }}</span>
           </router-link>
         </li>
       </ul>
     </nav>
 
     <!-- Collapse toggle -->
-    <div class="border-t border-surface-200 dark:border-surface-700 p-2">
+    <div class="hidden border-t border-surface-200 p-3 dark:border-surface-800 md:block">
       <button
         @click="uiStore.toggleSidebar()"
-        class="w-full flex items-center justify-center py-2 rounded-lg text-surface-500 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
+        class="flex w-full items-center justify-center rounded-xl py-2.5 text-surface-500 transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
       >
         <i :class="sidebarCollapsed ? 'pi pi-angle-right' : 'pi pi-angle-left'" class="text-lg"></i>
       </button>

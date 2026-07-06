@@ -86,12 +86,13 @@ function handleDeleteCancelled() {
 </script>
 
 <template>
-  <div class="p-6">
+  <div class="page-stack">
     <!-- Page Header -->
-    <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold text-surface-900 dark:text-surface-100">
-        {{ $t('projects.list.pageTitle') }}
-      </h1>
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">{{ $t('projects.list.pageTitle') }}</h1>
+        <p class="page-subtitle">{{ $t('projects.title') }}</p>
+      </div>
       <Button
         :label="$t('projects.list.createButton')"
         icon="pi pi-plus"
@@ -99,27 +100,20 @@ function handleDeleteCancelled() {
       />
     </div>
 
-    <!-- Loading State -->
-    <div
-      v-if="store.loading"
-      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
-    >
-      <div
-        v-for="i in 4"
-        :key="i"
-        class="bg-surface-50 dark:bg-surface-700 rounded-lg shadow-sm border border-surface-200 dark:border-surface-600 p-4"
-      >
-        <Skeleton class="mb-3" height="20px" width="60%" />
-        <Skeleton class="mb-2" height="14px" width="80%" />
-        <Skeleton class="mb-2" height="14px" width="40%" />
-        <Skeleton height="12px" width="30%" />
+    <!-- Keep the page structure stable while the global loading layer is visible. -->
+    <div v-if="store.loading" class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+      <div v-for="i in 4" :key="i" class="surface-card p-5">
+        <Skeleton class="mb-4" height="1.25rem" width="60%" />
+        <Skeleton class="mb-2" height="0.875rem" width="85%" />
+        <Skeleton class="mb-2" height="0.875rem" width="45%" />
+        <Skeleton class="mt-8" height="0.75rem" width="30%" />
       </div>
     </div>
 
     <!-- Empty State -->
     <div
-      v-else-if="store.projects.length === 0"
-      class="flex flex-col items-center justify-center py-16 text-surface-400 dark:text-surface-500"
+      v-if="!store.loading && store.projects.length === 0"
+      class="surface-card flex flex-col items-center justify-center px-6 py-20 text-surface-400 dark:text-surface-500"
     >
       <i class="pi pi-folder-open text-6xl mb-4"></i>
       <p class="text-lg mb-4">{{ $t('projects.list.empty') }}</p>
@@ -132,8 +126,8 @@ function handleDeleteCancelled() {
 
     <!-- Card Grid -->
     <div
-      v-else
-      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+      v-else-if="!store.loading"
+      class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
     >
       <ProjectCard
         v-for="project in store.projects"

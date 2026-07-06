@@ -83,7 +83,7 @@ function clearFilters(): void {
 </script>
 
 <template>
-  <div class="flex flex-wrap gap-3 items-end mb-4">
+  <div class="flex flex-wrap items-end gap-3">
     <!-- Search input -->
     <div class="flex flex-col gap-1">
       <label class="text-sm text-surface-600 dark:text-surface-400">{{ t('common.search') }}</label>

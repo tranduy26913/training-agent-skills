@@ -12,8 +12,8 @@
     "migrate": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
     "migrate:test": "cross-env DATABASE_URL=$DATABASE_URL_TEST prisma migrate deploy",
-    "seed": "ts-node src/database/seed.ts",
-    "seed:test": "ts-node src/database/seed.ts --test",
+    "seed": "ts-node -r tsconfig-paths/register src/database/seed.ts",
+    "seed:test": "ts-node -r tsconfig-paths/register src/database/seed.ts --test",
     "test": "vitest run",
     "test:watch": "vitest"
   },
