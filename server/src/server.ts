@@ -3,6 +3,7 @@ dotenv.config({ path: '../.env' });
 
 import app from '@app';
 import { appConfig } from '@config';
+import { registerConfiguredProviders } from '@core/provider-bootstrap';
 import { prisma } from '@database/prisma';
 import { logger } from '@utils/logger.util';
 
@@ -10,6 +11,7 @@ let server: ReturnType<typeof app.listen> | null = null;
 
 // Bootstrap the server: connect to the database, then start listening.
 async function bootstrap(): Promise<void> {
+  registerConfiguredProviders();
   await prisma.$connect();
   server = app.listen(appConfig.port, () => {
     logger.info(`Server running on port ${appConfig.port} in ${appConfig.env} mode`);

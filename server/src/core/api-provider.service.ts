@@ -18,15 +18,21 @@ import { logger } from '@utils/logger.util';
 /** Union of all provider config types. */
 export type ProviderConfig = GeminiConfig | ComfyConfig | ZaiConfig;
 
+type ProviderConstructor = (new (config: any) => IAiProvider) & {
+  AVAILABLE_MODELS?: readonly string[];
+};
+
+export interface AiModelInfo {
+  provider: ProviderType;
+  models: string[];
+}
+
 export class ApiProviderService {
   private static instance: ApiProviderService;
   private providers = new Map<ProviderType, IAiProvider>();
 
   /** Map of provider constructors for factory registration. */
-  private static registry: Record<
-    ProviderType,
-    new (config: any) => IAiProvider
-  > = {
+  private static registry: Record<ProviderType, ProviderConstructor> = {
     gemini: GeminiProvider,
     comfy: ComfyProvider,
     zai: ZaiProvider,
@@ -85,6 +91,32 @@ export class ApiProviderService {
   /** Get all registered provider names. */
   getRegisteredProviders(): ProviderType[] {
     return Array.from(this.providers.keys());
+  }
+
+  /** Get model metadata for registered providers only. */
+  getAvailableModels(): AiModelInfo[] {
+    return this.getRegisteredProviders().map((provider) => ({
+      provider,
+      models: [...(ApiProviderService.registry[provider].AVAILABLE_MODELS ?? [])],
+    }));
+  }
+
+  /** Resolve provider from a model name and generate with that exact model. */
+  async generateWithModel(aiModel: string, prompt: string) {
+    const providerType = this.resolveProviderType(aiModel);
+    const provider = this.getProvider(providerType);
+    return provider.generate(prompt, { model: aiModel });
+  }
+
+  private resolveProviderType(aiModel: string): ProviderType {
+    const provider = (Object.keys(ApiProviderService.registry) as ProviderType[])
+      .find((type) => aiModel.startsWith(`${type}-`));
+
+    if (!provider) {
+      throw new Error(`Unknown AI model: ${aiModel}`);
+    }
+
+    return provider;
   }
 
   /** Reset all providers (useful in tests). */

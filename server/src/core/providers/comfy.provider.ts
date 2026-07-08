@@ -11,6 +11,8 @@ export interface ComfyConfig {
 }
 
 export class ComfyProvider implements IAiProvider {
+  static readonly AVAILABLE_MODELS = ['comfy-default'];
+
   readonly name = 'comfy' as const;
   private config: ComfyConfig;
 

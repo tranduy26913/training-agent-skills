@@ -11,6 +11,8 @@ export interface ZaiConfig {
 }
 
 export class ZaiProvider implements IAiProvider {
+  static readonly AVAILABLE_MODELS = ['zai-default', 'zai-pro'];
+
   readonly name = 'zai' as const;
   private config: ZaiConfig;
 
