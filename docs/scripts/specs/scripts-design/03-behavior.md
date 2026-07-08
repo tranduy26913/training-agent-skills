@@ -47,7 +47,7 @@ date: 2026-06-25
 #### handleDeleteClick(id: number)
 1. Tìm script trong store theo id
 2. Mở `ScriptDeleteDialog` với `scriptTitle=script.title`
-3. Nếu confirm → gọi `scriptsStore.deleteScript(id)` → toast success → reload list
+3. Nếu confirm → gọi `scriptsStore.deleteScript(id)` → toast success → page reload list bằng `fetchScripts(projectId)`
 4. Nếu cancel → đóng dialog
 
 #### handleDeleteConfirmed()
@@ -81,7 +81,7 @@ date: 2026-06-25
    a. Toast error: "Generate thất bại. Vui lòng thử lại."
 5. Set `generating = false`
 
-#### handleSave(payload: { data: CreateScriptDto | UpdateProjectDto, content: string | null })
+#### handleSave(payload: { data: CreateScriptDto | UpdateScriptDto, content: string | null })
 1. Validate form client-side
 2. Nếu invalid: highlight error fields, stop
 3. Nếu valid:
@@ -159,7 +159,7 @@ date: 2026-06-25
 | Message | "Bạn có chắc muốn xoá kịch bản **{scriptTitle}**?" |
 | Confirm button | "Xoá" (severity: danger / red) |
 | Cancel button | "Không" |
-| On confirm | Gọi `deleteScript(id)` → toast → reload list |
+| On confirm | Gọi `deleteScript(id)` → toast → page reload list |
 | On cancel | Đóng dialog, không action |
 
 ### 3.2 Unsaved Changes Confirmation

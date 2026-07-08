@@ -25,7 +25,7 @@ date: 2026-06-25
 | `characterCount` | `Int` (column `character_count`) | UNSIGNED, NOT NULL — số nhân vật |
 | `minScenes` | `Int` (column `min_scenes`) | UNSIGNED, NOT NULL — số scenes tối thiểu |
 | `vibe` | `Json` | NOT NULL — mảng tags vibe (preset + custom), lưu dạng JSON array |
-| `content` | `String?` | TEXT, nullable — nội dung kịch bản JSON free-form (null khi draft chưa gen) |
+| `content` | `String?` | TEXT, nullable — nội dung kịch bản dạng JSON string hợp lệ (null khi draft chưa gen) |
 | `status` | `String` | VARCHAR(20), NOT NULL, default `'draft'` — enum: `'draft'` \| `'generated'` |
 | `projectId` | `Int` (column `project_id`) | UNSIGNED, NOT NULL — FK → `Project.id` |
 | `project` | `Project @relation(fields: [projectId], references: [id], onDelete: Cascade)` | Script bị xoá khi Project bị xoá |
@@ -172,7 +172,7 @@ Flow:
 3. Validate request body (Zod schema)
 4. Kiểm tra Project tồn tại (isDeleted = false)
 5. Set `ownerId` từ authenticated user
-6. Nếu `content` null/empty → status = `'draft'`; nếu có content → status = `'generated'`
+6. Server tự quyết định `status`: nếu `content` null/empty → `'draft'`; nếu có content → validate JSON hợp lệ và set `'generated'`. Giá trị `status` từ client chỉ là hint tương thích ngược, không được tin cậy.
 7. Insert record to database
 8. Ghi audit log (CREATE)
 9. Return created entity
@@ -341,7 +341,7 @@ Flow:
    - Template: "Bạn là một biên kịch chuyên nghiệp. Hãy viết kịch bản với tiêu đề '{title}', ý tưởng: '{idea}'. Số nhân vật: {characterCount}. Số scenes tối thiểu: {minScenes}. Vibe/phong cách: {vibe.join(', ')}. Trả về kết quả dưới dạng JSON."
 5. Parse `aiModel` để xác định provider (model prefix → provider type)
 6. Gọi `ApiProviderService.getProvider(providerType).generate(prompt, { model: aiModel })`
-7. Trả về content JSON + model + provider info (không lưu DB)
+7. Trả về content JSON string + model + provider info (không lưu DB). Backend validate/parse content trước khi trả về; nếu content không phải JSON hợp lệ thì trả lỗi `AI_PROVIDER_ERROR`.
 
 Response (200 OK):
 ```json
@@ -421,13 +421,13 @@ Errors:
 | `characterCount` | `number().int().min(1).max(20)` | "Số nhân vật phải từ 1-20" |
 | `minScenes` | `number().int().min(1).max(50)` | "Số scenes tối thiểu phải từ 1-50" |
 | `vibe` | `array(string()).min(1)` | "Vibe phải có ít nhất 1 tag" |
-| `content` | `string().max(100000).optional()` | "Content không quá 100000 ký tự" |
-| `status` | `enum(['draft', 'generated'])` | "Status phải là 'draft' hoặc 'generated'" |
+| `content` | `string().max(100000).optional()` + nếu không rỗng phải parse JSON hợp lệ | "Content phải là JSON hợp lệ và không quá 100000 ký tự" |
+| `status` | `enum(['draft', 'generated']).optional()` | "Status phải là 'draft' hoặc 'generated'" |
 | `projectId` | `number().int().positive()` | "Project ID phải là số dương" |
 
 ### 3.2 Update Script (Zod schema — `updateScriptSchema`)
 
-Tất cả fields optional (giống create nhưng bỏ `projectId` — không cho phép đổi project sau khi tạo). Không có `aiModel` — AI model chỉ chọn khi generate, không lưu vào DB.
+Tất cả fields optional (giống create nhưng bỏ `projectId` — không cho phép đổi project sau khi tạo). Không có `aiModel` — AI model chỉ chọn khi generate, không lưu vào DB. Nếu request có `content`, server tự tính lại `status` theo content giống create.
 
 ### 3.3 Generate Script (Zod schema — `generateScriptSchema`)
 
@@ -448,7 +448,7 @@ Tất cả fields optional (giống create nhưng bỏ `projectId` — không ch
 
 ### 4.1 Static Models Property
 
-Mỗi provider class phải expose static property `AVAILABLE_MODELS`:
+Mỗi provider class phải expose static property `AVAILABLE_MODELS` để endpoint `GET /api/admin/ai-models` không phụ thuộc vào instance config:
 
 - `GeminiProvider.AVAILABLE_MODELS`: `['gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash']`
 - `ZaiProvider.AVAILABLE_MODELS`: `['zai-default', 'zai-pro']`
@@ -468,11 +468,13 @@ Mapping logic: so sánh prefix của `aiModel` với registry keys. Nếu không
 
 ### 4.3 ApiProviderService Enhancement
 
-Thêm method `generateWithModel(aiModel: string, prompt: string)` vào `ApiProviderService`:
+Thêm method `generateWithModel(aiModel: string, prompt: string)` và `getAvailableModels()` vào `ApiProviderService`:
 1. Parse `aiModel` → xác định `ProviderType` (dựa trên prefix)
 2. Lấy provider instance: `this.getProvider(providerType)`
 3. Gọi `provider.generate(prompt, { model: aiModel })`
 4. Trả về `ProviderResponse`
+
+`getAvailableModels()` chỉ trả model của provider đã register; response dạng `AiModelInfo[]`.
 
 ---
 

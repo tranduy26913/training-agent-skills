@@ -331,7 +331,7 @@ Layout 2 cột: form bên trái (40%), JSON content bên phải (60%).
 | `fetchAiModels()` | — | Lấy danh sách AI Model, set `aiModels` |
 | `createScript(data)` | `data: CreateScriptDto` | Tạo script mới, KHÔNG tự động reload list |
 | `updateScript(id, data)` | `id: number, data: UpdateScriptDto` | Cập nhật script, KHÔNG tự động reload list |
-| `deleteScript(id)` | `id: number` | Xoá script, tự động reload list |
+| `deleteScript(id)` | `id: number` | Xoá script, KHÔNG tự động reload list; page gọi `fetchScripts(projectId)` sau khi xoá thành công |
 | `generateScript(data)` | `data: GenerateScriptDto` | Generate kịch bản, set `generating` flag, trả về content |
 | `clearCurrentScript()` | — | Reset `currentScript` về `null` |
 

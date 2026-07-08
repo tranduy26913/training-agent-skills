@@ -88,6 +88,8 @@ date: 2026-06-25
 
 ### 1.2 Frontend Tests
 
+> **Scope:** Không yêu cầu E2E/Playwright cho phase này. Chỉ cần backend tests và frontend unit/component tests theo bảng dưới.
+
 #### ScriptListPage (`ScriptListPage.test.ts`)
 
 | # | Test Case | Arrange | Act | Assert |
@@ -212,7 +214,7 @@ date: 2026-06-25
 | 4 | fetchAiModels: cập nhật aiModels | mock useScripts.getAiModels | Call `fetchAiModels()` | `aiModels` được set |
 | 5 | createScript: gọi composable, KHÔNG reload list | mock createScript | Call `createScript(data)` | Composable được gọi; `fetchScripts` KHÔNG được gọi |
 | 6 | updateScript: gọi composable, KHÔNG reload list | mock updateScript | Call `updateScript(1, data)` | Composable được gọi; `fetchScripts` KHÔNG được gọi |
-| 7 | deleteScript: tự động reload fetchScripts | mock deleteScript resolve | Call `deleteScript(1)` | `fetchScripts` được gọi lại |
+| 7 | deleteScript: không tự động reload fetchScripts | mock deleteScript resolve | Call `deleteScript(1)` | Composable được gọi; `fetchScripts` KHÔNG được gọi |
 | 8 | generateScript: set generating flag | mock generateScript | Call `generateScript(data)` | `generating=true` during call, `false` after |
 | 9 | generateScript: trả về content | mock generateScript returns content | Call `generateScript(data)` | Returns content string |
 | 10 | clearCurrentScript: clear state | `currentScript = mockScript` | Call `clearCurrentScript()` | `currentScript = null` |
