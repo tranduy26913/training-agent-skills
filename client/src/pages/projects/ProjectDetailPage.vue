@@ -2,12 +2,14 @@
 import { onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useProjectsStore } from '@stores/projects.store';
+import { useScriptsStore } from '@stores/scripts.store';
 import Button from 'primevue/button';
 import Skeleton from 'primevue/skeleton';
 
 const route = useRoute();
 const router = useRouter();
 const store = useProjectsStore();
+const scriptsStore = useScriptsStore();
 
 onMounted(async () => {
   const id = Number(route.params.id);
@@ -18,11 +20,18 @@ onMounted(async () => {
   await store.fetchProject(id);
   if (store.error) {
     router.push({ name: 'ProjectList' });
+    return;
   }
+  await scriptsStore.fetchScripts(id);
 });
 
 function handleBackClick() {
   router.push({ name: 'ProjectList' });
+}
+
+function handleScriptsClick() {
+  const id = Number(route.params.id);
+  router.push({ name: 'ScriptList', params: { projectId: id } });
 }
 
 function formatDate(dateStr: string): string {
@@ -124,6 +133,24 @@ function formatDate(dateStr: string): string {
           {{ formatDate(store.currentProject.updatedAt) }}
         </p>
       </div>
+
+      <button
+        type="button"
+        class="surface-card flex w-full items-center justify-between p-5 text-left transition hover:shadow-md"
+        @click="handleScriptsClick"
+      >
+        <span class="flex items-center gap-3">
+          <i class="pi pi-file-edit text-2xl text-primary-500"></i>
+          <span>
+            <span class="block font-semibold text-surface-900 dark:text-surface-100">Scripts</span>
+            <span class="text-sm text-surface-500">{{ scriptsStore.scripts.length }} scripts</span>
+          </span>
+        </span>
+        <span class="flex items-center gap-2 text-sm text-primary-600">
+          View all
+          <i class="pi pi-arrow-right"></i>
+        </span>
+      </button>
     </div>
   </div>
 </template>

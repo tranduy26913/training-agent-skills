@@ -7,7 +7,13 @@ export type UserRole = 'admin' | 'user' | 'moderator';
 export type UserStatus = 'active' | 'inactive' | 'suspended';
 
 // Audit action types.
-export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE';
+export type AuditAction =
+  | 'CREATE'
+  | 'UPDATE'
+  | 'DELETE'
+  | 'CREATE_SCRIPT'
+  | 'UPDATE_SCRIPT'
+  | 'DELETE_SCRIPT';
 
 // Pagination info returned by the API.
 export interface PaginationInfo {

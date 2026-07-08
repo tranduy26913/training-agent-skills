@@ -16,6 +16,18 @@ function formatLogEntry(log: AuditLog): string {
   const timestamp = new Date(log.timestamp).toLocaleString();
   const adminName = log.admin_name;
 
+  if (log.action === 'CREATE_SCRIPT') {
+    return `${adminName} created a script on ${timestamp}`;
+  }
+
+  if (log.action === 'UPDATE_SCRIPT') {
+    return `${adminName} updated a script on ${timestamp}`;
+  }
+
+  if (log.action === 'DELETE_SCRIPT') {
+    return `${adminName} deleted a script on ${timestamp}`;
+  }
+
   if (log.action === 'CREATE') {
     return `${adminName} created this user on ${timestamp}`;
   }
@@ -61,8 +73,8 @@ function formatLogEntry(log: AuditLog): string {
         <i
           :class="[
             'pi text-lg mt-0.5',
-            log.action === 'CREATE' ? 'pi-plus-circle text-green-500' :
-            log.action === 'UPDATE' ? 'pi-pencil text-blue-500' :
+            log.action === 'CREATE' || log.action === 'CREATE_SCRIPT' ? 'pi-plus-circle text-green-500' :
+            log.action === 'UPDATE' || log.action === 'UPDATE_SCRIPT' ? 'pi-pencil text-blue-500' :
             'pi-trash text-red-500'
           ]"
         />
