@@ -4,6 +4,8 @@ import { corsConfig, appConfig } from '@config';
 import { authRoutes } from '@modules/auth/auth.routes';
 import { usersRoutes } from '@modules/admin/users/users.routes';
 import { projectsRoutes } from '@modules/admin/projects/projects.routes';
+import { scriptsRoutes } from '@modules/admin/scripts/scripts.routes';
+import { aiModelsRoutes } from '@modules/admin/scripts/ai-models.routes';
 import { vocabulariesRoutes } from '@modules/admin/vocabularies/vocabularies.routes';
 import { errorMiddleware } from '@middleware/error.middleware';
 import { logger } from '@utils/logger.util';
@@ -25,6 +27,8 @@ app.use((req, _res, next) => {
 app.use(`${appConfig.apiPrefix}/auth`, authRoutes);
 app.use(`${appConfig.apiPrefix}/admin/users`, usersRoutes);
 app.use(`${appConfig.apiPrefix}/admin/projects`, projectsRoutes);
+app.use(`${appConfig.apiPrefix}/admin/scripts`, scriptsRoutes);
+app.use(`${appConfig.apiPrefix}/admin/ai-models`, aiModelsRoutes);
 app.use(`${appConfig.apiPrefix}/admin/vocabularies`, vocabulariesRoutes);
 
 // Health check.
