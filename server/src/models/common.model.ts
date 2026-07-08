@@ -4,7 +4,13 @@
 export type UserRole = 'admin' | 'user' | 'moderator';
 
 // Audit log action types.
-export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE';
+export type AuditAction =
+  | 'CREATE'
+  | 'UPDATE'
+  | 'DELETE'
+  | 'CREATE_VOCABULARY'
+  | 'UPDATE_VOCABULARY'
+  | 'DELETE_VOCABULARY';
 
 // Pagination request parameters.
 export interface PaginationParams {

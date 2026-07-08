@@ -1,0 +1,35 @@
+// Japanese vocabulary management for admins.
+// Soft delete via isDeleted flag; status is stored as a string for MySQL parity.
+model Vocabulary {
+  id            Int      @id @default(autoincrement()) @db.UnsignedInt
+  kanji         String   @db.VarChar(255)
+  hiragana      String?  @db.VarChar(255)
+  romaji        String?  @db.VarChar(255)
+  meaningVi     String   @map("meaning_vi") @db.VarChar(1000)
+  onYomi        String?  @map("on_yomi") @db.VarChar(255)
+  level         String   @default("N5") @db.VarChar(20)
+  mediaUrl      String?  @map("media_url") @db.VarChar(500)
+  note          String?  @db.Text
+  tags          Json
+  status        String   @default("draft") @db.VarChar(20)
+  createdById   Int      @map("created_by_id") @db.UnsignedInt
+  updatedById   Int?     @map("updated_by_id") @db.UnsignedInt
+  version       Int      @default(1) @db.UnsignedInt
+  learnCount    Int      @default(0) @map("learn_count") @db.UnsignedInt
+  favoriteCount Int      @default(0) @map("favorite_count") @db.UnsignedInt
+  reportCount   Int      @default(0) @map("report_count") @db.UnsignedInt
+  isDeleted     Boolean  @default(false) @map("is_deleted")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  createdBy User  @relation("VocabularyCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  updatedBy User? @relation("VocabularyUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([kanji])
+  @@index([level])
+  @@index([status])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([isDeleted])
+  @@map("vocabularies")
+}

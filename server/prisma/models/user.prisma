@@ -27,6 +27,10 @@ model User {
   // このユーザーが所有するスクリプト（1対多）。
   scripts Script[]
 
+  // Vocabulary records created or updated by this user.
+  vocabulariesCreated Vocabulary[] @relation("VocabularyCreatedBy")
+  vocabulariesUpdated Vocabulary[] @relation("VocabularyUpdatedBy")
+
   @@index([role])
   @@index([status])
   @@map("users")
