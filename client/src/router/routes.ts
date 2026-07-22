@@ -4,6 +4,7 @@ import { userRoutes } from '@pages/users/users.routes';
 import { vocabularyRoutes } from '@pages/vocabularies/vocabularies.routes';
 import { settingsRoutes } from '@pages/settings/settings.routes';
 import { profileRoutes } from '@pages/profile/profile.routes';
+import { learnRoutes } from '@pages/learn/learn.routes';
 import type { RouteRecordRaw } from 'vue-router';
 
 export const routes: RouteRecordRaw[] = [
@@ -17,6 +18,7 @@ export const routes: RouteRecordRaw[] = [
   ...vocabularyRoutes,
   ...settingsRoutes,
   ...profileRoutes,
+  ...learnRoutes,
   {
     path: '/:pathMatch(.*)*',
     redirect: '/dashboard',

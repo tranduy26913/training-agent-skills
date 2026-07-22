@@ -9,6 +9,18 @@
   text-rendering: optimizeLegibility;
 }
 
+/* PrimeVue reads these semantic variables everywhere, so a chosen accent
+   changes the entire study experience without duplicating component styles. */
+:root[data-accent='violet'] {
+  --p-primary-50: #f5f3ff; --p-primary-100: #ede9fe; --p-primary-200: #ddd6fe; --p-primary-300: #c4b5fd; --p-primary-400: #a78bfa; --p-primary-500: #8b5cf6; --p-primary-600: #7c3aed; --p-primary-700: #6d28d9; --p-primary-800: #5b21b6; --p-primary-900: #4c1d95; --p-primary-950: #2e1065;
+}
+:root[data-accent='emerald'] {
+  --p-primary-50: #ecfdf5; --p-primary-100: #d1fae5; --p-primary-200: #a7f3d0; --p-primary-300: #6ee7b7; --p-primary-400: #34d399; --p-primary-500: #10b981; --p-primary-600: #059669; --p-primary-700: #047857; --p-primary-800: #065f46; --p-primary-900: #064e3b; --p-primary-950: #022c22;
+}
+:root[data-accent='rose'] {
+  --p-primary-50: #fff1f2; --p-primary-100: #ffe4e6; --p-primary-200: #fecdd3; --p-primary-300: #fda4af; --p-primary-400: #fb7185; --p-primary-500: #f43f5e; --p-primary-600: #e11d48; --p-primary-700: #be123c; --p-primary-800: #9f1239; --p-primary-900: #881337; --p-primary-950: #4c0519;
+}
+
 html.dark {
   color-scheme: dark;
 }

@@ -110,6 +110,9 @@ const ja = {
     title: '設定',
     overview: 'アプリケーション設定',
   },
+  learning: {
+    title: '単語学習', lessons: 'レッスン', review: '復習', personalPath: '学習コース', allLevels: 'すべてのレベル', chooseLevel: 'レベルを選び、カードで新しい単語を学び、適切なタイミングで復習します。', loadingPath: '学習コースを読み込んでいます…', learnedProgress: '{learned}/{total}語を学習 · {lessons}レッスン', essentialVocabulary: 'このレッスンの重要な単語', noLessons: 'このレベルには公開済みのレッスンがありません。', buildFoundation: '短く覚えやすいカードで単語力を身につけます。', studyCards: 'カードで学ぶ', lessonVocabulary: 'レッスンの単語', recordedProgress: '{learned}/{total}語を記録', loadingLesson: 'レッスンを読み込んでいます…', exit: '終了', rememberWord: 'この単語を思い出してください', wordMeaning: '単語の意味', completed: 'セッションが完了しました！', showAnswer: '答えを見る', nextWord: '次の単語', complete: '完了', spacedReview: '間隔反復', reinforceMemory: '記憶を強化', reviewDescription: '短い集中セッションで、適切なタイミングに単語を復習します。', dueToday: '今日の期限', reviewExplanation: '評価ごとにその単語の復習スケジュールを調整します。', startReview: '復習を始める', answer: '答え', wordToReview: '復習する単語', forgot: '忘れた', hard: '難しい', good: '良い', easy: '簡単', overviewKicker: '日本語学習', dashboardTitle: '学習の進捗', dashboardDescription: '毎日の穏やかなリズムが大きな違いを生みます。', dailyGoal: '今日の目標', dueWords: '復習する単語', totalLearned: '学習済み単語数', continueNow: '今すぐ続ける', chooseLesson: '新しい単語を学ぶレッスンを選択してください。', reviewDue: '今日復習する単語が{count}語あります。', reviewNow: '今すぐ復習', chooseLessonAction: 'レッスンを選ぶ',
+  },
   profile: {
     title: 'プロフィール',
     myProfile: 'プロフィール',

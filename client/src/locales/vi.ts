@@ -110,6 +110,9 @@ const vi = {
     title: 'Cài đặt',
     overview: 'Cài đặt ứng dụng',
   },
+  learning: {
+    title: 'Học từ vựng', lessons: 'Bài học', review: 'Ôn tập', personalPath: 'Lộ trình cá nhân', allLevels: 'Tất cả cấp độ', chooseLevel: 'Chọn cấp độ, học từ mới bằng thẻ và ôn đúng lúc.', loadingPath: 'Đang tải lộ trình học…', learnedProgress: '{learned}/{total} từ đã học · {lessons} bài', essentialVocabulary: 'Từ vựng thiết yếu cho bài học này', noLessons: 'Chưa có bài học đã xuất bản ở cấp độ này.', buildFoundation: 'Xây nền từ vựng qua các thẻ học ngắn, dễ nhớ.', studyCards: 'Học thẻ từ', lessonVocabulary: 'Từ vựng của bài', recordedProgress: '{learned}/{total} từ đã ghi nhận', loadingLesson: 'Đang tải bài học…', exit: 'Thoát', rememberWord: 'Hãy nhớ từ này', wordMeaning: 'Nghĩa của từ', completed: 'Bạn đã hoàn thành!', showAnswer: 'Hiện đáp án', nextWord: 'Từ tiếp theo', complete: 'Hoàn thành', spacedReview: 'Ôn tập ngắt quãng', reinforceMemory: 'Củng cố trí nhớ', reviewDescription: 'Ôn lại từ đúng thời điểm để nhớ lâu hơn, với những phiên ngắn không quá tải.', dueToday: 'Đến hạn hôm nay', reviewExplanation: 'Mỗi lượt đánh giá sẽ điều chỉnh lịch ôn riêng cho từng từ.', startReview: 'Bắt đầu ôn', answer: 'Đáp án', wordToReview: 'Từ cần ôn', forgot: 'Quên', hard: 'Khó', good: 'Tốt', easy: 'Dễ', overviewKicker: 'Nihongo learning', dashboardTitle: 'Tiến độ học của bạn', dashboardDescription: 'Một nhịp học nhẹ nhàng mỗi ngày sẽ tạo nên khác biệt lớn.', dailyGoal: 'Mục tiêu hôm nay', dueWords: 'Từ cần ôn', totalLearned: 'Tổng từ đã học', continueNow: 'Tiếp tục ngay', chooseLesson: 'Hãy chọn một bài để học các từ mới.', reviewDue: 'Bạn có {count} từ cần ôn hôm nay.', reviewNow: 'Ôn tập ngay', chooseLessonAction: 'Chọn bài học',
+  },
   profile: {
     title: 'Hồ sơ của tôi',
     myProfile: 'Hồ sơ của tôi',

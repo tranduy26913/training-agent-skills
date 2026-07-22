@@ -24,6 +24,8 @@ const menuItems: MenuItem[] = [
     icon: 'pi pi-home',
     to: '/dashboard',
   },
+  { labelKey: 'learning.title', icon: 'pi pi-book', to: '/learn/levels' },
+  { labelKey: 'learning.review', icon: 'pi pi-refresh', to: '/learn/review' },
   {
     labelKey: 'sidebar.users',
     icon: 'pi pi-users',
