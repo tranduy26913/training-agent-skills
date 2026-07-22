@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { getAuthUserId } from '@utils/auth.util';
-import { sendSuccess } from '@utils/response.util';
+import { sendError, sendSuccess } from '@utils/response.util';
 import type { AuthenticatedRequest } from '@types-express';
 import { VocabulariesService } from './vocabularies.service';
 
@@ -29,7 +29,7 @@ export class VocabulariesController {
   async createVocabulary(req: AuthenticatedRequest, res: Response): Promise<void> {
     const adminId = getAuthUserId(req);
     if (adminId === null) {
-      sendSuccess(res, { message: 'Not authenticated' }, 401);
+      sendError(res, 'Not authenticated', 401);
       return;
     }
 
@@ -40,7 +40,7 @@ export class VocabulariesController {
   async updateVocabulary(req: AuthenticatedRequest, res: Response): Promise<void> {
     const adminId = getAuthUserId(req);
     if (adminId === null) {
-      sendSuccess(res, { message: 'Not authenticated' }, 401);
+      sendError(res, 'Not authenticated', 401);
       return;
     }
 
@@ -52,7 +52,7 @@ export class VocabulariesController {
   async deleteVocabulary(req: AuthenticatedRequest, res: Response): Promise<void> {
     const adminId = getAuthUserId(req);
     if (adminId === null) {
-      sendSuccess(res, { message: 'Not authenticated' }, 401);
+      sendError(res, 'Not authenticated', 401);
       return;
     }
 

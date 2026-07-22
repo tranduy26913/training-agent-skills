@@ -2,4 +2,3 @@
 export * from './common.model';
 export * from './auth.model';
 export * from './users.model';
-export * from './projects.model';

@@ -33,6 +33,5 @@ npm-debug.log*
 coverage/
 /client/playwright-report
 /client/test-results
-/python-services/tests
-/python-services/workers/__pycache__
-/python-services/__pycache__
+.pytest_cache/
+.venv/

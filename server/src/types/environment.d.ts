@@ -3,14 +3,15 @@ declare namespace NodeJS {
     NODE_ENV: 'development' | 'production' | 'test';
     PORT: string;
     API_PREFIX: string;
-    DB_HOST: string;
-    DB_PORT: string;
-    DB_USER: string;
-    DB_PASSWORD: string;
-    DB_NAME: string;
+    APP_BODY_SIZE_LIMIT: string;
+    CORS_ORIGIN: string;
+    DATABASE_URL: string;
+    DATABASE_URL_TEST: string;
+    DIRECT_URL: string;
     JWT_SECRET: string;
     JWT_EXPIRES_IN: string;
-    JWT_REFRESH_EXPIRES_IN: string;
-    VITE_API_BASE_URL: string;
+    SEED_ADMIN_NAME: string;
+    SEED_ADMIN_EMAIL: string;
+    SEED_ADMIN_PASSWORD: string;
   }
 }

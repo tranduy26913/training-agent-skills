@@ -37,12 +37,6 @@ const menuItems: MenuItem[] = [
     roles: ['admin'],
   },
   {
-    labelKey: 'sidebar.projects',
-    icon: 'pi pi-folder',
-    to: '/projects',
-    roles: ['admin'],
-  },
-  {
     labelKey: 'sidebar.settings',
     icon: 'pi pi-cog',
     to: '/settings',

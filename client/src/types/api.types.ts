@@ -11,9 +11,9 @@ export type AuditAction =
   | 'CREATE'
   | 'UPDATE'
   | 'DELETE'
-  | 'CREATE_SCRIPT'
-  | 'UPDATE_SCRIPT'
-  | 'DELETE_SCRIPT';
+  | 'CREATE_VOCABULARY'
+  | 'UPDATE_VOCABULARY'
+  | 'DELETE_VOCABULARY';
 
 // Pagination info returned by the API.
 export interface PaginationInfo {

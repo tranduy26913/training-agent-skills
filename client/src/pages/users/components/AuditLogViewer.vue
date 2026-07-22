@@ -16,24 +16,24 @@ function formatLogEntry(log: AuditLog): string {
   const timestamp = new Date(log.timestamp).toLocaleString();
   const adminName = log.admin_name;
 
-  if (log.action === 'CREATE_SCRIPT') {
-    return `${adminName} created a script on ${timestamp}`;
-  }
-
-  if (log.action === 'UPDATE_SCRIPT') {
-    return `${adminName} updated a script on ${timestamp}`;
-  }
-
-  if (log.action === 'DELETE_SCRIPT') {
-    return `${adminName} deleted a script on ${timestamp}`;
-  }
-
   if (log.action === 'CREATE') {
     return `${adminName} created this user on ${timestamp}`;
   }
 
   if (log.action === 'DELETE') {
     return `${adminName} deleted this user on ${timestamp}`;
+  }
+
+  if (log.action === 'CREATE_VOCABULARY') {
+    return `${adminName} created a vocabulary entry on ${timestamp}`;
+  }
+
+  if (log.action === 'UPDATE_VOCABULARY') {
+    return `${adminName} updated a vocabulary entry on ${timestamp}`;
+  }
+
+  if (log.action === 'DELETE_VOCABULARY') {
+    return `${adminName} deleted a vocabulary entry on ${timestamp}`;
   }
 
   // UPDATE: detail changed fields.
@@ -45,6 +45,16 @@ function formatLogEntry(log: AuditLog): string {
   }
 
   return `${adminName} updated this user on ${timestamp}`;
+}
+
+function actionIconClass(action: AuditLog['action']): string {
+  if (action === 'CREATE' || action === 'CREATE_VOCABULARY') {
+    return 'pi-plus-circle text-green-500';
+  }
+  if (action === 'UPDATE' || action === 'UPDATE_VOCABULARY') {
+    return 'pi-pencil text-blue-500';
+  }
+  return 'pi-trash text-red-500';
 }
 </script>
 
@@ -73,9 +83,7 @@ function formatLogEntry(log: AuditLog): string {
         <i
           :class="[
             'pi text-lg mt-0.5',
-            log.action === 'CREATE' || log.action === 'CREATE_SCRIPT' ? 'pi-plus-circle text-green-500' :
-            log.action === 'UPDATE' || log.action === 'UPDATE_SCRIPT' ? 'pi-pencil text-blue-500' :
-            'pi-trash text-red-500'
+            actionIconClass(log.action),
           ]"
         />
         <span class="text-sm text-surface-700 dark:text-surface-300">

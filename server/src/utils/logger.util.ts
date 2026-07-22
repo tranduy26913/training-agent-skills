@@ -1,12 +1,22 @@
 import winston from 'winston';
 import path from 'path';
-import fs from 'fs';
 import { appConfig } from '@config';
 
-// Ensure the logs directory exists before creating the file transport.
 const logsDir = path.join(__dirname, '../../logs');
-if (!fs.existsSync(logsDir)) {
-  fs.mkdirSync(logsDir, { recursive: true });
+const transports: winston.transport[] = [
+  new winston.transports.Console({
+    format: winston.format.combine(
+      winston.format.colorize(),
+      winston.format.simple(),
+    ),
+  }),
+];
+
+if (appConfig.env === 'production') {
+  transports.push(new winston.transports.File({
+    filename: path.join(logsDir, 'app.log'),
+    level: 'info',
+  }));
 }
 
 export const logger = winston.createLogger({
@@ -16,23 +26,5 @@ export const logger = winston.createLogger({
     winston.format.errors({ stack: true }),
     winston.format.json(),
   ),
-  transports: [
-    // Console transport for development.
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.simple(),
-      ),
-    }),
-    // File transport for all environments.
-    new winston.transports.File({
-      filename: path.join(logsDir, 'app.log'),
-      level: 'debug',
-      format: winston.format.combine(
-        winston.format.timestamp(),
-        winston.format.errors({ stack: true }),
-        winston.format.json(),
-      ),
-    }),
-  ],
+  transports,
 });

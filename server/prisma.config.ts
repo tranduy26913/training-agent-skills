@@ -3,20 +3,22 @@
 // schema.prisma. Connection URLs for migrations must be provided here.
 // See: https://pris.ly/d/config-datasource
 import dotenv from 'dotenv';
-import path from 'node:path';
 import { defineConfig, env } from '@prisma/config';
 
-// Load .env from the project root (parent of server/) so DATABASE_URL
-// resolves correctly for prisma CLI commands (migrate, validate, etc.).
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
+// Prisma commands run from server/, so use that directory explicitly.
+dotenv.config({ path: '.env' });
+
+const isTestEnvironment = process.env.NODE_ENV === 'test';
 
 export default defineConfig({
-  schema: './prisma/',
+  schema: './prisma/schema.prisma',
   datasource: {
-    url: env('DATABASE_URL'),
+    // Supavisor session pooling works on IPv4-only development networks and
+    // is also used by the Express runtime through PrismaPg.
+    url: isTestEnvironment ? env('DATABASE_URL_TEST') : env('DATABASE_URL'),
   },
   migrations: {
     path: './prisma/migrations',
-    seed: "tsx src/database/seed.ts",
+    seed: 'ts-node -r tsconfig-paths/register src/database/seed.ts',
   },
 });

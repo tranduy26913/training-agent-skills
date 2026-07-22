@@ -1,18 +1,13 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
 import request from 'supertest';
-import dotenv from 'dotenv';
-import path from 'path';
 import app from '@app';
 import { prisma } from '@database/prisma';
 import { signToken } from '@utils/token.util';
 import { hashPassword } from '@utils/hash.util';
 
-// Load env from project root so the test DB (app_db_test) is used.
-dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
-
-const ADMIN_ID = 1000;
-const ADMIN_EMAIL = 'admin@app.com';
+const ADMIN_EMAIL = 'admin.controller@test.com';
 const TEST_USER_PASSWORD = 'password123';
+let adminId: number;
 
 // Fixed test emails used across tests.
 const TEST_EMAILS = {
@@ -31,7 +26,7 @@ const TEST_EMAILS = {
 };
 
 function getAdminToken(): string {
-  return signToken({ userId: ADMIN_ID, email: ADMIN_EMAIL, role: 'admin' });
+  return signToken({ userId: adminId, email: ADMIN_EMAIL, role: 'admin' });
 }
 
 function getUserToken(userId: number, email: string): string {
@@ -82,6 +77,13 @@ describe('UsersController Integration Tests', () => {
   let userToken: string;
 
   beforeAll(async () => {
+    await cleanupTestUserByEmail(ADMIN_EMAIL);
+    adminId = await createTestUserDirectly({
+      name: 'Test Administrator',
+      email: ADMIN_EMAIL,
+      role: 'admin',
+      status: 'active',
+    });
     adminToken = getAdminToken();
 
     // Regular user for forbidden-access tests.
@@ -102,11 +104,12 @@ describe('UsersController Integration Tests', () => {
   afterEach(async () => {
     await cleanupAllTestUsers();
     // Reset admin points to default.
-    await prisma.user.update({ where: { id: ADMIN_ID }, data: { points: 0 } });
+    await prisma.user.update({ where: { id: adminId }, data: { points: 0 } });
   });
 
   afterAll(async () => {
     await cleanupTestUserByEmail(TEST_EMAILS.regularUser);
+    await cleanupTestUserByEmail(ADMIN_EMAIL);
     await prisma.$disconnect();
   });
 
@@ -225,7 +228,7 @@ describe('UsersController Integration Tests', () => {
           role: 'user',
           status: 'active',
         })
-        .expect(422);
+        .expect(400);
 
       expect(res.body.message).toContain('Name must be at least 2 characters');
     });
@@ -245,7 +248,7 @@ describe('UsersController Integration Tests', () => {
           status: 'active',
           birthday: futureDateStr,
         })
-        .expect(422);
+        .expect(400);
 
       expect(res.body.message).toContain('Birthday cannot be in the future');
     });
@@ -357,10 +360,10 @@ describe('UsersController Integration Tests', () => {
     });
 
     it('should ignore points field and keep it unchanged', async () => {
-      await prisma.user.update({ where: { id: ADMIN_ID }, data: { points: 100 } });
+      await prisma.user.update({ where: { id: adminId }, data: { points: 100 } });
 
       const res = await request(app)
-        .put(`/api/v1/admin/users/${ADMIN_ID}`)
+        .put(`/api/v1/admin/users/${adminId}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           name: 'Admin Updated',
@@ -398,7 +401,7 @@ describe('UsersController Integration Tests', () => {
 
     it('should reject self-delete with 400', async () => {
       const res = await request(app)
-        .delete(`/api/v1/admin/users/${ADMIN_ID}`)
+        .delete(`/api/v1/admin/users/${adminId}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(400);
 
@@ -426,7 +429,7 @@ describe('UsersController Integration Tests', () => {
 
       await prisma.auditLog.create({
         data: {
-          adminId: ADMIN_ID,
+          adminId,
           targetUserId: userId,
           action: 'CREATE',
           changedFields: undefined,
@@ -501,7 +504,7 @@ describe('UsersController Integration Tests', () => {
       const res = await request(app)
         .get('/api/v1/admin/users/check-email')
         .set('Authorization', `Bearer ${adminToken}`)
-        .expect(422);
+        .expect(400);
 
       expect(res.body.message).toMatch(/Invalid email address|Required/);
     });

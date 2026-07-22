@@ -1,21 +1,17 @@
-// Database seeder using Prisma. Replaces the previous mysql2-based runner.
 // Seeds roles and the default admin user idempotently (upsert by unique key).
-// Run with `npm run seed` (dev DB) or `npm run seed:test` (test DB).
-import dotenv from 'dotenv';
+// Run with `npm run seed`.
 import { prisma } from './prisma';
 import { hashPassword } from '@utils/hash.util';
 import { logger } from '@utils/logger.util';
 
-// Load env from project root so DATABASE_URL resolves correctly.
-dotenv.config({ path: '../.env' });
-
-// Test mode is enabled via the --test CLI flag.
-const isTestMode = process.argv.includes('--test');
-
 // Default admin credentials. The password is hashed at seed time.
-const ADMIN_NAME = 'Administrator';
-const ADMIN_EMAIL = 'admin@app.com';
-const ADMIN_PASSWORD = 'admin123';
+const ADMIN_NAME = process.env.SEED_ADMIN_NAME || 'Administrator';
+const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL;
+const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD;
+
+if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
+  throw new Error('SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD are required to run the seed.');
+}
 
 // Role definitions seeded into the roles table.
 const ROLES = [
@@ -60,10 +56,6 @@ async function seedAdminUser(): Promise<void> {
 
 // Entry point. Connects, runs seeds, then disconnects.
 async function runSeeds(): Promise<void> {
-  if (isTestMode) {
-    logger.info('Running seeds in TEST mode');
-  }
-
   await prisma.$connect();
   await seedRoles();
   await seedAdminUser();

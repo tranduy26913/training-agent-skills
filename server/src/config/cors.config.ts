@@ -1,7 +1,10 @@
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 export const corsConfig = {
-  origin: process.env.NODE_ENV === 'production'
-    ? process.env.CORS_ORIGIN || 'http://localhost:5173'
-    : 'http://localhost:5173',
+  origin: allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],

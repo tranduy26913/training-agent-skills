@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { UsersService } from './users.service';
-import { sendSuccess } from '@utils/response.util';
+import { sendError, sendSuccess } from '@utils/response.util';
 import { getAuthUserId } from '@utils/auth.util';
 import type { AuthenticatedRequest } from '@types-express';
 
@@ -36,7 +36,7 @@ export class UsersController {
   async createUser(req: AuthenticatedRequest, res: Response): Promise<void> {
     const adminId = getAuthUserId(req);
     if (adminId === null) {
-      sendSuccess(res, { message: 'Not authenticated' });
+      sendError(res, 'Not authenticated', 401);
       return;
     }
     const user = await usersService.createUser(req.body, adminId);
@@ -48,7 +48,7 @@ export class UsersController {
     const id = Number(req.params.id);
     const adminId = getAuthUserId(req);
     if (adminId === null) {
-      sendSuccess(res, { message: 'Not authenticated' });
+      sendError(res, 'Not authenticated', 401);
       return;
     }
     const user = await usersService.updateUser(id, req.body, adminId);
@@ -60,7 +60,7 @@ export class UsersController {
     const id = Number(req.params.id);
     const adminId = getAuthUserId(req);
     if (adminId === null) {
-      sendSuccess(res, { message: 'Not authenticated' });
+      sendError(res, 'Not authenticated', 401);
       return;
     }
     await usersService.deleteUser(id, adminId);

@@ -1,105 +1,77 @@
-# Project Root
+# Japanese Learning Platform
 
-Full-stack web application built with **Vue.js 3**, **Express.js**, **MySQL**, **TypeScript**, **PrimeVue**, and **Vite**.
+Nền tảng học tiếng Nhật sử dụng Vue 3 ở frontend, Express ở backend và Supabase PostgreSQL thông qua Prisma.
 
-## Quick Start
+## Tech stack
 
-```bash
-# 1. Install dependencies
+- Frontend: Vue 3, Vite, TypeScript, Pinia, PrimeVue, Tailwind CSS.
+- Backend: Express, TypeScript, Zod, Prisma.
+- Database: Supabase PostgreSQL.
+- Authentication: JWT do Express quản lý.
+
+## Cấu trúc
+
+```text
+client/   Vue application
+server/   Express API, Prisma schema và migrations
+docs/     Roadmap và hướng dẫn vận hành
+```
+
+Các module Python, COBOL, Project, Script và AI provider cũ đã được loại bỏ.
+
+## Chạy local
+
+Yêu cầu Node.js 20+ và một Supabase project.
+
+1. Tạo file môi trường:
+
+```powershell
+Copy-Item server/.env.example server/.env
+Copy-Item client/.env.example client/.env
+```
+
+2. Điền connection string và secret trong `server/.env`.
+
+3. Cài dependency:
+
+```powershell
+cd server
 npm install
 
-# 2. Copy environment variables
-cp .env.example .env
+cd ../client
+npm install
+```
 
-# 3. Set up database
-#    - Create MySQL database matching DB_NAME in .env
-#    - Run migrations: npm run db:migrate
-#    - Run seeds:      npm run db:seed
+4. Chuẩn bị database và chạy ứng dụng:
 
-# 4. Start development
+```powershell
+cd ../server
+npm run migrate:deploy
+npm run seed
 npm run dev
 ```
 
-## Project Structure
+Mở terminal khác:
 
-| Directory | Description |
-|-----------|-------------|
-| `client/` | Vue.js 3 frontend (Vite + PrimeVue) |
-| `server/` | Express.js backend API |
-| `database/` | SQL migrations & seed data |
-| `python-services/` | Python background workers (ingestion, query, delete) |
-
-## Scripts
-
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start both client & server in dev mode |
-| `npm run dev:client` | Start only the frontend dev server |
-| `npm run dev:server` | Start only the backend dev server |
-| `npm run build` | Build all workspaces for production |
-| `npm run db:migrate` | Run database migrations |
-| `npm run db:seed` | Seed the database |
-
-## Python Services
-
-Background workers that process NotebookLM jobs (document ingestion, semantic queries, document deletion) from a MySQL-backed job queue.
-
-### Requirements
-
-- Python 3.10+
-
-### Setup
-
-```bash
-cd python-services
-
-# (Recommended) Create and activate a virtual environment
-python -m venv .venv
-
-# Windows
-.venv\Scripts\activate
-
-# macOS / Linux
-source .venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
+```powershell
+cd client
+npm run dev
 ```
 
-### Run tests
+Frontend chạy tại `http://localhost:5173`, API mặc định tại `http://localhost:3000/api/v1`.
 
-```bash
-cd python-services
-python -m pytest tests/ -v
+## Kiểm tra
+
+```powershell
+cd server
+npm run build
+npm test
+
+cd ../client
+npm run build
+npm run test:unit
 ```
 
-### Workers
+Integration test backend bắt buộc có `DATABASE_URL_TEST` trỏ tới database riêng. Test sẽ dừng nếu biến này thiếu hoặc trùng `DATABASE_URL`.
 
-| Worker | Job type | Steps |
-|--------|----------|-------|
-| `IngestionWorker` | `INGEST` | parse → chunk → embed → index |
-| `QueryWorker` | `QUERY` | prepare → retrieve → synthesize → store |
-| `DeleteWorker` | `DELETE_DOC` | vector_delete → chunks_delete → document_delete |
-
-All workers consume jobs from the `jobs` table and track progress in `job_steps`. Failed jobs are retried with exponential back-off; jobs that exhaust retries are moved to `dead_letter_jobs`.
-
-### Using a worker
-
-```python
-import mysql.connector
-from workers.ingestion_worker import IngestionWorker
-
-conn = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="your_password",
-    database="your_db",
-)
-
-worker = IngestionWorker(conn)
-
-# Process one job from the queue (returns True if a job was processed)
-worker.run_once()
-
-conn.close()
-```
+Xem thêm [hướng dẫn Supabase](docs/supabase-setup.md) và [roadmap triển khai](docs/japanese-learning-platform-roadmap.md).
