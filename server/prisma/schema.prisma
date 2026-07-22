@@ -1,6 +1,3 @@
-// Canonical Prisma schema for the Japanese learning platform.
-// Edit this file directly and create a migration for every database change.
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,30 +6,35 @@ datasource db {
   provider = "postgresql"
 }
 
+// Vocabulary-first learning model.  Curriculum, progress, quizzes and reviews
+// all point directly to Vocabulary; there are no polymorphic content types.
 model User {
-  id          Int       @id @default(autoincrement())
-  name        String    @db.VarChar(100)
-  email       String    @unique @db.VarChar(255)
-  password    String    @db.VarChar(255)
-  role        String    @default("user") @db.VarChar(20)
-  status      String    @default("active") @db.VarChar(20)
-  avatar      String?   @db.VarChar(500)
-  lastLoginAt DateTime? @map("last_login_at")
-  points      Int       @default(0)
-  note        String?   @db.VarChar(500)
-  birthday    DateTime? @db.Date
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  id                    Int      @id @default(autoincrement())
+  name                  String   @db.VarChar(100)
+  email                 String   @unique @db.VarChar(255)
+  password              String   @db.VarChar(255)
+  role                  String   @default("user") @db.VarChar(20)
+  status                String   @default("active") @db.VarChar(20)
+  avatar                String?  @db.VarChar(500)
+  lastLoginAt           DateTime? @map("last_login_at")
+  points                Int      @default(0)
+  note                  String?  @db.VarChar(500)
+  birthday              DateTime? @db.Date
+  timezone              String   @default("Asia/Ho_Chi_Minh") @db.VarChar(64)
+  dailyLearningItemGoal Int      @default(10) @map("daily_learning_item_goal")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
 
-  auditLogsAsAdmin    AuditLog[]         @relation("AuditLogAdmin")
-  auditLogsAsTarget   AuditLog[]         @relation("AuditLogTarget")
-  vocabulariesCreated Vocabulary[]       @relation("VocabularyCreatedBy")
-  vocabulariesUpdated Vocabulary[]       @relation("VocabularyUpdatedBy")
-  coursesCreated      Course[]           @relation("CourseCreatedBy")
-  enrollments         CourseEnrollment[]
-  lessonProgress      LessonProgress[]
-  quizAttempts        QuizAttempt[]
-  learningSessions    LearningSession[]
+  auditLogsAsAdmin  AuditLog[] @relation("AuditLogAdmin")
+  auditLogsAsTarget AuditLog[] @relation("AuditLogTarget")
+  vocabulariesCreated Vocabulary[] @relation("VocabularyCreatedBy")
+  vocabulariesUpdated Vocabulary[] @relation("VocabularyUpdatedBy")
+  vocabularyProgress UserVocabulary[]
+  flashcardSessions FlashcardSession[]
+  quizAttempts VocabularyQuizAttempt[]
+  reviews LearningReview[]
+  reviewSessions ReviewSession[]
+  reviewLogs ReviewLog[]
 
   @@index([role])
   @@index([status])
@@ -41,11 +43,13 @@ model User {
 
 model Vocabulary {
   id            Int      @id @default(autoincrement())
+  slug          String   @unique @db.VarChar(180)
   kanji         String   @db.VarChar(255)
   hiragana      String?  @db.VarChar(255)
   romaji        String?  @db.VarChar(255)
   meaningVi     String   @map("meaning_vi") @db.VarChar(1000)
   onYomi        String?  @map("on_yomi") @db.VarChar(255)
+  example       String?  @db.VarChar(1000)
   level         String   @default("N5") @db.VarChar(20)
   mediaUrl      String?  @map("media_url") @db.VarChar(500)
   note          String?
@@ -61,187 +65,214 @@ model Vocabulary {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  createdBy User  @relation("VocabularyCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  createdBy User @relation("VocabularyCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
   updatedBy User? @relation("VocabularyUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  lessonEntries LessonVocabulary[]
+  userProgress UserVocabulary[]
+  flashcardItems FlashcardSessionItem[]
+  quizAnswers VocabularyQuizAnswer[]
+  reviews LearningReview[]
+  reviewItems ReviewSessionItem[]
 
+  @@index([level, status, isDeleted])
   @@index([kanji])
-  @@index([level])
-  @@index([status])
-  @@index([createdById])
-  @@index([updatedById])
-  @@index([isDeleted])
   @@map("vocabularies")
 }
 
+model VocabularyLesson {
+  id        Int      @id @default(autoincrement())
+  level     String   @db.VarChar(20)
+  title     String   @db.VarChar(200)
+  description String?
+  position  Int
+  status    String   @default("draft") @db.VarChar(20)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  entries   LessonVocabulary[]
+  flashcardSessions FlashcardSession[]
+  quizAttempts VocabularyQuizAttempt[]
+  reviewSessions ReviewSession[]
+
+  @@unique([level, position])
+  @@index([level, status])
+  @@map("vocabulary_lessons")
+}
+
+model LessonVocabulary {
+  id           Int @id @default(autoincrement())
+  lessonId     Int @map("lesson_id")
+  vocabularyId Int @map("vocabulary_id")
+  position     Int
+  isIntroduced Boolean @default(true) @map("is_introduced")
+  lesson VocabularyLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  vocabulary Vocabulary @relation(fields: [vocabularyId], references: [id], onDelete: Cascade)
+
+  @@unique([lessonId, vocabularyId])
+  @@unique([lessonId, position])
+  @@index([vocabularyId])
+  @@map("lesson_vocabularies")
+}
+
+model UserVocabulary {
+  id           Int @id @default(autoincrement())
+  userId       Int @map("user_id")
+  vocabularyId Int @map("vocabulary_id")
+  firstSeenAt  DateTime? @map("first_seen_at")
+  isFavorite   Boolean @default(false) @map("is_favorite")
+  isSuspended  Boolean @default(false) @map("is_suspended")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vocabulary Vocabulary @relation(fields: [vocabularyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, vocabularyId])
+  @@index([userId, firstSeenAt])
+  @@map("user_vocabularies")
+}
+
+model FlashcardSession {
+  id           Int @id @default(autoincrement())
+  userId       Int @map("user_id")
+  lessonId     Int @map("lesson_id")
+  status       String @default("active") @db.VarChar(20)
+  currentIndex Int @default(0) @map("current_index")
+  startedAt    DateTime @default(now()) @map("started_at")
+  completedAt  DateTime? @map("completed_at")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson VocabularyLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  items FlashcardSessionItem[]
+
+  @@index([userId, status])
+  @@map("flashcard_sessions")
+}
+
+model FlashcardSessionItem {
+  id           Int @id @default(autoincrement())
+  sessionId    Int @map("session_id")
+  vocabularyId Int @map("vocabulary_id")
+  position     Int
+  revealedAt   DateTime? @map("revealed_at")
+  session FlashcardSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  vocabulary Vocabulary @relation(fields: [vocabularyId], references: [id], onDelete: Cascade)
+  @@unique([sessionId, vocabularyId])
+  @@unique([sessionId, position])
+  @@map("flashcard_session_items")
+}
+
+model VocabularyQuizAttempt {
+  id        Int @id @default(autoincrement())
+  userId    Int @map("user_id")
+  lessonId  Int @map("lesson_id")
+  status    String @default("active") @db.VarChar(20)
+  score     Int?
+  snapshot  Json
+  startedAt DateTime @default(now()) @map("started_at")
+  submittedAt DateTime? @map("submitted_at")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson VocabularyLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  answers VocabularyQuizAnswer[]
+  @@index([userId, lessonId, status])
+  @@map("vocabulary_quiz_attempts")
+}
+
+model VocabularyQuizAnswer {
+  id          Int @id @default(autoincrement())
+  attemptId   Int @map("attempt_id")
+  vocabularyId Int @map("vocabulary_id")
+  answer      String @db.VarChar(1000)
+  isCorrect   Boolean @map("is_correct")
+  answeredAt  DateTime @default(now()) @map("answered_at")
+  attempt VocabularyQuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  vocabulary Vocabulary @relation(fields: [vocabularyId], references: [id], onDelete: Cascade)
+  @@unique([attemptId, vocabularyId])
+  @@map("vocabulary_quiz_answers")
+}
+
+model LearningReview {
+  id           Int @id @default(autoincrement())
+  userId       Int @map("user_id")
+  vocabularyId Int @map("vocabulary_id")
+  dueAt        DateTime @map("due_at")
+  intervalDays Int @default(0) @map("interval_days")
+  easeFactor   Float @default(2.5) @map("ease_factor")
+  repetitions  Int @default(0)
+  lastReviewedAt DateTime? @map("last_reviewed_at")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vocabulary Vocabulary @relation(fields: [vocabularyId], references: [id], onDelete: Cascade)
+  @@unique([userId, vocabularyId])
+  @@index([userId, dueAt])
+  @@map("learning_reviews")
+}
+
+model ReviewSession {
+  id Int @id @default(autoincrement())
+  userId Int @map("user_id")
+  lessonId Int? @map("lesson_id")
+  status String @default("active") @db.VarChar(20)
+  filterSnapshot Json
+  currentIndex Int @default(0) @map("current_index")
+  startedAt DateTime @default(now()) @map("started_at")
+  completedAt DateTime? @map("completed_at")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson VocabularyLesson? @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  items ReviewSessionItem[]
+  @@index([userId, status])
+  @@map("review_sessions")
+}
+
+model ReviewSessionItem {
+  id Int @id @default(autoincrement())
+  sessionId Int @map("session_id")
+  vocabularyId Int @map("vocabulary_id")
+  position Int
+  ratedAt DateTime? @map("rated_at")
+  rating Int?
+  session ReviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  vocabulary Vocabulary @relation(fields: [vocabularyId], references: [id], onDelete: Cascade)
+  @@unique([sessionId, vocabularyId])
+  @@unique([sessionId, position])
+  @@map("review_session_items")
+}
+
+model ReviewLog {
+  id Int @id @default(autoincrement())
+  userId Int @map("user_id")
+  vocabularyId Int @map("vocabulary_id")
+  rating Int
+  reviewedAt DateTime @default(now()) @map("reviewed_at")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, reviewedAt])
+  @@map("review_logs")
+}
+
 model AuditLog {
-  id            Int      @id @default(autoincrement())
-  adminId       Int      @map("admin_id")
-  targetUserId  Int      @map("target_user_id")
-  action        String   @db.VarChar(20)
-  changedFields Json?    @map("changed_fields")
-  timestamp     DateTime @default(now())
-
-  admin  User @relation("AuditLogAdmin", fields: [adminId], references: [id], onDelete: Cascade)
+  id Int @id @default(autoincrement())
+  adminId Int @map("admin_id")
+  targetUserId Int @map("target_user_id")
+  action String @db.VarChar(30)
+  changedFields Json? @map("changed_fields")
+  timestamp DateTime @default(now())
+  admin User @relation("AuditLogAdmin", fields: [adminId], references: [id], onDelete: Cascade)
   target User @relation("AuditLogTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
-
   @@index([targetUserId])
   @@map("audit_logs")
 }
 
 model Setting {
-  id        Int      @id @default(autoincrement())
-  key       String   @unique @db.VarChar(100)
-  value     String
-  group     String   @default("general") @db.VarChar(50)
+  id Int @id @default(autoincrement())
+  key String @unique @db.VarChar(100)
+  value String
+  group String @default("general") @db.VarChar(50)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
-
   @@index([group])
   @@map("settings")
 }
 
 model Role {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique @db.VarChar(50)
-  description String?  @db.VarChar(255)
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  @@map("roles")
-}
-
-model Course {
-  id          Int                @id @default(autoincrement())
-  slug        String             @unique @db.VarChar(160)
-  title       String             @db.VarChar(200)
-  description String?
-  level       String             @default("N5") @db.VarChar(20)
-  status      String             @default("draft") @db.VarChar(20)
-  createdById Int                @map("created_by_id")
-  createdAt   DateTime           @default(now()) @map("created_at")
-  updatedAt   DateTime           @updatedAt @map("updated_at")
-  createdBy   User               @relation("CourseCreatedBy", fields: [createdById], references: [id])
-  units       Unit[]
-  enrollments CourseEnrollment[]
-
-  @@index([level, status])
-  @@map("courses")
-}
-
-model Unit {
-  id        Int      @id @default(autoincrement())
-  courseId  Int      @map("course_id")
-  title     String   @db.VarChar(200)
-  position  Int
+  id Int @id @default(autoincrement())
+  name String @unique @db.VarChar(50)
+  description String? @db.VarChar(255)
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  lessons   Lesson[]
-
-  @@unique([courseId, position])
-  @@map("units")
-}
-
-model Lesson {
-  id        Int              @id @default(autoincrement())
-  unitId    Int              @map("unit_id")
-  title     String           @db.VarChar(200)
-  summary   String?
-  position  Int
-  status    String           @default("draft") @db.VarChar(20)
-  createdAt DateTime         @default(now()) @map("created_at")
-  updatedAt DateTime         @updatedAt @map("updated_at")
-  unit      Unit             @relation(fields: [unitId], references: [id], onDelete: Cascade)
-  sections  LessonSection[]
-  progress  LessonProgress[]
-  quizzes   Quiz[]
-
-  @@unique([unitId, position])
-  @@map("lessons")
-}
-
-model LessonSection {
-  id       Int     @id @default(autoincrement())
-  lessonId Int     @map("lesson_id")
-  type     String  @db.VarChar(30)
-  title    String? @db.VarChar(200)
-  content  Json
-  position Int
-  lesson   Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-
-  @@unique([lessonId, position])
-  @@map("lesson_sections")
-}
-
-model CourseEnrollment {
-  id         Int      @id @default(autoincrement())
-  userId     Int      @map("user_id")
-  courseId   Int      @map("course_id")
-  status     String   @default("active") @db.VarChar(20)
-  enrolledAt DateTime @default(now()) @map("enrolled_at")
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, courseId])
-  @@map("course_enrollments")
-}
-
-model LessonProgress {
-  id          Int       @id @default(autoincrement())
-  userId      Int       @map("user_id")
-  lessonId    Int       @map("lesson_id")
-  status      String    @default("not_started") @db.VarChar(20)
-  completedAt DateTime? @map("completed_at")
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lesson      Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, lessonId])
-  @@map("lesson_progress")
-}
-
-model Quiz {
-  id        Int           @id @default(autoincrement())
-  lessonId  Int           @map("lesson_id")
-  title     String        @db.VarChar(200)
-  passScore Int           @default(70) @map("pass_score")
-  lesson    Lesson        @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  questions Question[]
-  attempts  QuizAttempt[]
-
-  @@map("quizzes")
-}
-
-model Question {
-  id       Int    @id @default(autoincrement())
-  quizId   Int    @map("quiz_id")
-  type     String @db.VarChar(30)
-  prompt   Json
-  position Int
-  answer   Json
-  quiz     Quiz   @relation(fields: [quizId], references: [id], onDelete: Cascade)
-
-  @@unique([quizId, position])
-  @@map("questions")
-}
-
-model QuizAttempt {
-  id          Int       @id @default(autoincrement())
-  userId      Int       @map("user_id")
-  quizId      Int       @map("quiz_id")
-  score       Int?
-  submittedAt DateTime? @map("submitted_at")
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  quiz        Quiz      @relation(fields: [quizId], references: [id], onDelete: Cascade)
-
-  @@index([userId, quizId])
-  @@map("quiz_attempts")
-}
-
-model LearningSession {
-  id        Int       @id @default(autoincrement())
-  userId    Int       @map("user_id")
-  startedAt DateTime  @default(now()) @map("started_at")
-  endedAt   DateTime? @map("ended_at")
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("learning_sessions")
+  @@map("roles")
 }

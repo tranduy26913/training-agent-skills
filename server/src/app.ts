@@ -4,6 +4,7 @@ import { corsConfig, appConfig } from '@config';
 import { authRoutes } from '@modules/auth/auth.routes';
 import { usersRoutes } from '@modules/admin/users/users.routes';
 import { vocabulariesRoutes } from '@modules/admin/vocabularies/vocabularies.routes';
+import { learnerRoutes } from '@modules/learner/learner.routes';
 import { errorMiddleware } from '@middleware/error.middleware';
 import { logger } from '@utils/logger.util';
 
@@ -24,6 +25,7 @@ app.use((req, _res, next) => {
 app.use(`${appConfig.apiPrefix}/auth`, authRoutes);
 app.use(`${appConfig.apiPrefix}/admin/users`, usersRoutes);
 app.use(`${appConfig.apiPrefix}/admin/vocabularies`, vocabulariesRoutes);
+app.use(`${appConfig.apiPrefix}/learner`, learnerRoutes);
 
 // Health check.
 app.get(`${appConfig.apiPrefix}/health`, (_req, res) => {

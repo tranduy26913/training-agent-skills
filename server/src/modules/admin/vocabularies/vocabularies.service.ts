@@ -4,6 +4,7 @@ import type { CreateVocabularyInput, UpdateVocabularyInput } from './vocabularie
 
 export interface VocabularyResponse {
   id: number;
+  slug: string;
   kanji: string;
   hiragana: string | null;
   romaji: string | null;
@@ -12,6 +13,7 @@ export interface VocabularyResponse {
   level: string;
   mediaUrl: string | null;
   note: string | null;
+  example: string | null;
   tags: string[];
   status: 'draft' | 'published' | 'archived';
   createdById: number;
@@ -46,6 +48,7 @@ function normalizeStatus(status: string): 'draft' | 'published' | 'archived' {
 function toResponse(row: VocabularyRow): VocabularyResponse {
   return {
     id: row.id,
+    slug: row.slug,
     kanji: row.kanji,
     hiragana: row.hiragana,
     romaji: row.romaji,
@@ -54,6 +57,7 @@ function toResponse(row: VocabularyRow): VocabularyResponse {
     level: row.level,
     mediaUrl: row.mediaUrl,
     note: row.note,
+    example: row.example,
     tags: normalizeTags(row.tags),
     status: normalizeStatus(row.status),
     createdById: row.createdById,
@@ -96,7 +100,15 @@ export class VocabulariesService {
   }
 
   async createVocabulary(data: CreateVocabularyInput, adminId: number): Promise<VocabularyResponse> {
+    const slugBase = `${data.kanji}-${data.meaningVi}`
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9\u3040-\u30ff\u3400-\u9fff]+/g, '-')
+      .replace(/(^-|-$)/g, '')
+      .slice(0, 150) || 'vocabulary';
     const created = await this.repository.create({
+      slug: `${slugBase}-${Date.now()}`,
       kanji: data.kanji,
       hiragana: nullableText(data.hiragana),
       romaji: nullableText(data.romaji),
@@ -105,6 +117,7 @@ export class VocabulariesService {
       level: data.level,
       mediaUrl: nullableText(data.mediaUrl),
       note: nullableText(data.note),
+      example: nullableText(data.example),
       tags: data.tags,
       status: data.status,
       createdBy: { connect: { id: adminId } },
@@ -136,6 +149,7 @@ export class VocabulariesService {
     if (data.level !== undefined) updateData.level = data.level;
     if (data.mediaUrl !== undefined) updateData.mediaUrl = nullableText(data.mediaUrl);
     if (data.note !== undefined) updateData.note = nullableText(data.note);
+    if (data.example !== undefined) updateData.example = nullableText(data.example);
     if (data.tags !== undefined) updateData.tags = data.tags;
     if (data.status !== undefined) updateData.status = data.status;
 

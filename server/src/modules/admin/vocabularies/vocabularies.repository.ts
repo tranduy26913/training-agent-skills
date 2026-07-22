@@ -3,6 +3,7 @@ import type { Prisma } from '@prisma/client';
 
 export const VOCABULARY_PUBLIC_SELECT = {
   id: true,
+  slug: true,
   kanji: true,
   hiragana: true,
   romaji: true,
@@ -11,6 +12,7 @@ export const VOCABULARY_PUBLIC_SELECT = {
   level: true,
   mediaUrl: true,
   note: true,
+  example: true,
   tags: true,
   status: true,
   createdById: true,

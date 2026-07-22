@@ -46,6 +46,7 @@ export const createVocabularySchema = z.object({
   level: z.enum(VOCABULARY_LEVELS).default('N5'),
   mediaUrl: mediaUrlSchema,
   note: optionalString(2000, 'Note must be at most 2000 characters'),
+  example: optionalString(1000, 'Example must be at most 1000 characters'),
   tags: tagsSchema,
   status: z.enum(VOCABULARY_STATUSES).default('draft'),
 });
