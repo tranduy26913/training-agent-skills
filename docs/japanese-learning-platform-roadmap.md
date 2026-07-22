@@ -2,7 +2,7 @@
 
 Giữ nguyên stack Vue 3/Vite/TypeScript/Pinia/PrimeVue/Tailwind CSS và Express/TypeScript/Zod/Prisma. Database dùng Supabase PostgreSQL; frontend tiếp tục gọi REST API của Express.
 
-Mỗi phase chỉ bắt đầu sau khi phase trước được duyệt và nghiệm thu.
+Mặc định mỗi phase chỉ bắt đầu sau khi phase trước được duyệt và nghiệm thu. Riêng MVP learner-first, Phase 7–10 được ưu tiên trước Phase 5–6; nội dung được nạp trực tiếp vào database cho đến khi CMS được triển khai.
 
 ## Thứ tự triển khai
 
@@ -36,9 +36,10 @@ Mỗi phase chỉ bắt đầu sau khi phase trước được duyệt và nghi�
 
 **Trạng thái: Đang thực hiện**
 
-- Đã có nền tảng Course, Unit, Lesson, Section, Enrollment, Progress, Quiz, Question, Attempt và LearningSession.
-- Cần bổ sung Kanji, Grammar, Example, QuestionOption/AttemptAnswer, ReviewItem, Favorite, Note và Media.
-- Hoàn thiện index, cascade, publish state, soft delete, ERD và seed N5.
+- Giữ các bảng Course/Lesson hiện hữu cho hướng mở rộng nhưng learner MVP hiện tại không phụ thuộc chúng.
+- Ưu tiên schema learner MVP: LearningItem với hai subtype Vocabulary/Kanji, CurriculumLesson/Entry, UserLearningItem, FlashcardSession, LearningQuizAttempt/Answer và LearningReview/Log.
+- Hoàn thiện index, subtype integrity, publish state và soft delete; import metadata 25 bài Elementary I cùng Vocabulary/Kanji N5 theo bài.
+- Grammar, Example library, question bank tổng quát, Note và Media được hoãn đến sau Vocabulary/Kanji MVP.
 
 ### Phase 4 — Tài khoản, phân quyền và onboarding
 
@@ -47,32 +48,46 @@ Mỗi phase chỉ bắt đầu sau khi phase trước được duyệt và nghi�
 
 ### Phase 5 — CMS khóa học
 
+**Trạng thái: Tạm hoãn sau Phase 10**
+
 - CRUD Course/Unit/Lesson/Section, sắp xếp nội dung, preview và publish.
 - Audit mọi thay đổi quan trọng.
 
 ### Phase 6 — CMS nội dung tiếng Nhật
 
+**Trạng thái: Tạm hoãn sau Phase 10**
+
 - Vocabulary, Kanji, Grammar, Example, furigana, audio, tag và import/export.
 - Gắn nội dung tái sử dụng vào bài học.
 
-### Phase 7 — Trải nghiệm học bài
+### Phase 7 — Lesson hub và học bằng Flashcard
 
-- Course catalog, enrollment, learning path và lesson player.
-- Lưu vị trí, tiến độ, favorite và note.
+**Trạng thái: Đã có spec — ưu tiên triển khai**
 
-### Phase 8 — Quiz engine
+- Luôn có đúng 5 trình độ N5–N1 và bài theo edition/quyển Minna no Nihongo.
+- Hai nhóm Từ vựng/Hán tự trong mỗi bài; cả hai học mới bằng Flashcard.
 
-- Question bank, nhiều loại câu hỏi, chấm điểm backend và lưu câu trả lời.
-- Pass/fail, unlock và ôn lại câu sai.
+### Phase 8 — Vocabulary Quiz và Kanji Quiz
 
-### Phase 9 — Flashcard và spaced repetition
+**Trạng thái: Đã có spec — ưu tiên triển khai**
 
-- Review queue, Again/Hard/Good/Easy, lịch ôn và review history.
+- Quiz riêng theo nhóm vừa học: Vocabulary meaning/reading và Kanji meaning/reading.
+- Chấm điểm backend, pass/fail, retry và lưu item sai.
+
+### Phase 9 — Flashcard SRS cho Vocabulary/Kanji
+
+**Trạng thái: Đã có spec — ưu tiên triển khai**
+
+- Một review queue cho cả Vocabulary/Kanji, lọc type/level/bài, Again/Hard/Good/Easy và history.
 - Unit test thuật toán scheduling.
 
-### Phase 10 — Dashboard và streak
+### Phase 10 — Vocabulary/Kanji dashboard và streak
 
-- Bài đang học, mục tiêu hôm nay, review đến hạn, streak và thống kê thực.
+**Trạng thái: Đã có spec — ưu tiên triển khai**
+
+- Bài/nhóm tiếp theo, mục tiêu learning items, review đến hạn, streak và tiến độ riêng hai nhóm trên 5 level.
+
+Chi tiết Phase 7–10: [Learner MVP specification](./learner-mvp/specs/phase-7-10-design/00-index.md).
 
 ### Phase 11 — Media, tìm kiếm và thư viện cá nhân
 
@@ -102,4 +117,4 @@ Mỗi phase chỉ bắt đầu sau khi phase trước được duyệt và nghi�
 
 ## Phạm vi MVP
 
-MVP gồm Phase 0–10 cùng các yêu cầu bắt buộc về bảo mật, accessibility, test và vận hành của Phase 11–15. AI, speech recognition, payment và social learning không thuộc MVP.
+MVP hiện tại chỉ gồm trải nghiệm học Vocabulary và Kanji bằng Flashcard/Quiz của Phase 7–10 cùng các yêu cầu bắt buộc về bảo mật, accessibility, test và vận hành. Grammar, course platform tổng quát, CMS, AI, speech recognition, payment và social learning không thuộc MVP.
